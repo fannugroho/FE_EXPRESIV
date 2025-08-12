@@ -7,7 +7,7 @@ let employeesData = []; // Add this to store employee data
 let uploadedFiles = [];
 
 // API Configuration
-const API_BASE_URL = 'https://expressiv-be-sb.idsdev.site/api';
+const API_BASE_URL = `${BASE_URL}/api`;
 
 /*
  * DOCUMENT EDITABILITY CONTROL
@@ -548,7 +548,7 @@ function populateFormData(data) {
         discSum: data.discSum,
         netPriceAfterDiscount: data.netPriceAfterDiscount,
         docTax: data.docTax,
-        vatSum: data.vatSum,
+        vatSum: data.docTax,
         grandTotal: data.grandTotal
     });
     
@@ -564,8 +564,8 @@ function populateFormData(data) {
             // 4. Tax Base Other Value (taxBase) - API Field: "dpp1112"
         safeSetValue('dpp1112', `${currencyCode} ${formatCurrencyIDR(data.dpp1112 || '0.00')}`);
     
-    // 5. VAT 12% (vatAmount) - API Field: "docCur" "vatSum"
-    safeSetValue('vatSum', `${currencyCode} ${formatCurrencyIDR(data.vatSum || '0.00')}`);
+    // 5. VAT 12% (vatAmount) - API Field: "docCur" "docTax"
+    safeSetValue('vatSum', `${currencyCode} ${formatCurrencyIDR(data.docTax || '0.00')}`);
     
     // 6. GRAND TOTAL (grandTotal) - API Field: "docCur" "grandTotal"
     safeSetValue('grandTotal', `${currencyCode} ${formatCurrencyIDR(data.grandTotal || '0.00')}`);
@@ -1333,7 +1333,7 @@ function prepareInvoicePayload(data) {
         u_BSI_Expressiv_PreparedByName: data.u_BSI_Expressiv_PreparedByName || '',
         docCur: data.docCur || 'IDR',
         docRate: parseFloat(data.docRate) || 1,
-        vatSum: parseFloat(data.vatSum) || 0,
+        vatSum: parseFloat(data.docTax) || 0,
         vatSumFC: parseFloat(data.vatSumFC) || 0,
         wtSum: parseFloat(data.wtSum) || 0,
         wtSumFC: parseFloat(data.wtSumFC) || 0,

@@ -1,15 +1,15 @@
 // AR Invoice Print Page JavaScript (Approve)
 
-// API Configuration
-const API_BASE_URL = 'https://expressiv-be-sb.idsdev.site/api';
+// API Configuration - Using BASE_URL from auth.js
+const API_BASE_URL = `${BASE_URL}/api`;
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Get invoice data from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const stagingID = urlParams.get('stagingID');
     const docEntry = urlParams.get('docEntry');
     const identifier = stagingID || docEntry;
-    
+
     // Try to immediately populate signature data from localStorage if available
     if (identifier) {
         try {
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error pre-populating signature from localStorage:', error);
         }
     }
-    
+
     if (stagingID) {
         loadInvoiceDataFromAPI(stagingID);
     } else if (docEntry) {
@@ -53,11 +53,11 @@ async function loadInvoiceDataFromAPI(identifier) {
     try {
         console.log('Fetching invoice data from API for identifier:', identifier);
         const response = await fetch(`${API_BASE_URL}/ar-invoices/${identifier}/details`);
-        
+
         if (response.ok) {
             const result = await response.json();
             console.log('API Response:', result);
-            
+
             if (result.status && result.data) {
                 populateInvoiceData(result.data);
             } else {
@@ -77,7 +77,7 @@ async function loadInvoiceDataFromAPI(identifier) {
 // Function to show error message
 function showErrorMessage(message) {
     console.error(message);
-    
+
     // Create error display
     const pagesContainer = document.getElementById('pagesContainer');
     pagesContainer.innerHTML = `
@@ -94,7 +94,7 @@ async function loadInvoiceDataFromApprovePage(identifier) {
     try {
         // Get data from localStorage or sessionStorage that was set by approveInvItem.html
         const invoiceData = await getInvoiceDataFromStorage(identifier);
-        
+
         if (invoiceData) {
             populateInvoiceData(invoiceData);
         } else {
@@ -114,13 +114,13 @@ async function getInvoiceDataFromStorage(identifier) {
     if (storedData) {
         return JSON.parse(storedData);
     }
-    
+
     // Try to get data from sessionStorage
     const sessionData = sessionStorage.getItem(`invoice_${identifier}`);
     if (sessionData) {
         return JSON.parse(sessionData);
     }
-    
+
     // If no stored data, try to get from API
     try {
         console.log('No stored data found, trying to fetch from API...');
@@ -135,7 +135,7 @@ async function getInvoiceDataFromStorage(identifier) {
     } catch (error) {
         console.error('Error fetching data from API:', error);
     }
-    
+
     return null;
 }
 
@@ -178,13 +178,13 @@ function formatMultipleValues(values, maxLength) {
     if (values.length > 1) {
         const rows = [];
         let totalLength = 0;
-        
+
         for (let i = 0; i < values.length; i += 3) {
             const row = values.slice(i, i + 3);
             const rowText = row.join(', ');
             const isLastRow = i + 3 >= values.length;
             const separator = isLastRow ? '.' : ',';
-            
+
             // Check if adding this row would exceed maxLength
             if (totalLength + rowText.length + separator.length > maxLength) {
                 // If it would exceed, truncate and add ellipsis
@@ -210,20 +210,20 @@ function formatMultipleValuesTwoPerLine(values, prefix) {
     if (values.length === 0) {
         return `<div class="data-item">${prefix}</div>`;
     }
-    
+
     if (values.length === 1) {
         const singleValue = values[0];
         const formattedValue = singleValue.length > 20 ? wrapText(singleValue, 20) : singleValue;
         return `<div class="data-item">${prefix}${formattedValue}.</div>`;
     }
-    
+
     const rows = [];
     rows.push(`<div class="data-item">${prefix}</div>`);
-    
+
     for (let i = 0; i < values.length; i += 2) {
         const row = values.slice(i, i + 2);
         const isLastRow = i + 2 >= values.length;
-        
+
         if (row.length === 2) {
             // Two items in the row
             const separator = isLastRow ? '.' : ',';
@@ -236,7 +236,7 @@ function formatMultipleValuesTwoPerLine(values, prefix) {
             rows.push(`<div class="data-item">${singleItem}.</div>`);
         }
     }
-    
+
     return rows.join('');
 }
 
@@ -245,7 +245,7 @@ function wrapText(text, maxLength) {
     if (!text || text.length <= maxLength) {
         return text;
     }
-    
+
     // If text doesn't contain spaces or is a single long word
     if (!text.includes(' ')) {
         const chunks = [];
@@ -254,12 +254,12 @@ function wrapText(text, maxLength) {
         }
         return chunks.join('<br>');
     }
-    
+
     // If text contains spaces, try to break at word boundaries
     const words = text.split(' ');
     const lines = [];
     let currentLine = '';
-    
+
     for (const word of words) {
         // If single word is longer than maxLength, break it
         if (word.length > maxLength) {
@@ -285,11 +285,11 @@ function wrapText(text, maxLength) {
             currentLine = currentLine ? currentLine + ' ' + word : word;
         }
     }
-    
+
     if (currentLine) {
         lines.push(currentLine);
     }
-    
+
     return lines.join('<br>');
 }
 
@@ -299,7 +299,7 @@ async function loadInvoiceData(invoiceId) {
         // Replace with your actual API endpoint
         const response = await fetch(`${API_BASE_URL}/ar-invoices/${invoiceId}/details`);
         const data = await response.json();
-        
+
         if (data.status && data.data) {
             populateInvoiceData(data.data);
         } else {
@@ -315,7 +315,7 @@ async function loadInvoiceData(invoiceId) {
 // Function to populate invoice data with new API structure
 function populateInvoiceData(invoice) {
     console.log('Populating invoice data:', invoice);
-    
+
     // Invoice details - map from new API structure to print page structure
     document.getElementById('invoiceNumber').textContent = invoice.u_bsi_invnum || invoice.docNum || '';
     // Handle Vision Invoice Number
@@ -360,10 +360,10 @@ function populateInvoiceData(invoice) {
         dueDateElement.className = 'detail-value';
         dueDateElement.textContent = '';
     }
-    
+
     // Recipient information
     document.getElementById('recipientName').textContent = invoice.cardName || '';
-    
+
     // Parse address from the address field
     if (invoice.address) {
         const addressLines = invoice.address.split('\r\r');
@@ -377,12 +377,12 @@ function populateInvoiceData(invoice) {
         document.getElementById('recipientAddress').textContent = '';
         document.getElementById('recipientCity').textContent = '';
     }
-    
+
     // Shipper information - Always use hardcoded value
     document.getElementById('shipperName').textContent = 'PT. KANSAI PAINT INDONESIA';
-    
 
-    
+
+
     // Order numbers - use specific fields for DO and PO numbers with character limits
     const doNumbersElement = document.getElementById('doNumbers');
     if (invoice.u_bsi_udf1) {
@@ -399,7 +399,7 @@ function populateInvoiceData(invoice) {
         doNumbersElement.className = 'field-value';
         doNumbersElement.innerHTML = '<strong>DO No.</strong> : ';
     }
-    
+
     // Handle P/O NO with multiple values and character limits
     const poNumbersElement = document.getElementById('poNumbers');
     if (invoice.u_bsi_udf2) {
@@ -416,30 +416,30 @@ function populateInvoiceData(invoice) {
         poNumbersElement.className = 'detail-value';
         poNumbersElement.textContent = '';
     }
-    
+
     // Items table - convert from new API structure to print page structure
     const printItems = convertItemsForPrint(invoice.arInvoiceDetails || []);
     populateItemsTable(printItems);
-    
+
     // Store invoice data for use in additional pages
     const urlParams = new URLSearchParams(window.location.search);
     const stagingID = urlParams.get('stagingID');
     const docEntry = urlParams.get('docEntry');
     const identifier = stagingID || docEntry;
-    
+
     if (identifier) {
         saveInvoiceDataToStorage(identifier, invoice);
     }
-    
+
     // Financial summary - use API fields with currency
     populateFinancialSummary(invoice);
-    
+
     // Bank account information from API data
     populateBankInformation(invoice);
-    
+
     // Signature information - populate from API data
     populateSignatureInformation(invoice);
-    
+
     // QR Code information - populate from API data
     populateQRCode(invoice);
 }
@@ -450,9 +450,9 @@ function getCurrentInvoiceData() {
     const urlParams = new URLSearchParams(window.location.search);
     const stagingID = urlParams.get('stagingID');
     const docEntry = urlParams.get('docEntry');
-    
+
     console.log('Getting current invoice data for:', { stagingID, docEntry });
-    
+
     if (stagingID) {
         const storedData = localStorage.getItem(`invoice_${stagingID}`);
         if (storedData) {
@@ -461,7 +461,7 @@ function getCurrentInvoiceData() {
             return parsedData;
         }
     }
-    
+
     if (docEntry) {
         const storedData = localStorage.getItem(`invoice_${docEntry}`);
         if (storedData) {
@@ -470,7 +470,7 @@ function getCurrentInvoiceData() {
             return parsedData;
         }
     }
-    
+
     // Try sessionStorage as fallback
     if (stagingID) {
         const sessionData = sessionStorage.getItem(`invoice_${stagingID}`);
@@ -480,7 +480,7 @@ function getCurrentInvoiceData() {
             return parsedData;
         }
     }
-    
+
     if (docEntry) {
         const sessionData = sessionStorage.getItem(`invoice_${docEntry}`);
         if (sessionData) {
@@ -489,7 +489,7 @@ function getCurrentInvoiceData() {
             return parsedData;
         }
     }
-    
+
     console.log('No invoice data found in storage');
     return null;
 }
@@ -502,7 +502,7 @@ function populateBankInformation(invoice) {
     console.log('U_BankCode from API:', invoice.U_BankCode);
     console.log('bankCode from API:', invoice.bankCode);
     console.log('All invoice keys for debugging:', Object.keys(invoice));
-    
+
     // Hardcoded bank data mapping based on U_bankCode
     const bankDataMapping = {
         "MUFG": {
@@ -517,22 +517,22 @@ function populateBankInformation(invoice) {
             "address_street": "Jl. Jend. Sudirman Kav.5-6",
             "address_cityPos": "Jakarta 10220"
         },
-        "CIMB NIAGA": {
+        "CIMB": {
             "name": "CIMB NIAGA",
             "address_building": "Gd BEFA Square Jl Kalimantan Blok CA 2-1",
             "address_street": "Kawasan Industri MM2100 Cibitung Bekasi 17530"
         }
     };
-    
+
     let bankInformation = '';
-    
+
     // Get bank data based on U_bankCode - check multiple possible field names
     const bankCode = invoice.u_bankCode || invoice.U_BankCode || invoice.bankCode || invoice.u_BankCode;
     console.log('Final bankCode value used:', bankCode);
     if (bankCode && bankDataMapping[bankCode]) {
         const bankData = bankDataMapping[bankCode];
         console.log('Using hardcoded bank data for:', bankCode, bankData);
-        
+
         // Build bank information display with consistent spacing
         bankInformation = `<br>${bankData.name}`;
         if (bankData.address_building) {
@@ -544,7 +544,7 @@ function populateBankInformation(invoice) {
         if (bankData.address_cityPos) {
             bankInformation += `<br>${bankData.address_cityPos}`;
         }
-        
+
         // Add account number if available (without extra spacing since it's part of hardcoded data)
         if (invoice.account) {
             bankInformation += `<br><br>${invoice.account}`;
@@ -556,10 +556,10 @@ function populateBankInformation(invoice) {
             bankInformation = `<br>${invoice.account}`;
         }
     }
-    
+
     // Populate the DOM element
     const bankInformationElement = document.getElementById('bankInformation');
-    
+
     if (bankInformationElement) {
         bankInformationElement.innerHTML = bankInformation;
         console.log('Bank information populated with hardcoded data and account:', bankInformation);
@@ -575,7 +575,7 @@ function populateBankInformationForPage(invoice, pageNum) {
     console.log(`u_bankCode from API for page ${pageNum}:`, invoice?.u_bankCode);
     console.log(`U_BankCode from API for page ${pageNum}:`, invoice?.U_BankCode);
     console.log(`bankCode from API for page ${pageNum}:`, invoice?.bankCode);
-    
+
     // Hardcoded bank data mapping based on U_bankCode
     const bankDataMapping = {
         "MUFG": {
@@ -590,22 +590,22 @@ function populateBankInformationForPage(invoice, pageNum) {
             "address_street": "Jl. Jend. Sudirman Kav.5-6",
             "address_cityPos": "Jakarta 10220"
         },
-        "CIMB NIAGA": {
+        "CIMB": {
             "name": "CIMB NIAGA",
             "address_building": "Gd BEFA Square Jl Kalimantan Blok CA 2-1",
             "address_street": "Kawasan Industri MM2100 Cibitung Bekasi 17530"
         }
     };
-    
+
     let bankInformation = '';
-    
+
     // Get bank data based on U_bankCode - check multiple possible field names
     const bankCode = invoice?.u_bankCode || invoice?.U_BankCode || invoice?.bankCode || invoice?.u_BankCode;
     console.log(`Final bankCode value used for page ${pageNum}:`, bankCode);
     if (bankCode && bankDataMapping[bankCode]) {
         const bankData = bankDataMapping[bankCode];
         console.log(`Using hardcoded bank data for page ${pageNum}:`, bankCode, bankData);
-        
+
         // Build bank information display with consistent spacing
         bankInformation = bankData.name;
         if (bankData.address_building) {
@@ -617,7 +617,7 @@ function populateBankInformationForPage(invoice, pageNum) {
         if (bankData.address_cityPos) {
             bankInformation += `<br>${bankData.address_cityPos}`;
         }
-        
+
         // Add account number if available (without extra spacing since it's part of hardcoded data)
         if (invoice?.account) {
             bankInformation += `<br><br>${invoice.account}`;
@@ -629,10 +629,10 @@ function populateBankInformationForPage(invoice, pageNum) {
             bankInformation = invoice.account;
         }
     }
-    
+
     // Populate the DOM element for the specific page
     const bankInformationElement = document.getElementById(`bankInformation${pageNum}`);
-    
+
     if (bankInformationElement) {
         bankInformationElement.innerHTML = bankInformation;
         console.log(`Bank information populated for page ${pageNum} with hardcoded data and account:`, bankInformation);
@@ -644,11 +644,11 @@ function populateBankInformationForPage(invoice, pageNum) {
 // Function to populate financial summary from API data
 function populateFinancialSummary(invoice) {
     console.log('Populating financial summary from invoice:', invoice);
-    
+
     // Get currency from API - use docCur field from API
     const currency = invoice.docCur || '';
     console.log('Currency from API docCur field:', currency);
-    
+
     // Financial summary field mapping based on API response
     const financialData = {
         // 1. Total (totalAmount) - API Field: "docCur" "netPrice"
@@ -675,9 +675,9 @@ function populateFinancialSummary(invoice) {
             currency: currency,
             label: 'Tax Base Other Value'
         },
-        // 5. VAT 12% (vatAmount) - API Field: "docCur" "vatSum"
+        // 5. VAT 12% (vatAmount) - API Field: "docCur" "docTax"
         vatAmount: {
-            value: invoice.vatSum || 0,
+            value: invoice.docTax || 0,
             currency: currency,
             label: 'VAT 12%'
         },
@@ -688,19 +688,29 @@ function populateFinancialSummary(invoice) {
             label: 'GRAND TOTAL'
         }
     };
-    
+
     // Populate the DOM elements
     Object.keys(financialData).forEach(key => {
         const element = document.getElementById(key);
         if (element) {
             const data = financialData[key];
-            element.textContent = formatCurrencyWithCurrency(data.value, data.currency);
-            console.log(`${data.label}: ${formatCurrencyWithCurrency(data.value, data.currency)}`);
+            element.textContent = formatCurrency(data.value);
+            console.log(`${data.label}: ${formatCurrency(data.value)}`);
         } else {
             console.warn(`Financial summary element not found: ${key}`);
         }
     });
-    
+
+    // Populate currency fields
+    const currencyFields = ['totalCurrency', 'discountCurrency', 'salesCurrency', 'taxBaseCurrency', 'vatCurrency', 'grandCurrency'];
+    currencyFields.forEach(fieldId => {
+        const element = document.getElementById(fieldId);
+        if (element) {
+            element.textContent = currency;
+            console.log(`Currency field ${fieldId}: ${currency}`);
+        }
+    });
+
     console.log('Financial summary populated with currency from docCur:', currency);
     console.log('Financial summary populated:', financialData);
 }
@@ -711,24 +721,24 @@ function populateSignatureInformation(invoice) {
     console.log('Invoice approval summary:', invoice.arInvoiceApprovalSummary);
     console.log('Direct approvedByName:', invoice.approvedByName);
     console.log('Direct preparedByName:', invoice.u_BSI_Expressiv_PreparedByName);
-    
+
     let approvedByName = '';
     let approvedPosition = '';
-    
+
     // Get signature data ONLY from approval summary's approvedByName field
     if (invoice.arInvoiceApprovalSummary && invoice.arInvoiceApprovalSummary.approvedByName) {
         approvedByName = invoice.arInvoiceApprovalSummary.approvedByName;
         approvedPosition = invoice.arInvoiceApprovalSummary.approvedPosition || '';
     }
-    
-    console.log('Final signature data:', { 
-        approvedByName, 
+
+    console.log('Final signature data:', {
+        approvedByName,
         approvedPosition,
         approvalSummary: invoice.arInvoiceApprovalSummary,
         directApprovedByName: invoice.approvedByName,
-        preparedByName: invoice.u_BSI_Expressiv_PreparedByName 
+        preparedByName: invoice.u_BSI_Expressiv_PreparedByName
     });
-    
+
     console.log('Approval summary details:', {
         approvedByName: invoice.arInvoiceApprovalSummary?.approvedByName,
         receivedByName: invoice.arInvoiceApprovalSummary?.receivedByName,
@@ -737,15 +747,15 @@ function populateSignatureInformation(invoice) {
         receivedPosition: invoice.arInvoiceApprovalSummary?.receivedPosition,
         preparedPosition: invoice.arInvoiceApprovalSummary?.preparedPosition
     });
-    
+
     // Populate the DOM elements
     const signatureNameElement = document.getElementById('signatureName');
     const signatureTitleElement = document.getElementById('signatureTitle');
-    
+
     console.log('Looking for signature elements...');
     console.log('signatureNameElement found:', !!signatureNameElement);
     console.log('signatureTitleElement found:', !!signatureTitleElement);
-    
+
     if (signatureNameElement) {
         signatureNameElement.textContent = approvedByName;
         console.log('Setting signature name to:', approvedByName);
@@ -755,7 +765,7 @@ function populateSignatureInformation(invoice) {
         console.error('Signature name element not found!');
         console.log('Available elements with "signature" in id:', document.querySelectorAll('[id*="signature"]'));
     }
-    
+
     if (signatureTitleElement) {
         signatureTitleElement.textContent = approvedPosition;
         console.log('Setting signature title to:', approvedPosition);
@@ -764,7 +774,7 @@ function populateSignatureInformation(invoice) {
     } else {
         console.error('Signature title element not found!');
     }
-    
+
     // Handle signature image display for verified names
     displaySignatureImage(approvedByName);
 }
@@ -780,14 +790,14 @@ function displaySignatureImage(signatureName) {
         'Takahiro Kimura': 'Takahiro Kimura.jpg',
         'Yuya Eguchi': 'Yuya Eguchi.jpg'
     };
-    
+
     // Check if the signature name is in the verified list
     if (verifiedSignatures[signatureName]) {
         const signatureSpaceElement = document.querySelector('.signature-space');
         if (signatureSpaceElement) {
             // Clear the signature space
             signatureSpaceElement.innerHTML = '';
-            
+
             // Create and add the signature image
             const signatureImage = document.createElement('img');
             signatureImage.src = `../../../../../image/${verifiedSignatures[signatureName]}`;
@@ -800,17 +810,17 @@ function displaySignatureImage(signatureName) {
                 display: block;
                 margin: 0 auto;
             `;
-            
+
             // Add error handling for image loading
-            signatureImage.onerror = function() {
+            signatureImage.onerror = function () {
                 console.error(`Failed to load signature image for: ${signatureName}`);
                 this.style.display = 'none';
             };
-            
-            signatureImage.onload = function() {
+
+            signatureImage.onload = function () {
                 console.log(`Successfully loaded signature image for: ${signatureName}`);
             };
-            
+
             signatureSpaceElement.appendChild(signatureImage);
             console.log(`Displaying signature image for: ${signatureName}`);
         } else {
@@ -829,17 +839,17 @@ function displaySignatureImage(signatureName) {
 // Test function to verify signature image functionality
 function testSignatureImageFunctionality() {
     console.log('Testing signature image functionality...');
-    
+
     // Test with each verified signature name
     const testNames = [
         'Atsuro Suzuki',
-        'Atsushi Hayashida', 
+        'Atsushi Hayashida',
         'Hirotoshi Nishihara',
         'Nyimas Widya',
         'Takahiro Kimura',
         'Yuya Eguchi'
     ];
-    
+
     testNames.forEach((name, index) => {
         setTimeout(() => {
             console.log(`Testing signature image for: ${name}`);
@@ -859,7 +869,7 @@ function displaySignatureImageForPage(signatureName, pageNum) {
         'Takahiro Kimura': 'Takahiro Kimura.jpg',
         'Yuya Eguchi': 'Yuya Eguchi.jpg'
     };
-    
+
     // Check if the signature name is in the verified list
     if (verifiedSignatures[signatureName]) {
         const page = document.getElementById(`page${pageNum}`);
@@ -868,7 +878,7 @@ function displaySignatureImageForPage(signatureName, pageNum) {
             if (signatureSpaceElement) {
                 // Clear the signature space
                 signatureSpaceElement.innerHTML = '';
-                
+
                 // Create and add the signature image
                 const signatureImage = document.createElement('img');
                 signatureImage.src = `../../../../../image/${verifiedSignatures[signatureName]}`;
@@ -881,17 +891,17 @@ function displaySignatureImageForPage(signatureName, pageNum) {
                     display: block;
                     margin: 0 auto;
                 `;
-                
+
                 // Add error handling for image loading
-                signatureImage.onerror = function() {
+                signatureImage.onerror = function () {
                     console.error(`Failed to load signature image for: ${signatureName} on page ${pageNum}`);
                     this.style.display = 'none';
                 };
-                
-                signatureImage.onload = function() {
+
+                signatureImage.onload = function () {
                     console.log(`Successfully loaded signature image for: ${signatureName} on page ${pageNum}`);
                 };
-                
+
                 signatureSpaceElement.appendChild(signatureImage);
                 console.log(`Displaying signature image for: ${signatureName} on page ${pageNum}`);
             } else {
@@ -918,16 +928,16 @@ function getSignatureDataFromInvoice(invoice) {
     if (!invoice) {
         return { name: '', position: '' };
     }
-    
+
     let approvedByName = '';
     let approvedPosition = '';
-    
+
     // Get signature data ONLY from approval summary's approvedByName field
     if (invoice.arInvoiceApprovalSummary && invoice.arInvoiceApprovalSummary.approvedByName) {
         approvedByName = invoice.arInvoiceApprovalSummary.approvedByName;
         approvedPosition = invoice.arInvoiceApprovalSummary.approvedPosition || '';
     }
-    
+
     return {
         name: approvedByName,
         position: approvedPosition
@@ -937,17 +947,17 @@ function getSignatureDataFromInvoice(invoice) {
 // Function to populate QR Code from API data
 function populateQRCode(invoice) {
     console.log('Populating QR Code from invoice:', invoice);
-    
+
     const qrCodeElement = document.querySelector('.qr-code');
     if (!qrCodeElement) {
         console.log('QR Code element not found');
         return;
     }
-    
+
     // Check if qrCodeSrc is available and not null/empty from API
     if (invoice.qrCodeSrc && invoice.qrCodeSrc !== null && invoice.qrCodeSrc.trim() !== '') {
         console.log('QR Code source found:', invoice.qrCodeSrc);
-        
+
         // Use external QR code API with qrCodeSrc data
         const apiUrl = 'https://api.qrserver.com/v1/create-qr-code/';
         const params = new URLSearchParams({
@@ -957,10 +967,10 @@ function populateQRCode(invoice) {
             margin: '0',
             error_correction: 'M'
         });
-        
+
         const fullUrl = apiUrl + '?' + params.toString();
         console.log('QR Code API URL with qrCodeSrc:', fullUrl);
-        
+
         // Create QR code image
         const qrImage = document.createElement('img');
         qrImage.src = fullUrl;
@@ -968,28 +978,28 @@ function populateQRCode(invoice) {
         qrImage.style.width = '200px';
         qrImage.style.height = '200px';
         qrImage.style.objectFit = 'contain';
-        
+
         // Clear existing content and add image
         qrCodeElement.innerHTML = '';
         qrCodeElement.appendChild(qrImage);
-        
+
         // Show QR code element
         qrCodeElement.style.display = 'flex';
-        
+
         // Handle image load error
-        qrImage.onerror = function() {
+        qrImage.onerror = function () {
             console.error('Error loading QR code image from qrCodeSrc');
             qrCodeElement.innerHTML = '<div style="font-size: 8px; text-align: center; padding: 5px;">QR Code Error</div>';
             qrCodeElement.style.display = 'flex';
         };
-        
+
         // Handle image load success
-        qrImage.onload = function() {
+        qrImage.onload = function () {
             console.log('QR Code generated successfully from qrCodeSrc');
             // Ensure the QR code is visible
             qrCodeElement.style.display = 'flex';
         };
-        
+
         console.log('QR Code image set successfully');
     } else {
         // Hide QR code element if qrCodeSrc is null/empty
@@ -1001,17 +1011,17 @@ function populateQRCode(invoice) {
 // Function to populate QR Code for additional pages
 function populateQRCodeForPage(invoice, pageNum) {
     console.log(`Populating QR Code for page ${pageNum}:`, invoice);
-    
+
     const qrCodeElement = document.querySelector(`#page${pageNum} .qr-code`);
     if (!qrCodeElement) {
         console.log(`QR Code element not found for page ${pageNum}`);
         return;
     }
-    
+
     // Check if qrCodeSrc is available and not null/empty from API
     if (invoice?.qrCodeSrc && invoice.qrCodeSrc !== null && invoice.qrCodeSrc.trim() !== '') {
         console.log(`QR Code source found for page ${pageNum}:`, invoice.qrCodeSrc);
-        
+
         // Use external QR code API with qrCodeSrc data - ONLY THIS METHOD
         const apiUrl = 'https://api.qrserver.com/v1/create-qr-code/';
         const params = new URLSearchParams({
@@ -1021,10 +1031,10 @@ function populateQRCodeForPage(invoice, pageNum) {
             margin: '2',
             error_correction: 'M'
         });
-        
+
         const fullUrl = apiUrl + '?' + params.toString();
         console.log(`QR Code API URL with qrCodeSrc for page ${pageNum}:`, fullUrl);
-        
+
         // Create QR code image
         const qrImage = document.createElement('img');
         qrImage.src = fullUrl;
@@ -1032,28 +1042,28 @@ function populateQRCodeForPage(invoice, pageNum) {
         qrImage.style.width = '200px';
         qrImage.style.height = '200px';
         qrImage.style.objectFit = 'contain';
-        
+
         // Clear existing content and add image
         qrCodeElement.innerHTML = '';
         qrCodeElement.appendChild(qrImage);
-        
+
         // Show QR code element
         qrCodeElement.style.display = 'flex';
-        
+
         // Handle image load error
-        qrImage.onerror = function() {
+        qrImage.onerror = function () {
             console.error(`Error loading QR code image from qrCodeSrc for page ${pageNum}`);
             qrCodeElement.innerHTML = '<div style="font-size: 8px; text-align: center; padding: 5px;">QR Code Error</div>';
             qrCodeElement.style.display = 'flex';
         };
-        
+
         // Handle image load success
-        qrImage.onload = function() {
+        qrImage.onload = function () {
             console.log(`QR Code generated successfully from qrCodeSrc for page ${pageNum}`);
             // Ensure the QR code is visible
             qrCodeElement.style.display = 'flex';
         };
-        
+
         console.log(`QR Code image set successfully for page ${pageNum}`);
     } else {
         // Hide QR code element if qrCodeSrc is null/empty
@@ -1065,7 +1075,7 @@ function populateQRCodeForPage(invoice, pageNum) {
 // Function to format currency with currency code
 function formatCurrencyWithCurrency(amount, currency) {
     if (amount === null || amount === undefined) return '0';
-    
+
     const formattedAmount = new Intl.NumberFormat('en-US').format(amount);
     return `${currency} ${formattedAmount}`;
 }
@@ -1087,19 +1097,19 @@ function populateItemsTable(items) {
     const ITEMS_PER_PAGE = 16;
     const totalItems = items.length;
     const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
-    
+
     // Clear existing pages except the first one
     const pagesContainer = document.getElementById('pagesContainer');
     const firstPage = document.getElementById('page1');
-    
+
     // Remove additional pages if they exist
     const existingPages = pagesContainer.querySelectorAll('.page-container:not(#page1)');
     existingPages.forEach(page => page.remove());
-    
+
     // Hide footer and payment summary on first page if there are multiple pages
     const footer = document.getElementById('footer');
     const paymentSummary = document.getElementById('paymentSummary');
-    
+
     if (totalPages > 1) {
         footer.style.display = 'none';
         if (paymentSummary) {
@@ -1111,25 +1121,25 @@ function populateItemsTable(items) {
             paymentSummary.style.display = 'flex';
         }
     }
-    
+
     // Populate first page
     populatePageItems(items.slice(0, ITEMS_PER_PAGE), 1, 0);
-    
+
     // Create additional pages if needed
     for (let pageNum = 2; pageNum <= totalPages; pageNum++) {
         const startIndex = (pageNum - 1) * ITEMS_PER_PAGE;
         const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
         const pageItems = items.slice(startIndex, endIndex);
-        
+
         createAdditionalPage(pageItems, pageNum, startIndex, pageNum === totalPages);
     }
-    
+
     // Update page info
     document.getElementById('pageInfo').textContent = `Page 1 of ${totalPages}`;
-    
+
     // Store total pages for use in additional pages
     window.totalPages = totalPages;
-    
+
     // If multiple pages, ensure payment summary is hidden on first page
     if (totalPages > 1) {
         const paymentSummary = document.getElementById('paymentSummary');
@@ -1143,7 +1153,7 @@ function populateItemsTable(items) {
             paymentSummary.style.display = 'flex';
         }
     }
-    
+
     // Update page info for all pages
     updatePageInfoForAllPages(totalPages);
 }
@@ -1151,14 +1161,14 @@ function populateItemsTable(items) {
 // Function to update page info for all pages
 function updatePageInfoForAllPages(totalPages) {
     console.log('Updating page info for all pages. Total pages:', totalPages);
-    
+
     // Update first page
     const firstPageInfo = document.getElementById('pageInfo');
     if (firstPageInfo) {
         firstPageInfo.textContent = `Page 1 of ${totalPages}`;
         console.log('Updated first page info:', firstPageInfo.textContent);
     }
-    
+
     // Update additional pages
     for (let pageNum = 2; pageNum <= totalPages; pageNum++) {
         const page = document.getElementById(`page${pageNum}`);
@@ -1176,7 +1186,7 @@ function updatePageInfoForAllPages(totalPages) {
 function populatePageItems(items, pageNum, startIndex) {
     const tbody = document.getElementById('itemsTableBody');
     tbody.innerHTML = '';
-    
+
     items.forEach((item, index) => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -1195,18 +1205,18 @@ function populatePageItems(items, pageNum, startIndex) {
 // Function to create additional pages
 function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
     const pagesContainer = document.getElementById('pagesContainer');
-    
+
     const newPage = document.createElement('div');
     newPage.className = 'page-container page-break';
     newPage.id = `page${pageNum}`;
-    
+
     // Clone the header structure
     const firstPage = document.getElementById('page1');
     const headerClone = firstPage.querySelector('.header').cloneNode(true);
     const invoiceDetailsClone = firstPage.querySelector('.invoice-details').cloneNode(true);
     const shippingInfoClone = firstPage.querySelector('.shipping-info').cloneNode(true);
     const orderNumbersClone = firstPage.querySelector('.order-numbers').cloneNode(true);
-    
+
     // Create table structure
     const tableHTML = `
         <table class="items-table">
@@ -1225,16 +1235,16 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
             </tbody>
         </table>
     `;
-    
+
     // Create payment summary if it's the last page
     let paymentSummaryHTML = '';
     if (isLastPage) {
         // Get the current invoice data to populate payment summary
         const currentInvoiceData = getCurrentInvoiceData();
-        
+
         // Get currency from API - ensure we always use docCur from API
         const currency = currentInvoiceData?.docCur || '';
-        
+
         paymentSummaryHTML = `
             <div class="payment-summary">
                 <div class="payment-instructions">
@@ -1242,56 +1252,66 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
                     <div id="bankInformation${pageNum}"></div>
                 </div>
                 <div class="financial-summary">
-                    <div class="summary-row">
-                        <span class="summary-label">Total</span>
-                        <span class="summary-value" id="totalAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPrice || 0, currency)}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">Discounted</span>
-                        <span class="summary-value" id="discountAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.discSum || 0, currency)}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">Sales Amount</span>
-                        <span class="summary-value" id="salesAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.netPriceAfterDiscount || 0, currency)}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">Tax Base Other Value</span>
-                        <span class="summary-value" id="taxBase${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.dpp1112 || 0, currency)}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">VAT 12%</span>
-                        <span class="summary-value" id="vatAmount${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.vatSum || 0, currency)}</span>
-                    </div>
-                    <div class="summary-row total-line">
-                        <span class="summary-label">GRAND TOTAL</span>
-                        <span class="summary-value" id="grandTotal${pageNum}">${formatCurrencyWithCurrency(currentInvoiceData?.grandTotal || 0, currency)}</span>
-                    </div>
+                    <table class="summary-table">
+                        <tbody>
+                            <tr>
+                                <td class="summary-label">Total</td>
+                                <td class="summary-currency" id="totalCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount" id="totalAmount${pageNum}">${formatCurrency(currentInvoiceData?.netPrice || 0)}</td>
+                            </tr>
+                            <tr class="line-after-discounted">
+                                <td class="summary-label">Discounted</td>
+                                <td class="summary-currency" id="discountCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount" id="discountAmount${pageNum}">${formatCurrency(currentInvoiceData?.discSum || 0)}</td>
+                            </tr>
+                            <tr>
+                                <td class="summary-label">Sales Amount</td>
+                                <td class="summary-currency" id="salesCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount" id="salesAmount${pageNum}">${formatCurrency(currentInvoiceData?.netPriceAfterDiscount || 0)}</td>
+                            </tr>
+                            <tr>
+                                <td class="summary-label">Tax Base Other Value</td>
+                                <td class="summary-currency" id="taxBaseCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount" id="taxBase${pageNum}">${formatCurrency(currentInvoiceData?.dpp1112 || 0)}</td>
+                            </tr>
+                            <tr class="line-after-vat">
+                                <td class="summary-label">VAT 12%</td>
+                                <td class="summary-currency" id="vatCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount" id="vatAmount${pageNum}">${formatCurrency(currentInvoiceData?.docTax || 0)}</td>
+                            </tr>
+                            <tr class="line-after-grand-total">
+                                <td class="summary-label total-line">GRAND TOTAL</td>
+                                <td class="summary-currency total-line" id="grandCurrency${pageNum}">${currency}</td>
+                                <td class="summary-amount total-line" id="grandTotal${pageNum}">${formatCurrency(currentInvoiceData?.grandTotal || 0)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         `;
-        
-                // Populate bank information for additional pages
-            setTimeout(() => {
+
+        // Populate bank information for additional pages
+        setTimeout(() => {
             populateBankInformationForPage(currentInvoiceData, pageNum);
-            }, 100);
-        
+        }, 100);
+
         // Populate QR Code for additional pages
-            setTimeout(() => {
+        setTimeout(() => {
             populateQRCodeForPage(currentInvoiceData, pageNum);
-            }, 100);
+        }, 100);
     }
-    
+
     // Create footer only if it's the last page
     let footerHTML = '';
     if (isLastPage) {
         // Get the current invoice data to populate signature
         const currentInvoiceData = getCurrentInvoiceData();
         const signatureData = getSignatureDataFromInvoice(currentInvoiceData);
-        
+
         // Debug: Log what name is being set for additional page
         console.log(`Setting signature data for page ${pageNum}:`, signatureData);
         console.log(`Current invoice data for page ${pageNum}:`, currentInvoiceData);
-        
+
         footerHTML = `
             <div class="footer">
                 <div class="signature-section">
@@ -1310,7 +1330,7 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
             </div>
         `;
     }
-    
+
     newPage.innerHTML = `
         <div class="page-content">
             ${headerClone.outerHTML}
@@ -1322,9 +1342,9 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
         </div>
         ${footerHTML}
     `;
-    
+
     pagesContainer.appendChild(newPage);
-    
+
     // Populate items for this page
     const tbody = newPage.querySelector(`#itemsTableBody${pageNum}`);
     items.forEach((item, index) => {
@@ -1340,12 +1360,12 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
         `;
         tbody.appendChild(row);
     });
-    
+
     // Handle signature image for additional pages if it's the last page
     if (isLastPage) {
         const currentInvoiceData = getCurrentInvoiceData();
         const signatureData = getSignatureDataFromInvoice(currentInvoiceData);
-        
+
         // Call signature image display for additional pages
         setTimeout(() => {
             displaySignatureImageForPage(signatureData.name, pageNum);
@@ -1366,16 +1386,16 @@ function getSignatureCoordinates(pageNumber = null) {
         const totalPages = getTotalPages();
         pageNumber = totalPages;
     }
-    
+
     const page = document.getElementById(`page${pageNumber}`);
     if (!page) return null;
-    
+
     const signatureSection = page.querySelector('.signature-section');
     if (!signatureSection) return null;
-    
+
     const rect = signatureSection.getBoundingClientRect();
     const pageRect = page.getBoundingClientRect();
-    
+
     return {
         x: rect.left - pageRect.left,
         y: rect.top - pageRect.top,
@@ -1390,7 +1410,7 @@ function getSignatureCoordinates(pageNumber = null) {
 function getLastPageSignatureCoordinates() {
     const totalPages = getTotalPages();
     if (totalPages === 0) return null;
-    
+
     return getSignatureCoordinates(totalPages);
 }
 
@@ -1398,7 +1418,7 @@ function getLastPageSignatureCoordinates() {
 function getAllSignatureCoordinates() {
     const totalPages = getTotalPages();
     const coordinates = [];
-    
+
     // Only get coordinates from pages that have signature sections
     for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
         const page = document.getElementById(`page${pageNum}`);
@@ -1409,7 +1429,7 @@ function getAllSignatureCoordinates() {
             }
         }
     }
-    
+
     return coordinates;
 }
 
@@ -1432,7 +1452,7 @@ function highlightLastPageSignature() {
         coords.element.style.border = '2px solid green';
         coords.element.style.backgroundColor = 'rgba(0, 255, 0, 0.1)';
         console.log('Last page signature coordinates:', coords);
-        
+
         // Display coordinates in alert for easy reading
         const coordInfo = `Signature Section Coordinates:\n\n` +
             `X: ${Math.round(coords.x)}px\n` +
@@ -1440,7 +1460,7 @@ function highlightLastPageSignature() {
             `Width: ${Math.round(coords.width)}px\n` +
             `Height: ${Math.round(coords.height)}px\n` +
             `Page: ${coords.pageNumber}`;
-        
+
         alert(coordInfo);
     } else {
         console.log('No signature found on last page');
@@ -1459,7 +1479,7 @@ function getSignatureCoordinatesForESign() {
             height: Math.round(coords.height),
             pageNumber: coords.pageNumber
         };
-        
+
         // Display coordinates in alert
         const coordInfo = `📍 Signature Section Coordinates:\n\n` +
             `X: ${preciseCoords.x}px\n` +
@@ -1469,10 +1489,10 @@ function getSignatureCoordinatesForESign() {
             `Page: ${preciseCoords.pageNumber}\n\n` +
             `💡 For E-Sign Implementation:\n` +
             `Use these coordinates to position the signature field.`;
-        
+
         console.log('Signature coordinates for e-sign:', preciseCoords);
         alert(coordInfo);
-        
+
         return preciseCoords;
     } else {
         alert('❌ No signature section found on the last page');
@@ -1486,28 +1506,28 @@ function getSignatureCoordinatesForESign() {
 // Utility function to format date
 function formatDate(dateString) {
     if (!dateString) return '';
-    
+
     const date = new Date(dateString);
-    const options = { 
-        day: '2-digit', 
-        month: 'long', 
-        year: 'numeric' 
+    const options = {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
     };
-    
+
     return date.toLocaleDateString('en-US', options);
 }
 
 // Utility function to format currency
 function formatCurrency(amount) {
     if (amount === null || amount === undefined) return '0';
-    
+
     return new Intl.NumberFormat('en-US').format(amount);
 }
 
 // Utility function to format numbers
 function formatNumber(number) {
     if (number === null || number === undefined) return '0.00';
-    
+
     return new Intl.NumberFormat('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
@@ -1518,9 +1538,9 @@ function formatNumber(number) {
 function removeBlankPages() {
     const pagesContainer = document.getElementById('pagesContainer');
     if (!pagesContainer) return;
-    
+
     const pages = pagesContainer.querySelectorAll('.page-container');
-    
+
     pages.forEach(page => {
         const content = page.querySelector('.page-content');
         if (content) {
@@ -1528,7 +1548,7 @@ function removeBlankPages() {
             const hasChildren = content.children.length > 0;
             const hasText = content.textContent.trim().length > 0;
             const hasVisibleElements = content.querySelector('*:not(.no-print)');
-            
+
             // If page is empty or has no visible content, hide it
             if (!hasChildren || (!hasText && !hasVisibleElements)) {
                 page.style.display = 'none';
@@ -1542,22 +1562,22 @@ function removeBlankPages() {
 function optimizeForPrint() {
     const pagesContainer = document.getElementById('pagesContainer');
     if (!pagesContainer) return;
-    
+
     const pages = pagesContainer.querySelectorAll('.page-container');
-    
+
     pages.forEach((page, index) => {
         // Ensure proper page dimensions
         page.style.width = '21cm';
         page.style.minHeight = '29.7cm';
         page.style.maxHeight = '29.7cm';
-        
+
         // Set page breaks only before additional pages, not after
         if (index > 0) {
             page.style.pageBreakBefore = 'always';
         }
         page.style.pageBreakAfter = 'auto'; // Remove page break after
         page.style.pageBreakInside = 'avoid';
-        
+
         // Ensure content fits properly
         const content = page.querySelector('.page-content');
         if (content) {
@@ -1565,7 +1585,7 @@ function optimizeForPrint() {
             content.style.flexDirection = 'column';
             content.style.height = '100%';
         }
-        
+
         // Ensure footer stays at bottom
         const footer = page.querySelector('.footer');
         if (footer) {
@@ -1573,7 +1593,7 @@ function optimizeForPrint() {
             footer.style.flexShrink = '0';
         }
     });
-    
+
     // Remove blank pages
     removeBlankPages();
 }
@@ -1582,10 +1602,10 @@ function optimizeForPrint() {
 function printInvoice() {
     // Remove blank pages first
     removeBlankPages();
-    
+
     // Optimize layout for printing
     optimizeForPrint();
-    
+
     // Make sure QR code is visible if available
     const qrCodeElements = document.querySelectorAll('.qr-code');
     qrCodeElements.forEach(qrCode => {
@@ -1594,7 +1614,7 @@ function printInvoice() {
             qrCode.style.display = 'flex';
         }
     });
-    
+
     // Add a small delay to ensure DOM updates are complete
     setTimeout(() => {
         window.print();
@@ -1607,20 +1627,20 @@ function goBack() {
 }
 
 // Add event listeners for print controls
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Optimize layout for printing
     setTimeout(() => {
         optimizeForPrint();
         removeBlankPages();
     }, 500);
-    
+
     // Auto-print option (uncomment if needed)
     // setTimeout(() => {
     //     window.print();
     // }, 1000);
-    
+
     // Add keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
         if (e.ctrlKey && e.key === 'p') {
             e.preventDefault();
             printInvoice();
@@ -1650,7 +1670,7 @@ function saveInvoiceData() {
         invoiceDate: document.getElementById('invoiceDate').textContent,
         // Add more fields as needed
     };
-    
+
     // Save to localStorage or send to server
     localStorage.setItem('lastInvoiceData', JSON.stringify(invoiceData));
     console.log('Invoice data saved');

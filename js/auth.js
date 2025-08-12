@@ -19,6 +19,9 @@ if (typeof BASE_URL === 'undefined') {
   console.log('Using BASE_URL:', BASE_URL);
 }
 
+// Make BASE_URL available globally immediately
+window.BASE_URL = BASE_URL;
+
 // Helper function to get access token from localStorage
 function getAccessToken() {
   return localStorage.getItem("accessToken");

@@ -4,7 +4,7 @@ let currentUser = null;
 let allUsers = []; // Store all users for kansaiEmployeeId lookup
 
 // API Configuration
-const API_BASE_URL = 'https://expressiv-be-sb.idsdev.site/api';
+const API_BASE_URL = `${BASE_URL}/api`;
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
@@ -342,7 +342,7 @@ function populateInvItemData(data) {
         discSum: data.discSum,
         netPriceAfterDiscount: data.netPriceAfterDiscount,
         docTax: data.docTax,
-        vatSum: data.vatSum,
+        vatSum: data.docTax,
         grandTotal: data.grandTotal,
         note: 'Using specific API fields with currency'
     });
@@ -351,8 +351,8 @@ function populateInvItemData(data) {
         const taxBase = data.dpp1112 || 0;
         safeSetValue('dpp1112', formatCurrencyIDR(taxBase));
     
-    // VAT 12% (vatAmount) - from docCur and vatSum fields
-    const vatAmount = data.vatSum || 0;
+    // VAT 12% (vatAmount) - from docCur and docTax fields
+    const vatAmount = data.docTax || 0;
     safeSetValue('vatSum', formatCurrencyIDR(vatAmount));
     
     // GRAND TOTAL (grandTotal) - from docCur and grandTotal fields

@@ -3,6 +3,9 @@ let customers = [];
 let items = [];
 let users = [];
 let currentUser = null;
+
+// API Configuration - Using BASE_URL from auth.js
+const API_BASE_URL = `${BASE_URL}/api`;
 let invoiceId = null;
 let isEditMode = false;
 
@@ -10,23 +13,23 @@ let isEditMode = false;
 const isDevelopmentMode = true;
 
 // Initialize the page
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Check if we're in edit mode by looking for invoice ID in URL
     checkEditMode();
-    
+
     initializePage();
     loadCustomers();
     loadItems();
     loadUsers();
     setupEventListeners();
-    
+
     // Add initial row if not in edit mode
     if (!isEditMode) {
         addRow();
     }
-    
+
     calculateTotals();
-    
+
     // Apply text wrapping after page initialization
     if (window.refreshTextWrapping) {
         setTimeout(() => {
@@ -39,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function checkEditMode() {
     const urlParams = new URLSearchParams(window.location.search);
     invoiceId = urlParams.get('id');
-    
+
     if (invoiceId && invoiceId.trim() !== '') {
         isEditMode = true;
         console.log('Edit mode detected. Invoice ID:', invoiceId);
@@ -54,28 +57,28 @@ function checkEditMode() {
 async function loadInvoiceDetails(stagingId) {
     try {
         console.log('Loading invoice details for staging ID:', stagingId);
-        
+
         // Show loading state
         const pageTitle = document.getElementById('pageTitle');
         if (pageTitle) {
             pageTitle.textContent = 'Loading invoice details...';
         }
-        
-        const response = await fetch(`https://expressiv-be-sb.idsdev.site/api/ar-invoices/${stagingId}/details`, {
+
+        const response = await fetch(`${API_BASE_URL}/ar-invoices/${stagingId}/details`, {
             method: 'GET',
             headers: {
                 'accept': 'text/plain',
                 'Content-Type': 'application/json'
             }
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const result = await response.json();
         console.log('API Response:', result);
-        
+
         if (result.status && result.data) {
             console.log('Successfully loaded invoice data:', result.data);
             populateInvoiceForm(result.data);
@@ -87,7 +90,7 @@ async function loadInvoiceDetails(stagingId) {
                 text: 'Failed to load invoice details. Invalid response format.'
             });
         }
-        
+
     } catch (error) {
         console.error('Error loading invoice details:', error);
         Swal.fire({
@@ -102,7 +105,7 @@ async function loadInvoiceDetails(stagingId) {
 function populateInvoiceForm(invoiceData) {
     try {
         console.log('Populating form with invoice data:', invoiceData);
-        
+
         // Populate header fields
         if (invoiceData.stagingID) {
             const docEntryField = document.getElementById('DocEntry');
@@ -110,14 +113,14 @@ function populateInvoiceForm(invoiceData) {
                 docEntryField.value = invoiceData.stagingID;
             }
         }
-        
+
         if (invoiceData.docNum) {
             const docNumField = document.getElementById('DocNum');
             if (docNumField) {
                 docNumField.value = invoiceData.docNum;
             }
         }
-        
+
         if (invoiceData.cardCode) {
             const cardCodeField = document.getElementById('CardCode');
             const cardCodeSearchField = document.getElementById('cardCodeSearch');
@@ -128,28 +131,28 @@ function populateInvoiceForm(invoiceData) {
                 cardCodeSearchField.value = invoiceData.cardCode;
             }
         }
-        
+
         if (invoiceData.cardName) {
             const cardNameField = document.getElementById('CardName');
             if (cardNameField) {
                 cardNameField.value = invoiceData.cardName;
             }
         }
-        
+
         if (invoiceData.numAtCard) {
             const numAtCardField = document.getElementById('NumAtCard');
             if (numAtCardField) {
                 numAtCardField.value = invoiceData.numAtCard;
             }
         }
-        
+
         if (invoiceData.docCur) {
             const docCurField = document.getElementById('DocCur');
             if (docCurField) {
                 docCurField.value = invoiceData.docCur;
             }
         }
-        
+
         if (invoiceData.docDate) {
             const docDateField = document.getElementById('DocDate');
             if (docDateField) {
@@ -157,56 +160,56 @@ function populateInvoiceForm(invoiceData) {
                 docDateField.value = docDate.toISOString().split('T')[0];
             }
         }
-        
+
         if (invoiceData.groupNum) {
             const groupNumField = document.getElementById('GroupNum');
             if (groupNumField) {
                 groupNumField.value = invoiceData.groupNum;
             }
         }
-        
+
         if (invoiceData.trnspCode) {
             const trnspCodeField = document.getElementById('TrnspCode');
             if (trnspCodeField) {
                 trnspCodeField.value = invoiceData.trnspCode;
             }
         }
-        
+
         if (invoiceData.u_BSI_ShippingType) {
             const shippingTypeField = document.getElementById('U_BSI_ShippingType');
             if (shippingTypeField) {
                 shippingTypeField.value = invoiceData.u_BSI_ShippingType;
             }
         }
-        
+
         if (invoiceData.u_BSI_PaymentGroup) {
             const paymentGroupField = document.getElementById('U_BSI_PaymentGroup');
             if (paymentGroupField) {
                 paymentGroupField.value = invoiceData.u_BSI_PaymentGroup;
             }
         }
-        
+
         if (invoiceData.u_BSI_Expressiv_IsTransfered) {
             const isTransferedField = document.getElementById('U_BSI_Expressiv_IsTransfered');
             if (isTransferedField) {
                 isTransferedField.value = invoiceData.u_BSI_Expressiv_IsTransfered;
             }
         }
-        
+
         if (invoiceData.u_bsi_udf1) {
             const udf1Field = document.getElementById('U_BSI_UDF1');
             if (udf1Field) {
                 udf1Field.value = invoiceData.u_bsi_udf1;
             }
         }
-        
+
         if (invoiceData.u_bsi_udf2) {
             const udf2Field = document.getElementById('U_BSI_UDF2');
             if (udf2Field) {
                 udf2Field.value = invoiceData.u_bsi_udf2;
             }
         }
-        
+
         // Populate totals
         if (invoiceData.docTotal) {
             const docTotalField = document.getElementById('DocTotal');
@@ -214,25 +217,25 @@ function populateInvoiceForm(invoiceData) {
                 docTotalField.value = invoiceData.docTotal;
             }
         }
-        
+
         if (invoiceData.vatSum) {
             const vatSumField = document.getElementById('VatSum');
             if (vatSumField) {
                 vatSumField.value = invoiceData.vatSum;
             }
         }
-        
+
         if (invoiceData.comments) {
             const commentsField = document.getElementById('comments');
             if (commentsField) {
                 commentsField.value = invoiceData.comments;
             }
         }
-        
+
         // Populate approval fields if available
         if (invoiceData.arInvoiceApprovalSummary) {
             const approval = invoiceData.arInvoiceApprovalSummary;
-            
+
             if (approval.preparedBy) {
                 const preparedByField = document.getElementById('preparedBy');
                 const preparedBySearchField = document.getElementById('preparedBySearch');
@@ -243,7 +246,7 @@ function populateInvoiceForm(invoiceData) {
                     preparedBySearchField.value = approval.preparedBy;
                 }
             }
-            
+
             if (approval.acknowledgedBy) {
                 const acknowledgeByField = document.getElementById('acknowledgeBy');
                 const acknowledgeBySearchField = document.getElementById('acknowledgeBySearch');
@@ -254,7 +257,7 @@ function populateInvoiceForm(invoiceData) {
                     acknowledgeBySearchField.value = approval.acknowledgedBy;
                 }
             }
-            
+
             if (approval.checkedBy) {
                 const checkedByField = document.getElementById('checkedBy');
                 const checkedBySearchField = document.getElementById('checkedBySearch');
@@ -265,7 +268,7 @@ function populateInvoiceForm(invoiceData) {
                     checkedBySearchField.value = approval.checkedBy;
                 }
             }
-            
+
             if (approval.approvedBy) {
                 const approvedByField = document.getElementById('approvedBy');
                 const approvedBySearchField = document.getElementById('approvedBySearch');
@@ -276,7 +279,7 @@ function populateInvoiceForm(invoiceData) {
                     approvedBySearchField.value = approval.approvedBy;
                 }
             }
-            
+
             if (approval.receivedBy) {
                 const receivedByField = document.getElementById('receivedBy');
                 const receivedBySearchField = document.getElementById('receivedBySearch');
@@ -288,21 +291,21 @@ function populateInvoiceForm(invoiceData) {
                 }
             }
         }
-        
+
         // Populate invoice details if available
         if (invoiceData.arInvoiceDetails && invoiceData.arInvoiceDetails.length > 0) {
             populateInvoiceDetails(invoiceData.arInvoiceDetails);
         }
-        
+
         // Update page title to indicate edit mode
         document.title = `Edit AR Invoice - ${invoiceData.stagingID || 'Invoice'}`;
         const pageTitle = document.getElementById('pageTitle');
         if (pageTitle) {
             pageTitle.textContent = `Edit AR Invoice - ${invoiceData.stagingID || 'Invoice'}`;
         }
-        
+
         console.log('Form populated successfully');
-        
+
     } catch (error) {
         console.error('Error populating form:', error);
         alert('Error populating form data. Please try again.');
@@ -313,13 +316,13 @@ function populateInvoiceForm(invoiceData) {
 function populateInvoiceDetails(details) {
     try {
         console.log('Populating invoice details:', details);
-        
+
         // Clear existing rows except the first one
         const tableBody = document.getElementById('tableBody');
         const firstRow = tableBody.querySelector('tr');
         tableBody.innerHTML = '';
         tableBody.appendChild(firstRow);
-        
+
         // Add rows for each detail
         details.forEach((detail, index) => {
             if (index === 0) {
@@ -332,17 +335,17 @@ function populateInvoiceDetails(details) {
                 populateRow(newRow, detail, index);
             }
         });
-        
+
         // Recalculate totals
         calculateTotals();
-        
+
         // Apply text wrapping to new rows
         if (window.refreshTextWrapping) {
             setTimeout(() => {
                 window.refreshTextWrapping();
             }, 100);
         }
-        
+
     } catch (error) {
         console.error('Error populating invoice details:', error);
     }
@@ -356,74 +359,74 @@ function populateRow(row, detail, index) {
         if (lineNumInput) {
             lineNumInput.value = index;
         }
-        
+
         // Set item code
         const itemCodeInput = row.querySelector('.item-input');
         if (itemCodeInput && detail.itemCode) {
             itemCodeInput.value = detail.itemCode;
         }
-        
+
         // Set item description
         const itemDescTextarea = row.querySelector('.item-description');
         if (itemDescTextarea && detail.itemName) {
             itemDescTextarea.value = detail.itemName;
         }
-        
+
         // Set free text
         const freeTextTextarea = row.querySelector('.item-free-txt');
         if (freeTextTextarea && detail.freeText) {
             freeTextTextarea.value = detail.freeText;
         }
-        
+
         // Set sales employee
         const salesEmployeeTextarea = row.querySelector('.item-sales-employee');
         if (salesEmployeeTextarea && detail.salesEmployee) {
             salesEmployeeTextarea.value = detail.salesEmployee;
         }
-        
+
         // Set quantities
         const salesQtyTextarea = row.querySelector('.item-sls-qty');
         if (salesQtyTextarea && detail.salesQuantity) {
             salesQtyTextarea.value = detail.salesQuantity;
         }
-        
+
         const invQtyTextarea = row.querySelector('.item-quantity');
         if (invQtyTextarea && detail.inventoryQuantity) {
             invQtyTextarea.value = detail.inventoryQuantity;
         }
-        
+
         // Set prices
         const salesPriceTextarea = row.querySelector('.item-sls-price');
         if (salesPriceTextarea && detail.salesPrice) {
             salesPriceTextarea.value = detail.salesPrice;
         }
-        
+
         const priceTextarea = row.querySelector('.item-price');
         if (priceTextarea && detail.price) {
             priceTextarea.value = detail.price;
         }
-        
+
         // Set discount
         const discountInput = row.querySelector('input[class*="discount"]');
         if (discountInput && detail.discount) {
             discountInput.value = detail.discount;
         }
-        
+
         // Set tax code
         const taxCodeInput = row.querySelector('input[class*="tax"]');
         if (taxCodeInput && detail.taxCode) {
             taxCodeInput.value = detail.taxCode;
         }
-        
+
         // Set line total
         const lineTotalTextarea = row.querySelector('.item-line-total');
         if (lineTotalTextarea && detail.lineTotal) {
             lineTotalTextarea.value = detail.lineTotal;
         }
-        
+
         // Recalculate line total
         calculateLineTotal(row);
-        
+
     } catch (error) {
         console.error('Error populating row:', error);
     }
@@ -436,21 +439,21 @@ function initializePage() {
         // Set current date
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('DocDate').value = today;
-        
+
         // Set default currency
         document.getElementById('DocCur').value = 'IDR';
-        
+
         // Set default values for new fields
         document.getElementById('GroupNum').value = '1';
         document.getElementById('TrnspCode').value = '1';
         document.getElementById('U_BSI_Expressiv_IsTransfered').value = 'N';
-        
+
         // Initialize totals
         document.getElementById('DocTotal').value = '0.00';
         document.getElementById('VatSum').value = '0.00';
         document.getElementById('PriceBefDi').value = '0.00';
     }
-    
+
     // Update page title and button text based on mode
     if (isEditMode) {
         document.title = 'Edit AR Invoice';
@@ -558,21 +561,21 @@ function filterCustomers() {
     const searchTerm = document.getElementById('cardCodeSearch').value.toLowerCase();
     const dropdown = document.getElementById('cardCodeDropdown');
     const select = document.getElementById('CardCode');
-    
+
     // Clear previous options
     dropdown.innerHTML = '';
     select.innerHTML = '<option value="">Select a customer</option>';
-    
+
     if (searchTerm.length < 2) {
         dropdown.classList.add('hidden');
         return;
     }
-    
-    const filteredCustomers = customers.filter(customer => 
+
+    const filteredCustomers = customers.filter(customer =>
         customer.cardCode.toLowerCase().includes(searchTerm) ||
         customer.cardName.toLowerCase().includes(searchTerm)
     );
-    
+
     if (filteredCustomers.length > 0) {
         filteredCustomers.forEach(customer => {
             // Add to dropdown
@@ -581,7 +584,7 @@ function filterCustomers() {
             dropdownItem.textContent = `${customer.cardCode} - ${customer.cardName}`;
             dropdownItem.onclick = () => selectCustomer(customer);
             dropdown.appendChild(dropdownItem);
-            
+
             // Add to select
             const option = document.createElement('option');
             option.value = customer.cardCode;
@@ -607,19 +610,19 @@ function filterItems(input) {
     const searchTerm = input.value.toLowerCase();
     const row = input.closest('tr');
     const dropdown = row.querySelector('.item-dropdown');
-    
+
     dropdown.innerHTML = '';
-    
+
     if (searchTerm.length < 2) {
         dropdown.classList.add('hidden');
         return;
     }
-    
-    const filteredItems = items.filter(item => 
+
+    const filteredItems = items.filter(item =>
         item.itemCode.toLowerCase().includes(searchTerm) ||
         item.itemName.toLowerCase().includes(searchTerm)
     );
-    
+
     if (filteredItems.length > 0) {
         filteredItems.forEach(item => {
             const dropdownItem = document.createElement('div');
@@ -644,33 +647,33 @@ function selectItem(item, row) {
     const descriptionTextarea = row.querySelector('.item-description');
     const unitMsrInput = row.querySelector('td:nth-child(7) input'); // UoM field (hidden)
     const dropdown = row.querySelector('.item-dropdown');
-    
+
     itemInput.value = item.itemCode;
     descriptionTextarea.value = item.itemName;
-    
+
     // Auto-fill UoM if available
     if (item.unitMsr) {
         unitMsrInput.value = item.unitMsr;
     } else {
         unitMsrInput.value = 'PCS'; // Default unit of measure
     }
-    
+
     dropdown.classList.add('hidden');
-    
+
     // Auto-fill price if available
     const priceInput = row.querySelector('.item-price');
     if (item.price) {
         priceInput.value = item.price;
     }
-    
+
     // Auto-fill sales price if available
     const salesPriceInput = row.querySelector('.item-sls-price');
     if (item.price) {
         salesPriceInput.value = item.price;
     }
-    
+
     calculateLineTotal(row);
-    
+
     // Apply text wrapping after item selection
     if (window.refreshTextWrapping) {
         setTimeout(() => {
@@ -683,11 +686,11 @@ function selectItem(item, row) {
 function validateQuantity(input) {
     const value = input.value;
     const numericValue = value.replace(/[^0-9.]/g, '');
-    
+
     if (value !== numericValue) {
         input.value = numericValue;
     }
-    
+
     calculateLineTotal(input.closest('tr'));
 }
 
@@ -695,11 +698,11 @@ function validateQuantity(input) {
 function validatePrice(input) {
     const value = input.value;
     const numericValue = value.replace(/[^0-9.]/g, '');
-    
+
     if (value !== numericValue) {
         input.value = numericValue;
     }
-    
+
     calculateLineTotal(input.closest('tr'));
 }
 
@@ -708,9 +711,9 @@ function calculateLineTotal(row) {
     const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
     const price = parseFloat(row.querySelector('.item-price').value) || 0;
     const lineTotal = quantity * price;
-    
+
     row.querySelector('.item-line-total').value = lineTotal.toFixed(2);
-    
+
     calculateTotals();
 }
 
@@ -718,18 +721,18 @@ function calculateLineTotal(row) {
 function calculateTotals() {
     let totalBeforeDiscount = 0;
     let totalTax = 0;
-    
+
     const rows = document.querySelectorAll('#tableBody tr');
     rows.forEach(row => {
         const lineTotal = parseFloat(row.querySelector('.item-line-total').value) || 0;
         totalBeforeDiscount += lineTotal;
     });
-    
+
     // For now, tax calculation is simplified - you may need to implement proper tax logic
     totalTax = totalBeforeDiscount * 0.11; // 11% tax rate example
-    
+
     const totalAmount = totalBeforeDiscount + totalTax;
-    
+
     document.getElementById('PriceBefDi').value = totalBeforeDiscount.toFixed(2);
     document.getElementById('VatSum').value = totalTax.toFixed(2);
     document.getElementById('DocTotal').value = totalAmount.toFixed(2);
@@ -740,7 +743,7 @@ function addRow() {
     const tableBody = document.getElementById('tableBody');
     const newRow = document.createElement('tr');
     const rowIndex = tableBody.children.length;
-    
+
     newRow.innerHTML = `
         <td class="p-2 border no-column">
             <input type="number" class="line-num-input p-2 border rounded bg-gray-100" value="${rowIndex}" disabled autocomplete="off" />
@@ -801,10 +804,10 @@ function addRow() {
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
         </td>
     `;
-    
+
     tableBody.appendChild(newRow);
     setupRowEventListeners(newRow);
-    
+
     // Apply text wrapping to new row
     if (window.refreshTextWrapping) {
         setTimeout(() => {
@@ -818,7 +821,7 @@ function deleteRow(button) {
     const row = button.closest('tr');
     row.remove();
     calculateTotals();
-    
+
     // Update line numbers
     const rows = document.querySelectorAll('#tableBody tr');
     rows.forEach((row, index) => {
@@ -838,7 +841,7 @@ function setupEventListeners() {
             document.getElementById('cardCodeDropdown').classList.add('hidden');
         }, 200);
     });
-    
+
     // Setup existing rows
     const rows = document.querySelectorAll('#tableBody tr');
     rows.forEach(row => setupRowEventListeners(row));
@@ -863,16 +866,16 @@ function setupRowEventListeners(row) {
 // Populate user dropdowns
 function populateUserDropdowns() {
     const userFields = ['preparedBy', 'acknowledgeBy', 'checkedBy', 'approvedBy', 'receivedBy'];
-    
+
     userFields.forEach(field => {
         const select = document.getElementById(field);
         const searchInput = document.getElementById(field + 'Search');
         const dropdown = document.getElementById(field + 'SelectDropdown');
-        
+
         if (select && searchInput && dropdown) {
             // Clear existing options
             select.innerHTML = '<option value="" disabled selected>Choose Name</option>';
-            
+
             // Add user options
             users.forEach(user => {
                 const option = document.createElement('option');
@@ -880,21 +883,21 @@ function populateUserDropdowns() {
                 option.textContent = user.name;
                 select.appendChild(option);
             });
-            
+
             // Setup search functionality
             searchInput.addEventListener('input', () => {
                 const searchTerm = searchInput.value.toLowerCase();
                 dropdown.innerHTML = '';
-                
+
                 if (searchTerm.length < 2) {
                     dropdown.classList.add('hidden');
                     return;
                 }
-                
-                const filteredUsers = users.filter(user => 
+
+                const filteredUsers = users.filter(user =>
                     user.name.toLowerCase().includes(searchTerm)
                 );
-                
+
                 if (filteredUsers.length > 0) {
                     filteredUsers.forEach(user => {
                         const dropdownItem = document.createElement('div');
@@ -908,7 +911,7 @@ function populateUserDropdowns() {
                     dropdown.classList.add('hidden');
                 }
             });
-            
+
             searchInput.addEventListener('blur', () => {
                 setTimeout(() => {
                     dropdown.classList.add('hidden');
@@ -922,10 +925,10 @@ function populateUserDropdowns() {
 function selectUser(user, field) {
     const searchInput = document.getElementById(field + 'Search');
     const select = document.getElementById(field);
-    
+
     searchInput.value = user.name;
     select.value = user.id;
-    
+
     document.getElementById(field + 'SelectDropdown').classList.add('hidden');
 }
 
@@ -934,7 +937,7 @@ async function submitDocument(isSubmit = false) {
     if (!validateForm()) {
         return;
     }
-    
+
     // Show confirmation that all fields are optional
     const result = await Swal.fire({
         icon: 'info',
@@ -944,29 +947,29 @@ async function submitDocument(isSubmit = false) {
         confirmButtonText: 'Continue',
         cancelButtonText: 'Cancel'
     });
-    
+
     if (!result.isConfirmed) {
         return;
     }
-    
+
     const formData = collectFormData(isSubmit);
-    
+
     try {
         let url, method;
-        
+
         if (isEditMode && invoiceId) {
             // Update existing invoice
-            url = `https://expressiv-be-sb.idsdev.site/api/ar-invoices/${invoiceId}`;
+            url = `${API_BASE_URL}/ar-invoices/${invoiceId}`;
             method = 'PUT';
         } else {
             // Create new invoice
-            url = 'https://expressiv-be-sb.idsdev.site/api/ar-invoices';
+            url = `${API_BASE_URL}/ar-invoices`;
             method = 'POST';
         }
-        
+
         console.log('Submitting data to:', url);
         console.log('Request data:', JSON.stringify(formData, null, 2));
-        
+
         const response = await fetch(url, {
             method: method,
             headers: {
@@ -975,18 +978,18 @@ async function submitDocument(isSubmit = false) {
             },
             body: JSON.stringify(formData)
         });
-        
+
         console.log('Response status:', response.status);
-        
+
         if (response.ok) {
             const result = await response.json();
             console.log('API Response:', result);
-            
+
             if (result.status && result.code === 200) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Success!',
-                    text: isEditMode 
+                    text: isEditMode
                         ? (isSubmit ? 'Document updated and submitted successfully!' : 'Document updated successfully!')
                         : (isSubmit ? 'Document created and submitted successfully!' : 'Document saved successfully!'),
                     footer: `Staging ID: ${result.data?.stagingID || 'N/A'}, DocNum: ${result.data?.docNum || 'N/A'}`
@@ -1008,7 +1011,7 @@ async function submitDocument(isSubmit = false) {
             } catch (e) {
                 console.log('Could not parse error response as JSON');
             }
-            
+
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -1037,7 +1040,7 @@ function validateForm() {
 function collectFormData(isSubmit) {
     // Get current date for document date
     const currentDate = new Date().toISOString();
-    
+
     // Collect header data with default values for empty fields
     // All fields are now optional with appropriate default values
     const header = {
@@ -1069,11 +1072,11 @@ function collectFormData(isSubmit) {
         trackNo: "", // Tracking number
         u_BSI_Expressiv_IsTransfered: document.getElementById('U_BSI_Expressiv_IsTransfered').value || "N"
     };
-    
+
     // Collect invoice details
     const arInvoiceDetails = [];
     const rows = document.querySelectorAll('#tableBody tr');
-    
+
     rows.forEach((row, index) => {
         const itemCodeElement = row.querySelector('.item-input');
         const itemNameElement = row.querySelector('.item-description');
@@ -1087,7 +1090,7 @@ function collectFormData(isSubmit) {
         const discountElement = row.querySelector('td:nth-child(10) input');
         const taxCodeElement = row.querySelector('td:nth-child(11) input');
         const lineTotalElement = row.querySelector('.item-line-total');
-        
+
         const itemCode = itemCodeElement ? itemCodeElement.value : "";
         const itemName = itemNameElement ? itemNameElement.value : "";
         const freeText = freeTextElement ? freeTextElement.value : "";
@@ -1100,7 +1103,7 @@ function collectFormData(isSubmit) {
         const discount = discountElement ? discountElement.value || "" : "";
         const taxCode = taxCodeElement ? taxCodeElement.value || "" : "";
         const lineTotal = lineTotalElement ? parseFloat(lineTotalElement.value) || 0 : 0;
-        
+
         // Include all rows, even if they have empty values
         // Previously only included rows with itemCode, inventoryQuantity, and price
         // Now includes all rows with default values for empty fields
@@ -1120,7 +1123,7 @@ function collectFormData(isSubmit) {
             lineTotal: lineTotal || 0
         });
     });
-    
+
     // Collect approval data with default values for empty fields
     const arInvoiceApprovalSummary = {
         approvalStatus: isSubmit ? "Submitted" : "Draft",
@@ -1140,7 +1143,7 @@ function collectFormData(isSubmit) {
         revisionDate: null,
         revisionRemarks: ""
     };
-    
+
     return {
         ...header,
         arInvoiceDetails: arInvoiceDetails,
@@ -1157,7 +1160,7 @@ function goToMenuARInv() {
 function previewPDF(event) {
     const files = event.target.files;
     const fileList = document.getElementById('fileList');
-    
+
     if (fileList) {
         fileList.innerHTML = '';
         for (let file of files) {

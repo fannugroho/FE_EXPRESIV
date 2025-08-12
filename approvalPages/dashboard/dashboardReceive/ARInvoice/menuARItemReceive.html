@@ -47,12 +47,30 @@
         .scrollable-cell::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+
+        /* Small scrollable cell for compact content (e.g., long customer names) */
+        .scrollable-cell-sm {
+            max-width: 120px;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 2px 4px;
+            scrollbar-width: thin;
+        }
+        .scrollable-cell-sm::-webkit-scrollbar { height: 4px; }
+        .scrollable-cell-sm::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .scrollable-cell-sm::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        .scrollable-cell-sm::-webkit-scrollbar-thumb:hover { background: #555; }
     </style>
     
 </head>
 <body>
     <div class="flex min-h-screen bg-gradient">
-        <!-- Sidebar - Updated to be permanently visible -->
+        <!-- Mobile sidebar toggle button -->
+        <button onclick="toggleSidebar()" class="fixed top-4 left-4 z-50 md:hidden p-2">
+            <i class="fas fa-bars text-white text-2xl"></i>
+        </button>
+
+        <!-- Sidebar -->
         <aside id="sidebar" class="bg-white shadow-lg">
             <!-- Sidebar content will be loaded by sidebar-loader.js -->
         </aside>

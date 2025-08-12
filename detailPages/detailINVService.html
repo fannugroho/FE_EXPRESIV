@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,188 +13,191 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
+
         .dropdown-item:hover {
             background-color: #f3f4f6;
         }
+
         .search-dropdown {
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             max-height: 200px;
             overflow-y: auto;
             z-index: 50;
         }
+
         .search-input:focus {
             border-color: #3b82f6;
             outline: none;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
         }
-        
+
         /* Custom scrollbar styling */
         textarea::-webkit-scrollbar {
             height: 4px;
             width: 4px;
         }
-        
+
         textarea::-webkit-scrollbar-track {
             background: #f1f1f1;
             border-radius: 10px;
         }
-        
+
         textarea::-webkit-scrollbar-thumb {
             background: #888;
             border-radius: 10px;
         }
-        
+
         textarea::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
-        
+
         /* Custom width for quantity column */
         .quantity-column {
             width: 100px !important;
             min-width: 100px !important;
         }
-        
+
         .quantity-input {
             width: 80px !important;
             text-align: center;
             font-family: inherit !important;
             font-size: 14px !important;
         }
-        
+
         /* Custom width for price column */
         .price-column {
             width: 120px !important;
             min-width: 120px !important;
         }
-        
+
         .price-input {
             width: 100px !important;
             text-align: right;
         }
-        
+
         /* Custom width for line total column */
         .line-total-column {
             width: 120px !important;
             min-width: 120px !important;
         }
-        
+
         .line-total-input {
             width: 100px !important;
             text-align: right;
         }
-        
+
         /* Custom width for Action column */
         .action-column {
             width: 60px !important;
             min-width: 60px !important;
         }
-        
+
         /* Custom width for Service Code column */
         .service-code-column {
             width: 140px !important;
             min-width: 140px !important;
         }
-        
+
         .service-code-input {
             width: 120px !important;
         }
-        
+
         /* Custom width for No. column */
         .no-column {
             width: 80px !important;
             min-width: 80px !important;
         }
-        
+
         .no-input {
             width: 60px !important;
             text-align: center;
         }
-        
+
         /* Custom width for UoM column */
         .uom-column {
             width: 100px !important;
             min-width: 100px !important;
         }
-        
+
         /* Custom width for Base fields columns */
         .base-column {
             width: 80px !important;
             min-width: 80px !important;
         }
-        
+
         /* Custom width for Tax Code column */
         .tax-code-column {
             width: 80px !important;
             min-width: 80px !important;
         }
-        
+
         .tax-code-input {
             width: 60px !important;
             max-width: 60px !important;
             font-size: 13px !important;
         }
-        
+
         /* Custom width for Wtax Liable column */
         .wtax-liable-column {
             width: 60px !important;
             min-width: 60px !important;
         }
-        
+
         .wtax-liable-input {
             width: 40px !important;
             max-width: 40px !important;
             font-size: 13px !important;
         }
-        
+
         /* Custom width for Discount column */
         .discount-column {
             width: 100px !important;
             min-width: 100px !important;
         }
-        
+
         /* Custom width for Account Code column */
         .account-code-column {
             width: 100px !important;
             min-width: 100px !important;
         }
-        
+
         .account-code-input {
             width: 80px !important;
             max-width: 80px !important;
             font-size: 13px !important;
         }
-        
+
         /* Custom width for Account Name column */
         .account-name-column {
             width: 250px !important;
             min-width: 250px !important;
         }
-        
 
-        
+
+
         /* Custom width for Total LC column */
         .total-lc-column {
             width: 140px !important;
             min-width: 140px !important;
         }
-        
+
         .total-lc-input {
             width: 120px !important;
             text-align: right;
         }
-        
+
         /* Custom width for Source column */
         .source-column {
             width: 120px !important;
             min-width: 120px !important;
         }
-        
+
         /* Custom width for Description column */
         .description-column {
             width: 400px !important;
             min-width: 400px !important;
         }
-        
+
         /* Table container with horizontal scroll for better responsiveness */
         .table-container {
             overflow-x: auto;
@@ -203,33 +207,33 @@
             max-height: 400px;
             overflow-y: auto;
         }
-        
+
         /* Ensure table doesn't overflow container */
         #arInvServiceTable {
             min-width: 1400px;
             table-layout: fixed;
         }
-        
+
         /* Custom scrollbar for table container */
         .table-container::-webkit-scrollbar {
             width: 8px;
             height: 8px;
         }
-        
+
         .table-container::-webkit-scrollbar-track {
             background: #f1f1f1;
             border-radius: 4px;
         }
-        
+
         .table-container::-webkit-scrollbar-thumb {
             background: #c1c1c1;
             border-radius: 4px;
         }
-        
+
         .table-container::-webkit-scrollbar-thumb:hover {
             background: #a8a8a8;
         }
-        
+
         /* Sticky header for better UX */
         #arInvServiceTable thead {
             position: sticky;
@@ -237,7 +241,7 @@
             z-index: 10;
             background: #f3f4f6;
         }
-        
+
         /* Better spacing for table cells */
         #arInvServiceTable th,
         #arInvServiceTable td {
@@ -247,7 +251,7 @@
             text-overflow: ellipsis;
             vertical-align: top !important;
         }
-        
+
         /* Special handling for description column */
         #arInvServiceTable td.description-column {
             white-space: normal !important;
@@ -255,7 +259,7 @@
             text-overflow: clip !important;
             vertical-align: top !important;
         }
-        
+
         /* Ensure textarea content is properly displayed */
         .table-container textarea {
             white-space: pre-wrap;
@@ -265,13 +269,13 @@
             font-size: 14px;
             vertical-align: top;
         }
-        
+
         /* Text alignment for different column types */
         /* No. column - center aligned */
         .no-column input {
             text-align: center !important;
         }
-        
+
         /* Description column - left aligned with text wrapping */
         .description-column textarea {
             text-align: left !important;
@@ -289,42 +293,42 @@
             margin: 0 !important;
             box-shadow: none !important;
         }
-        
+
         /* Account Code column - left aligned */
         .account-code-column input {
             text-align: left !important;
         }
-        
+
         /* Account Name column - left aligned */
         .account-name-column input {
             text-align: left !important;
         }
-        
+
         /* Tax code column - center aligned */
         .tax-code-column input {
             text-align: center !important;
         }
-        
+
         /* WTax Liable column - center aligned */
         .wtax-liable-column input {
             text-align: center !important;
         }
-        
+
         /* Total LC column - right aligned */
         .total-lc-column input {
             text-align: right !important;
         }
-        
+
         /* Source column - center aligned */
         .source-column input {
             text-align: center !important;
         }
-        
+
         /* Improve table row appearance */
         #arInvServiceTable tbody tr:hover {
             background-color: #f8fafc;
         }
-        
+
         /* Ensure consistent cell alignment and height */
         #arInvServiceTable td {
             vertical-align: top !important;
@@ -332,7 +336,7 @@
             min-height: 80px !important;
             max-height: none !important;
         }
-        
+
         /* Special handling for description column cells */
         #arInvServiceTable td.description-column {
             vertical-align: top !important;
@@ -342,7 +346,7 @@
             padding: 12px 6px !important;
             background: transparent !important;
         }
-        
+
         /* Consistent input and textarea styling */
         #arInvServiceTable input,
         #arInvServiceTable textarea {
@@ -356,7 +360,7 @@
             min-height: 60px !important;
             max-height: 60px !important;
         }
-        
+
         /* Special styling for description textarea */
         #arInvServiceTable .description-column textarea {
             height: auto !important;
@@ -370,47 +374,47 @@
             margin: 0 !important;
             box-shadow: none !important;
         }
-        
+
         /* Ensure table rows have consistent height */
         #arInvServiceTable tbody tr {
             height: auto !important;
             min-height: 80px !important;
             max-height: none !important;
         }
-        
+
         /* Responsive adjustments */
         @media (max-width: 1400px) {
             .description-column {
                 width: 300px !important;
                 min-width: 300px !important;
             }
-            
+
             .account-code-column {
                 width: 70px !important;
                 min-width: 70px !important;
             }
-            
+
             .account-name-column {
                 width: 150px !important;
                 min-width: 150px !important;
             }
-            
+
             .tax-code-column {
                 width: 50px !important;
                 min-width: 50px !important;
             }
-            
+
             .wtax-liable-column {
                 width: 35px !important;
                 min-width: 35px !important;
             }
-            
+
             .total-lc-column {
                 width: 100px !important;
                 min-width: 100px !important;
             }
         }
-        
+
         /* Form field improvements */
         .form-grid {
             display: grid;
@@ -418,18 +422,18 @@
             gap: 1rem;
             margin-bottom: 1rem;
         }
-        
+
         .form-field {
             margin-bottom: 1rem;
         }
-        
+
         .form-field label {
             display: block;
             font-weight: 600;
             margin-bottom: 0.5rem;
             color: #374151;
         }
-        
+
         .form-field input,
         .form-field select,
         .form-field textarea {
@@ -439,7 +443,7 @@
             border-radius: 0.375rem;
             font-size: 0.875rem;
         }
-        
+
         .form-field input:focus,
         .form-field select:focus,
         .form-field textarea:focus {
@@ -447,7 +451,7 @@
             border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
-        
+
         /* File upload section styling */
         .file-upload-section {
             border: 1px solid #e5e7eb;
@@ -457,17 +461,17 @@
             margin-top: 1rem;
             transition: all 0.3s ease;
         }
-        
+
         .file-upload-section:hover {
             border-color: #d1d5db;
             background-color: #f3f4f6;
         }
-        
+
         .file-input-container {
             position: relative;
             margin-bottom: 0.5rem;
         }
-        
+
         .file-input-container input[type="file"] {
             width: 100%;
             padding: 0.5rem;
@@ -477,17 +481,17 @@
             font-size: 0.875rem;
             cursor: pointer;
         }
-        
+
         .file-input-container input[type="file"]:focus {
             outline: none;
             border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
-        
+
         .file-list-container {
             margin-top: 0.5rem;
         }
-        
+
         .file-item {
             background: white;
             border: 1px solid #e5e7eb;
@@ -497,23 +501,23 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             transition: all 0.2s ease;
         }
-        
+
         .file-item:hover {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             transform: translateY(-1px);
         }
-        
+
         .file-item:last-child {
             margin-bottom: 0;
         }
-        
+
         .file-item-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 0.25rem;
         }
-        
+
         .file-item-name {
             font-weight: 500;
             color: #1f2937;
@@ -522,19 +526,19 @@
             white-space: nowrap;
             flex: 1;
         }
-        
+
         .file-item-size {
             font-size: 0.75rem;
             color: #6b7280;
             margin-left: 0.5rem;
         }
-        
+
         .file-item-actions {
             display: flex;
             gap: 0.5rem;
             margin-left: 0.5rem;
         }
-        
+
         .btn-view {
             background-color: #3b82f6;
             color: white;
@@ -545,11 +549,11 @@
             border: none;
             cursor: pointer;
         }
-        
+
         .btn-view:hover {
             background-color: #2563eb;
         }
-        
+
         .btn-remove {
             background-color: #ef4444;
             color: white;
@@ -560,11 +564,11 @@
             border: none;
             cursor: pointer;
         }
-        
+
         .btn-remove:hover {
             background-color: #dc2626;
         }
-        
+
         /* Wrap text styles for columns with long content */
         .wrap-text {
             white-space: normal !important;
@@ -575,13 +579,13 @@
             max-height: 80px;
             overflow-y: auto;
         }
-        
+
         .no-wrap {
             white-space: nowrap !important;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        
+
         /* Specific column styles for better text handling */
         .description-column textarea,
         .service-code-column input,
@@ -589,13 +593,13 @@
         .price-column textarea {
             transition: all 0.3s ease;
         }
-        
+
         /* Auto-resize for textarea when content is long */
         .auto-resize {
             resize: none;
             overflow-y: auto;
         }
-        
+
         .loading-spinner {
             display: inline-block;
             width: 1.5rem;
@@ -605,11 +609,13 @@
             border-top-color: #3b82f6;
             animation: spin 1s ease-in-out infinite;
         }
-        
+
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
-        
+
         /* Full screen professional styling */
         body {
             margin: 0;
@@ -618,13 +624,13 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
         }
-        
+
         .main-container {
             min-height: 100vh;
             background-color: #f8fafc;
             padding: 0;
         }
-        
+
         .content-wrapper {
             max-width: none;
             margin: 0;
@@ -632,7 +638,7 @@
             background-color: #f8fafc;
             min-height: 100vh;
         }
-        
+
         .header-section {
             background-color: white;
             padding: 1.5rem 2rem;
@@ -640,7 +646,7 @@
             margin-bottom: 2rem;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
-        
+
         .form-section {
             background-color: white;
             border-radius: 8px;
@@ -648,7 +654,7 @@
             padding: 2rem;
             margin-bottom: 2rem;
         }
-        
+
         .table-section {
             background-color: white;
             border-radius: 8px;
@@ -656,7 +662,7 @@
             padding: 2rem;
             margin-bottom: 2rem;
         }
-        
+
         .footer-section {
             background-color: white;
             border-radius: 8px;
@@ -664,7 +670,7 @@
             padding: 2rem;
             margin-bottom: 2rem;
         }
-        
+
         .approval-section {
             background-color: white;
             border-radius: 8px;
@@ -672,7 +678,7 @@
             padding: 2rem;
             margin-bottom: 2rem;
         }
-        
+
         .submit-section {
             background-color: white;
             border-radius: 8px;
@@ -690,10 +696,12 @@
             transition: all 0.3s ease;
             padding: 1rem;
         }
+
         .attachment-container:hover {
             border-color: #d1d5db;
             background-color: #f3f4f6;
         }
+
         .attachment-item {
             background: white;
             border: 1px solid #e5e7eb;
@@ -703,30 +711,78 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             transition: all 0.2s ease;
         }
+
         .attachment-item:hover {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             transform: translateY(-1px);
         }
-        .attachment-item:last-child { margin-bottom: 0; }
-        .file-icon { font-size: 1.25rem; color: #6b7280; }
-        .file-name { font-weight: 500; color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .file-description { font-size: 0.75rem; color: #9ca3af; line-height: 1.2; }
-        .attachment-actions { display: flex; gap: 0.5rem; }
-        .btn-download { background-color: #3b82f6; color: white; padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-size: 0.875rem; transition: background-color 0.2s; }
-        .btn-download:hover { background-color: #2563eb; }
-        .btn-preview { background-color: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-size: 0.875rem; transition: background-color 0.2s; }
-        .btn-preview:hover { background-color: #059669; }
-        
+
+        .attachment-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .file-icon {
+            font-size: 1.25rem;
+            color: #6b7280;
+        }
+
+        .file-name {
+            font-weight: 500;
+            color: #1f2937;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-description {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            line-height: 1.2;
+        }
+
+        .attachment-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-download {
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+
+        .btn-download:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-preview {
+            background-color: #10b981;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+
+        .btn-preview:hover {
+            background-color: #059669;
+        }
+
         /* ===== Responsive Design - Align with detailINVItem.html ===== */
         /* Large Desktop (1200px and up) */
         @media (min-width: 1200px) {
             .content-wrapper {
                 padding: 2rem 3rem;
             }
+
             .form-grid {
                 grid-template-columns: 1fr 1fr;
                 gap: 2rem;
             }
+
             .header-section h2 {
                 font-size: 2.5rem;
             }
@@ -737,30 +793,37 @@
             .content-wrapper {
                 padding: 1.5rem 2rem;
             }
+
             .form-grid {
                 grid-template-columns: 1fr 1fr;
                 gap: 1.5rem;
             }
+
             .header-section h2 {
                 font-size: 2rem;
             }
+
             /* Adjust table column widths */
             .description-column {
                 width: 300px !important;
                 min-width: 300px !important;
             }
+
             .account-code-column {
                 width: 90px !important;
                 min-width: 90px !important;
             }
+
             .account-name-column {
                 width: 200px !important;
                 min-width: 200px !important;
             }
+
             .tax-code-column {
                 width: 70px !important;
                 min-width: 70px !important;
             }
+
             .total-lc-column {
                 width: 120px !important;
                 min-width: 120px !important;
@@ -772,16 +835,20 @@
             .content-wrapper {
                 padding: 1rem 1.5rem;
             }
+
             .form-grid {
                 grid-template-columns: 1fr;
                 gap: 1rem;
             }
+
             .header-section {
                 padding: 1rem 1.5rem;
             }
+
             .header-section h2 {
                 font-size: 1.75rem;
             }
+
             .form-section,
             .table-section,
             .footer-section,
@@ -789,22 +856,27 @@
             .submit-section {
                 padding: 1.5rem;
             }
+
             /* Adjust table for tablet */
             #arInvServiceTable {
                 min-width: 1200px;
             }
+
             .description-column {
                 width: 260px !important;
                 min-width: 260px !important;
             }
+
             .account-code-column {
                 width: 90px !important;
                 min-width: 90px !important;
             }
+
             .account-name-column {
                 width: 180px !important;
                 min-width: 180px !important;
             }
+
             .total-lc-column {
                 width: 110px !important;
                 min-width: 110px !important;
@@ -816,17 +888,21 @@
             .content-wrapper {
                 padding: 0.75rem 1rem;
             }
+
             .form-grid {
                 grid-template-columns: 1fr;
                 gap: 0.75rem;
             }
+
             .header-section {
                 padding: 1rem;
                 margin-bottom: 1rem;
             }
+
             .header-section h2 {
                 font-size: 1.5rem;
             }
+
             .form-section,
             .table-section,
             .footer-section,
@@ -835,33 +911,40 @@
                 padding: 1rem;
                 margin-bottom: 1rem;
             }
+
             /* Stack header buttons vertically on mobile */
             .header-section .flex {
                 flex-direction: column;
                 gap: 1rem;
                 align-items: stretch;
             }
+
             .header-section .flex button {
                 width: 100%;
                 text-align: center;
             }
+
             /* Adjust table for mobile large */
             #arInvServiceTable {
                 min-width: 1100px;
                 font-size: 14px;
             }
+
             .description-column {
                 width: 220px !important;
                 min-width: 220px !important;
             }
+
             .account-code-column {
                 width: 80px !important;
                 min-width: 80px !important;
             }
+
             .account-name-column {
                 width: 160px !important;
                 min-width: 160px !important;
             }
+
             .total-lc-column {
                 width: 100px !important;
                 min-width: 100px !important;
@@ -873,18 +956,22 @@
             .content-wrapper {
                 padding: 0.5rem;
             }
+
             .form-grid {
                 grid-template-columns: 1fr;
                 gap: 0.5rem;
             }
+
             .header-section {
                 padding: 0.75rem;
                 margin-bottom: 0.75rem;
             }
+
             .header-section h2 {
                 font-size: 1.25rem;
                 text-align: center;
             }
+
             .form-section,
             .table-section,
             .footer-section,
@@ -893,49 +980,59 @@
                 padding: 0.75rem;
                 margin-bottom: 0.75rem;
             }
+
             /* Stack header buttons vertically on mobile */
             .header-section .flex {
                 flex-direction: column;
                 gap: 0.75rem;
                 align-items: stretch;
             }
+
             .header-section .flex button {
                 width: 100%;
                 text-align: center;
                 padding: 0.75rem;
             }
+
             /* Adjust table for mobile small */
             #arInvServiceTable {
                 min-width: 1000px;
                 font-size: 12px;
             }
+
             .description-column {
                 width: 200px !important;
                 min-width: 200px !important;
             }
+
             .account-code-column {
                 width: 70px !important;
                 min-width: 70px !important;
             }
+
             .account-name-column {
                 width: 140px !important;
                 min-width: 140px !important;
             }
+
             .total-lc-column {
                 width: 90px !important;
                 min-width: 90px !important;
             }
+
             /* Make approval section single column */
             .approval-section .grid {
                 grid-template-columns: 1fr;
                 gap: 0.75rem;
             }
+
             /* Better summary inputs for small screens */
             .footer-section .flex {
                 flex-direction: column;
                 gap: 0.5rem;
                 align-items: stretch;
             }
+
             .footer-section .flex input {
                 width: 100% !important;
             }
@@ -946,9 +1043,11 @@
             .header-section {
                 padding: 0.5rem 1rem;
             }
+
             .header-section h2 {
                 font-size: 1.25rem;
             }
+
             .form-section,
             .table-section,
             .footer-section,
@@ -956,6 +1055,7 @@
             .submit-section {
                 padding: 0.75rem;
             }
+
             /* Adjust table for landscape */
             #arInvServiceTable {
                 min-width: 1200px;
@@ -964,6 +1064,7 @@
 
         /* Print styles */
         @media print {
+
             .header-section .flex button,
             .submit-section,
             .approval-section .search-dropdown,
@@ -972,9 +1073,11 @@
             .file-upload-section {
                 display: none !important;
             }
+
             .content-wrapper {
                 padding: 0 !important;
             }
+
             .form-section,
             .table-section,
             .footer-section,
@@ -986,19 +1089,23 @@
 
         /* Touch-friendly improvements */
         @media (max-width: 767px) {
+
             button,
             input[type="file"] {
                 min-height: 44px;
                 min-width: 44px;
             }
+
             .form-field {
                 margin-bottom: 1.5rem;
             }
+
             .table-container {
                 border-radius: 4px;
                 margin: 0 -0.5rem;
                 padding: 0 0.5rem;
             }
+
             .submit-section button {
                 min-height: 48px;
                 font-size: 1.1rem;
@@ -1007,10 +1114,12 @@
         }
 
         /* High DPI displays */
-        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+        @media (-webkit-min-device-pixel-ratio: 2),
+        (min-resolution: 192dpi) {
             .table-container {
                 border-width: 0.5px;
             }
+
             .form-section,
             .table-section,
             .footer-section,
@@ -1037,6 +1146,130 @@
             outline: 2px solid #3b82f6;
             outline-offset: 2px;
         }
+
+        /* ===== Overrides to align styles with detailINVItem.html (non-functional changes only) ===== */
+        /* Table container behavior and scroll styling */
+        .table-container {
+            overflow-y: visible !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+
+        /* Ensure service table follows item table sizing and layout */
+        #arInvServiceTable {
+            min-width: 1100px !important;
+            table-layout: fixed !important;
+            border-collapse: collapse !important;
+        }
+
+        /* Remove sticky header to match item page */
+        #arInvServiceTable thead {
+            position: static !important;
+            top: auto !important;
+            background: #f3f4f6 !important;
+        }
+
+        /* Cell spacing and alignment to match item page */
+        #arInvServiceTable th,
+        #arInvServiceTable td {
+            padding: 8px 4px !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            vertical-align: middle !important;
+        }
+
+        /* Textareas inside table cells */
+        .table-container textarea {
+            overflow-y: auto !important;
+            overflow-x: auto !important;
+            resize: none !important;
+            white-space: pre-wrap !important;
+            word-wrap: break-word !important;
+            line-height: 1.4 !important;
+            font-family: inherit !important;
+            font-size: 14px !important;
+            vertical-align: middle !important;
+        }
+
+        /* Consistent input and textarea sizing */
+        #arInvServiceTable input,
+        #arInvServiceTable textarea {
+            border: 1px solid #d1d5db !important;
+            border-radius: 4px !important;
+            padding: 6px 8px !important;
+            font-size: 14px !important;
+            line-height: 1.4 !important;
+            vertical-align: middle !important;
+            height: 50px !important;
+            min-height: 50px !important;
+            max-height: 50px !important;
+        }
+
+        /* Row height alignment */
+        #arInvServiceTable tbody tr {
+            height: 60px !important;
+            min-height: 60px !important;
+            max-height: 60px !important;
+        }
+
+        /* Column width harmonization */
+        .no-column { width: 60px !important; min-width: 60px !important; }
+        .no-input { width: 50px !important; }
+
+        .description-column { width: 250px !important; min-width: 250px !important; }
+
+        .account-code-column { width: 120px !important; min-width: 120px !important; }
+        .account-name-column { width: 200px !important; min-width: 200px !important; }
+        .tax-code-column { width: 100px !important; min-width: 100px !important; }
+        .total-lc-column { width: 180px !important; min-width: 180px !important; }
+
+        /* Table container scrollbar styling */
+        .table-container::-webkit-scrollbar { width: 8px !important; height: 8px !important; }
+        .table-container::-webkit-scrollbar-track { background: #f1f1f1 !important; border-radius: 4px !important; }
+        .table-container::-webkit-scrollbar-thumb { background: #c1c1c1 !important; border-radius: 4px !important; }
+        .table-container::-webkit-scrollbar-thumb:hover { background: #a8a8a8 !important; }
+
+        /* Responsive min-width behavior matching item page */
+        @media (max-width: 1200px) { #arInvServiceTable { min-width: 1000px !important; } }
+        @media (max-width: 991px) { #arInvServiceTable { min-width: 900px !important; } }
+        @media (max-width: 767px) { #arInvServiceTable { min-width: 800px !important; } }
+        @media (max-width: 575px) { #arInvServiceTable { min-width: 700px !important; font-size: 12px !important; } }
+        @media (max-width: 375px) { #arInvServiceTable { min-width: 600px !important; font-size: 11px !important; } }
+
+        /* Attachment and file list scroll areas to match item page */
+        .file-list-container { max-height: 300px !important; overflow-y: auto !important; padding-right: 4px !important; }
+        .attachment-list-container { max-height: 300px !important; overflow-y: auto !important; padding-right: 4px !important; }
+        .file-list-container::-webkit-scrollbar,
+        .attachment-list-container::-webkit-scrollbar { width: 8px !important; height: 8px !important; }
+        .file-list-container::-webkit-scrollbar-track,
+        .attachment-list-container::-webkit-scrollbar-track { background: #f1f1f1 !important; border-radius: 4px !important; }
+        .file-list-container::-webkit-scrollbar-thumb,
+        .attachment-list-container::-webkit-scrollbar-thumb { background: #c1c1c1 !important; border-radius: 4px !important; }
+        .file-list-container::-webkit-scrollbar-thumb:hover,
+        .attachment-list-container::-webkit-scrollbar-thumb:hover { background: #a8a8a8 !important; }
+
+        /* Touch-friendly improvements for mobile – align button sizing */
+        @media (max-width: 767px) {
+            .table-container { border-radius: 4px !important; margin: 0 -0.5rem !important; padding: 0 0.5rem !important; }
+            .submit-section button { min-height: 48px !important; font-size: 1.1rem !important; font-weight: 600 !important; }
+        }
+
+        /* ===== Existing Attachments: responsive handling for long filenames ===== */
+        .attachment-item { flex-wrap: wrap; align-items: flex-start; gap: 0.5rem; }
+        .attachment-actions { flex: 0 0 auto; display: flex; gap: 0.5rem; align-self: center; }
+        .file-name {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            word-break: break-word !important;
+            overflow-wrap: anywhere !important;
+            line-height: 1.25 !important;
+        }
+        .file-description { white-space: normal !important; overflow-wrap: anywhere !important; }
+        @media (max-width: 767px) {
+            .attachment-item { flex-direction: column; align-items: stretch; }
+            .attachment-actions { width: 100%; justify-content: flex-start; }
+        }
     </style>
 </head>
 
@@ -1046,152 +1279,217 @@
             <!-- Header Section -->
             <div class="header-section">
                 <div class="flex justify-between items-center">
-                    <button onclick="goToMenuARInv()" type="button" class="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200">← Back</button>
+                    <button onclick="goToMenuARInv()" type="button"
+                        class="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 shadow transition transform hover:scale-105 duration-200">←
+                        Back</button>
                     <h2 class="text-3xl font-bold text-gray-800">Detail AR Invoice Service</h2>
                     <div></div> <!-- Spacer for centering -->
                 </div>
             </div>
-            
+
             <!-- Form Section -->
             <div class="form-section">
                 <div class="grid grid-cols-2 gap-8">
                     <div>
                         <h3 class="text-lg font-semibold mb-2" style="display: none;">DocEntry</h3>
-                        <input type="text" id="DocEntry" placeholder="DocEntry" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" style="display: none;">
-                        
+                        <input type="text" id="DocEntry" placeholder="DocEntry"
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off"
+                            style="display: none;">
+
                         <h3 class="text-lg font-semibold mb-2">Invoice No.</h3>
-                        <input type="text" id="DocNum" placeholder="Invoice No." class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                        
+                        <input type="text" id="DocNum" placeholder="Invoice No."
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+
                         <h3 class="text-lg font-semibold mb-2">Customer Code</h3>
-                        <input type="text" id="CardCode" placeholder="Customer Code" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                        <input type="text" id="CardCode" placeholder="Customer Code"
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
 
                         <h3 class="text-lg font-semibold mb-2">Customer Name</h3>
-                        <input type="text" id="CardName" placeholder="Customer Name" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                        
+                        <input type="text" id="CardName" placeholder="Customer Name"
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+
                         <h3 class="text-lg font-semibold mb-2">Status</h3>
-                        <input type="text" id="Status" placeholder="Status" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                        
+                        <input type="text" id="Status" placeholder="Status"
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+
                         <h3 class="text-lg font-semibold mb-2">Address</h3>
-                        <input type="text" id="address" placeholder="Address" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                        
+                        <input type="text" id="address" placeholder="Address"
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+
                         <h3 class="text-lg font-semibold mb-2">Invoice Num Ref</h3>
-                        <input type="text" id="NumAtCard" placeholder="External Document Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                        
+                        <input type="text" id="NumAtCard" placeholder="External Document Number"
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+
                         <h3 class="text-lg font-semibold mb-2">Currency</h3>
-                        <input type="text" id="DocCur" placeholder="Currency" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                        
+                        <input type="text" id="DocCur" placeholder="Currency"
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+
                         <h3 class="text-lg font-semibold mb-2">Document Rate</h3>
-                        <input type="number" id="docRate" placeholder="Document Rate" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                        
+                        <input type="number" id="docRate" placeholder="Document Rate"
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+
                         <!-- File Upload Section -->
                         <h3 class="text-lg font-semibold mb-2">Upload New Attachments</h3>
                         <div class="file-upload-section">
                             <div class="file-input-container">
-                                <input type="file" id="filePath" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" autocomplete="off" />
+                                <input type="file" id="filePath" accept="application/pdf"
+                                    class="w-full p-2 border rounded" multiple onchange="previewPDF(event)"
+                                    autocomplete="off" />
                             </div>
                             <p class="text-sm text-gray-600 mt-1">Only PDF files are allowed.</p>
-                            
+
                             <!-- File List Display -->
                             <div id="fileList" class="file-list-container">
                                 <!-- Selected files will be displayed here -->
                             </div>
                         </div>
 
-                         <!-- Existing Attachments Section -->
-                         <h3 class="text-lg font-semibold mb-2 mt-6">Existing Attachments</h3>
-                         <div class="attachment-container">
-                             <!-- Loading state -->
-                             <div id="attachmentLoading" class="text-sm text-gray-500">Loading attachments...</div>
-                             <!-- Empty state -->
-                             <div id="noAttachments" class="text-sm text-gray-500" style="display: none;">No attachments available</div>
-                             <!-- List -->
-                             <div id="attachmentList" class="attachment-list-container"></div>
-                         </div>
+                        <!-- Existing Attachments Section -->
+                        <h3 class="text-lg font-semibold mb-2 mt-6">Existing Attachments</h3>
+                        <div class="attachment-container">
+                            <!-- List (aligned with JS displayExistingAttachments) -->
+                            <div id="existingAttachmentsList" class="attachment-list-container"></div>
+                        </div>
                     </div>
-                    
+
                     <div>
                         <h3 class="text-lg font-semibold mb-2">Document Date</h3>
-                        <input type="date" id="DocDate" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                        
+                        <input type="date" id="DocDate" class="w-full p-2 border rounded bg-gray-100" disabled
+                            autocomplete="off">
+
                         <h3 class="text-lg font-semibold mb-2">Due Date</h3>
-                        <input type="date" id="DocDueDate" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                        
+                        <input type="date" id="DocDueDate" class="w-full p-2 border rounded bg-gray-100" disabled
+                            autocomplete="off">
+
                         <h3 class="text-lg font-semibold mb-2">Tax No</h3>
-                        <input type="text" id="TaxNo" placeholder="Tax Number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                        
+                        <input type="text" id="TaxNo" placeholder="Tax Number"
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+
                         <h3 class="text-lg font-semibold mb-2">Shipping Type</h3>
-                        <input type="text" id="U_BSI_ShippingType" placeholder="Shipping Type" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                        
+                        <input type="text" id="U_BSI_ShippingType" placeholder="Shipping Type"
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+
                         <h3 class="text-lg font-semibold mb-2">Payment Terms</h3>
-                        <input type="text" id="U_BSI_PaymentGroup" placeholder="Payment Group" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                        
+                        <input type="text" id="U_BSI_PaymentGroup" placeholder="Payment Group"
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+
                         <h3 class="text-lg font-semibold mb-2" style="display: none;">U_BSI_Expressiv_IsTransfered</h3>
-                        <input type="text" id="U_BSI_Expressiv_IsTransfered" placeholder="Is Transfered" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" style="display: none;">
-                        
+                        <input type="text" id="U_BSI_Expressiv_IsTransfered" placeholder="Is Transfered"
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off"
+                            style="display: none;">
+
                         <h3 class="text-lg font-semibold mb-2">No Surat Jalan</h3>
-                        <input type="text" id="U_BSI_UDF1" placeholder="UDF1" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                        
+                        <input type="text" id="U_BSI_UDF1" placeholder="UDF1"
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+
                         <h3 class="text-lg font-semibold mb-2">P/O No</h3>
-                        <input type="text" id="U_BSI_UDF2" placeholder="UDF2" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                        
+                        <input type="text" id="U_BSI_UDF2" placeholder="UDF2"
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+
                         <h3 class="text-lg font-semibold mb-2">Account</h3>
-                        <input type="text" id="account" placeholder="Account" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
-                        
+                        <input type="text" id="account" placeholder="Account"
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+
                         <h3 class="text-lg font-semibold mb-2">Account Name</h3>
-                        <input type="text" id="acctName" placeholder="Account Name" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                        <input type="text" id="acctName" placeholder="Account Name"
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                     </div>
                 </div>
             </div>
-            
+
             <!-- Table Section -->
             <div class="table-section">
                 <h3 class="text-xl font-semibold mb-4 text-gray-800">Service Details</h3>
                 <div class="table-container">
                     <table id="arInvServiceTable" class="w-full text-left border mt-2">
-                    <thead class="bg-purple-100">
-                        <tr>
-                            <th class="p-2 no-column">No.</th>
-                            <th class="p-2 description-column">Description</th>
-                            <th class="p-2 account-code-column">G/L Account</th>
-                            <th class="p-2 account-name-column">Account Name</th>
-                            <th class="p-2 tax-code-column">Tax Code</th>
-                            <th class="p-2 wtax-liable-column">WTax Liable</th>
-                            <th class="p-2 total-lc-column">Total LC</th>
-                            <th class="p-2 source-column">Source</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        <!-- Table rows will be populated by JavaScript -->
-                    </tbody>
-                </table>
+                        <thead class="bg-purple-100">
+                            <tr>
+                                <th class="p-2 no-column">No.</th>
+                                <th class="p-2 description-column">Description</th>
+                                <th class="p-2 account-code-column">G/L Account</th>
+                                <th class="p-2 account-name-column">Account Name</th>
+                                <th class="p-2 tax-code-column">Tax Code</th>
+                                <th class="p-2 wtax-liable-column">WTax Liable</th>
+                                <th class="p-2 total-lc-column">Total LC</th>
+                                <th class="p-2 source-column">Source</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Table rows will be populated by JavaScript -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
             <!-- Footer Totals Section -->
             <div class="footer-section">
                 <h3 class="text-xl font-semibold mb-4 text-gray-800">Summary</h3>
-                <!--Total Amount Due-->
+
+                <!-- Total -->
                 <div class="mt-4 flex justify-end space-x-2">
-                    <label class="font-semibold text-gray-700">Total Before Discount :</label>
-                    <input type="number" id="PriceBefDi" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
+                    <label class="font-semibold text-gray-700">Total :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="docTotal"
+                            class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
+                            readonly autocomplete="off">
+                    </div>
                 </div>
-                
-                <!--Total Tax-->
+
+                <!-- Discounted -->
                 <div class="mt-4 flex justify-end space-x-2">
-                    <label class="font-semibold text-gray-700">Total Tax :</label>
-                    <input type="number" id="VatSum" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
+                    <label class="font-semibold text-gray-700">Discounted :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="discSum"
+                            class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
+                            readonly autocomplete="off">
+                    </div>
                 </div>
-                
-                <!--Total Amount-->
+
+                <!-- Sales Amount -->
                 <div class="mt-4 flex justify-end space-x-2">
-                    <label class="font-semibold text-gray-700">Total Amount :</label>
-                    <input type="number" id="DocTotal" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input bg-gray-100" readonly autocomplete="off">
+                    <label class="font-semibold text-gray-700">Sales Amount :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="netPriceAfterDiscount"
+                            class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
+                            readonly autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- Tax Base Other Value -->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Tax Base Other Value :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="dpp1112"
+                            class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
+                            readonly autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- VAT 12% -->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">VAT 12% :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="vatSum"
+                            class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
+                            readonly autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- GRAND TOTAL -->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700 text-lg">GRAND TOTAL :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="grandTotal"
+                            class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 font-bold"
+                            readonly autocomplete="off">
+                    </div>
                 </div>
 
                 <!-- Remarks section -->
                 <div class="mt-6">
                     <label class="font-semibold text-gray-700">Remarks</label>
-                    <textarea id="comments" class="w-full p-2 border rounded-md bg-gray-100" maxlength="254" disabled autocomplete="off"></textarea>
+                    <textarea id="comments" class="w-full p-2 border rounded-md bg-gray-100" maxlength="254" disabled
+                        autocomplete="off"></textarea>
                 </div>
             </div>
 
@@ -1199,7 +1497,9 @@
             <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
                 <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
                 <div class="bg-red-50 p-4 rounded-lg border border-red-200">
-                    <textarea id="rejectionRemarks" class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap" readonly autocomplete="off"></textarea>
+                    <textarea id="rejectionRemarks"
+                        class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"
+                        readonly autocomplete="off"></textarea>
                 </div>
             </div>
 
@@ -1207,51 +1507,71 @@
             <div class="approval-section">
                 <h3 class="text-xl font-semibold mb-4 text-gray-800">Approval Workflow</h3>
                 <div class="grid grid-cols-2 gap-6 text-sm">
-                    <div> 
-                        <label id="preparedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Prepared by:</strong></label>
+                    <div>
+                        <label id="preparedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Prepared
+                                by:</strong></label>
                         <div class="relative">
-                            <input type="text" id="preparedByName" class="w-full p-2 border rounded bg-gray-100 search-input" autocomplete="off" disabled>
-                            <div id="preparedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <input type="text" id="preparedByName"
+                                class="w-full p-2 border rounded bg-gray-100 search-input" autocomplete="off" disabled>
+                            <div id="preparedBySelectDropdown"
+                                class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden">
+                            </div>
                             <select id="preparedBy" class="hidden" autocomplete="off">
                                 <option value="" disabled selected>Choose Name</option>
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label id="acknowledgeByCheck" class="mr-1 font-semibold text-gray-700"><strong>Acknowledge by:</strong></label>
+                        <label id="acknowledgeByCheck" class="mr-1 font-semibold text-gray-700"><strong>Acknowledge
+                                by:</strong></label>
                         <div class="relative">
-                            <input type="text" id="acknowledgeByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
-                            <div id="acknowledgeBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <input type="text" id="acknowledgeByName" placeholder="Search name..."
+                                class="w-full p-2 border rounded search-input" autocomplete="off">
+                            <div id="acknowledgeBySelectDropdown"
+                                class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden">
+                            </div>
                             <select id="acknowledgeBy" class="hidden" autocomplete="off">
                                 <option value="" disabled selected>Choose Name</option>
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label id="checkedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Checked by:</strong></label>
+                        <label id="checkedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Checked
+                                by:</strong></label>
                         <div class="relative">
-                            <input type="text" id="checkedByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
-                            <div id="checkedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <input type="text" id="checkedByName" placeholder="Search name..."
+                                class="w-full p-2 border rounded search-input" autocomplete="off">
+                            <div id="checkedBySelectDropdown"
+                                class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden">
+                            </div>
                             <select id="checkedBy" class="hidden" autocomplete="off">
                                 <option value="" disabled selected>Choose Name</option>
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label id="approvedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Approved by:</strong></label>
+                        <label id="approvedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Approved
+                                by:</strong></label>
                         <div class="relative">
-                            <input type="text" id="approvedByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
-                            <div id="approvedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <input type="text" id="approvedByName" placeholder="Search name..."
+                                class="w-full p-2 border rounded search-input" autocomplete="off">
+                            <div id="approvedBySelectDropdown"
+                                class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden">
+                            </div>
                             <select id="approvedBy" class="hidden" autocomplete="off">
                                 <option value="" disabled selected>Choose Name</option>
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label id="receivedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Received by:</strong></label>
+                        <label id="receivedByCheck" class="mr-1 font-semibold text-gray-700"><strong>Received
+                                by:</strong></label>
                         <div class="relative">
-                            <input type="text" id="receivedByName" placeholder="Search name..." class="w-full p-2 border rounded search-input" autocomplete="off">
-                            <div id="receivedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden"></div>
+                            <input type="text" id="receivedByName" placeholder="Search name..."
+                                class="w-full p-2 border rounded search-input" autocomplete="off">
+                            <div id="receivedBySelectDropdown"
+                                class="absolute left-0 right-0 mt-1 bg-white border rounded search-dropdown hidden">
+                            </div>
                             <select id="receivedBy" class="hidden" autocomplete="off">
                                 <option value="" disabled selected>Choose Name</option>
                             </select>
@@ -1270,40 +1590,34 @@
                         2. Set preparedDate to current timestamp
                         3. Send both values to the API
                     -->
-                    <button 
-                        id="submitButton" 
-                        onclick="submitInvoiceServiceData()" 
+                    <button id="submitButton" onclick="submitInvoiceServiceData()"
                         class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-lg shadow-xl transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
-                        disabled
-                    >
+                        disabled>
                         <span id="submitButtonText">Submit & Update Status</span>
                         <div id="submitSpinner" class="hidden inline-block ml-2">
                             <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                         </div>
                     </button>
-                    <p class="text-sm text-gray-600 mt-2">Click to submit this invoice service data and update approval status from Draft to Prepared</p>
+                    <p class="text-sm text-gray-600 mt-2">Click to submit this invoice service data and update approval
+                        status from Draft to Prepared</p>
+
                     
-                    <!-- Debug Button -->
-                    <button 
-                        onclick="showDebugInfo()" 
-                        class="mt-4 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-300 text-sm"
-                    >
-                        🔧 Debug Info
-                    </button>
                 </div>
             </div>
         </div>
     </div>
-    
+
+    <!-- Load auth.js first for BASE_URL configuration -->
+    <script src="../js/auth.js"></script>
+
+    <!-- Then load the detail service script -->
     <script src="../js/detailInvService.js"></script>
-    <!-- Authentication is disabled for development -->
-    <!-- <script src="../js/auth.js"></script> -->
-    
+
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
     <script>
         // Rejection remarks sync without modifying existing JS functions
-        (function() {
+        (function () {
             function updateRejectionRemarksFromData() {
                 try {
                     if (!window.invoiceData || !invoiceData.arInvoiceApprovalSummary) return false;
@@ -1336,10 +1650,10 @@
         function handleTextWrapping(element) {
             const text = element.value || element.textContent || '';
             const charLength = text.length;
-            
+
             // Remove existing classes
             element.classList.remove('wrap-text', 'no-wrap', 'auto-resize');
-            
+
             if (element.tagName === 'TEXTAREA' && element.classList.contains('description-column')) {
                 // For description textarea, make it behave like plain text
                 element.style.height = 'auto';
@@ -1353,7 +1667,7 @@
             } else if (charLength > 15) {
                 // Apply wrap text styling for long content
                 element.classList.add('wrap-text', 'auto-resize');
-                
+
                 // Auto-adjust height for other textarea elements
                 if (element.tagName === 'TEXTAREA') {
                     const lineHeight = 20; // Approximate line height
@@ -1364,22 +1678,22 @@
             } else {
                 // Apply no-wrap styling for short content
                 element.classList.add('no-wrap');
-                
+
                 // Reset height for textarea elements
                 if (element.tagName === 'TEXTAREA') {
                     element.style.height = '40px';
                 }
             }
         }
-        
+
         // Function to apply text wrapping to all relevant elements
         function applyTextWrappingToAll() {
             const textElements = document.querySelectorAll('.description-column textarea, .account-code-column input, .account-name-column input, .total-lc-column input');
-            
+
             textElements.forEach(element => {
                 handleTextWrapping(element);
             });
-            
+
             // Special handling for description textareas - ensure they behave like plain text
             const descriptionTextareas = document.querySelectorAll('.description-column textarea');
             descriptionTextareas.forEach(textarea => {
@@ -1395,16 +1709,16 @@
                 }, 10);
             });
         }
-        
+
         // Initialize text wrapping when page loads
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Apply text wrapping after data is loaded
             setTimeout(() => {
                 applyTextWrappingToAll();
             }, 500);
-            
+
             // Add event listeners for description textareas to handle dynamic content
-            document.addEventListener('input', function(e) {
+            document.addEventListener('input', function (e) {
                 if (e.target.tagName === 'TEXTAREA' && e.target.classList.contains('description-column')) {
                     // Ensure description textarea behaves like plain text
                     e.target.style.height = 'auto';
@@ -1416,4 +1730,5 @@
         });
     </script>
 </body>
-</html> 
+
+</html>

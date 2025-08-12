@@ -286,12 +286,12 @@ function displayExistingDocuments(documents) {
                             </div>
                         </div>
                         <div class="flex flex-col space-y-2 ml-3">
-                            <button onclick="applyEStampToSignedDocument('${doc.signed_url}', '${doc.specific_document_ref || 'document'}')" 
+                            <button onclick="startManualEStamping()" 
                                     class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center space-x-2 text-sm">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a1.994 1.994 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
                                 </svg>
-                                <span>Apply E-Stamp</span>
+                                <span>Upload for E-Stamp</span>
                             </button>
                             <button onclick="downloadExistingDocument('${doc.signed_url}', '${(doc.specific_document_ref || 'document').replace(/[^a-zA-Z0-9]/g, '_')}_signed.pdf')" 
                                     class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center space-x-2 text-sm">
@@ -1582,6 +1582,25 @@ async function startEStampingProcess() {
         }
         
         updateStampStatus('Sending document for e-stamping...', 30);
+
+        // Detect QR code presence to inform stamping API
+        let qrcodeSrcForStamp = '';
+        let hasQrCodeForStamp = false;
+        try {
+            if (typeof currentInvItemData !== 'undefined' && currentInvItemData && currentInvItemData.qrCodeSrc) {
+                qrcodeSrcForStamp = currentInvItemData.qrCodeSrc;
+            } else {
+                const qrElement = document.getElementById('qrcodeSrc');
+                if (qrElement) {
+                    qrcodeSrcForStamp = qrElement.value || '';
+                }
+            }
+            hasQrCodeForStamp = !!(qrcodeSrcForStamp && qrcodeSrcForStamp !== null &&
+                String(qrcodeSrcForStamp).trim() !== '' && String(qrcodeSrcForStamp).toLowerCase() !== 'null');
+            console.log('🔍 [E-Stamp] Has QR Code (auto):', hasQrCodeForStamp);
+        } catch (e) {
+            console.warn('⚠️ [E-Stamp] QR code detection failed:', e);
+        }
         
         // Generate unique UUID for document reference
         function generateUUID() {
@@ -1597,7 +1616,8 @@ async function startEStampingProcess() {
             document_base64: signedBase64,
             document_type: "ARInvoices",
             document_id: stagingId,
-            specific_document_ref: specificDocRef
+            specific_document_ref: specificDocRef,
+            is_document_withqrcode: hasQrCodeForStamp
         };
         
         console.log('📝 E-Stamp API payload:', {
@@ -1805,34 +1825,34 @@ function showStampingCompleted(refNum) {
 // Show e-stamping option after e-signing completion
 function showEStampingOption() {
     Swal.fire({
-        title: 'E-Signing Completed!',
+        title: 'E-Signing Completed',
         html: `
             <div class="text-left">
-                <p class="mb-4">Your document has been successfully signed!</p>
-                <p class="mb-4">Would you like to apply an electronic stamp (E-meterai) to your signed document?</p>
+                <p class="mb-4">Your document has been successfully signed.</p>
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                    <div class="flex items-start space-x-2">
-                        <svg class="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <div>
-                            <p class="text-blue-800 font-medium">Note:</p>
-                            <p class="text-blue-700">If e-stamping fails due to network issues, you can download the signed document and re-upload it for stamping.</p>
-                        </div>
-                    </div>
+                    <p class="text-blue-800 font-medium">Next step to apply E-Stamp:</p>
+                    <ol class="list-decimal list-inside space-y-1 text-blue-800">
+                        <li>Download the signed document</li>
+                        <li>Click \"Upload for E-Stamp\" and upload the signed PDF</li>
+                    </ol>
                 </div>
             </div>
         `,
-        icon: 'success',
+        icon: 'info',
+        showDenyButton: true,
         showCancelButton: true,
-        confirmButtonText: 'Yes, Apply E-Stamp',
-        cancelButtonText: 'No, Skip E-Stamp',
-        confirmButtonColor: '#8B5CF6',
+        confirmButtonText: 'Download Signed Document',
+        denyButtonText: 'Upload for E-Stamp',
+        cancelButtonText: 'Close',
+        confirmButtonColor: '#3B82F6',
+        denyButtonColor: '#8B5CF6',
         cancelButtonColor: '#6B7280',
         width: '500px'
     }).then((result) => {
         if (result.isConfirmed) {
-            startEStampingProcess();
+            downloadSignedDocument();
+        } else if (result.isDenied) {
+            startManualEStamping();
         }
     });
 }
@@ -1915,6 +1935,25 @@ async function processManualEStamping(file) {
         });
         
         updateStampStatus('Sending document for e-stamping...', 30);
+
+        // Detect QR code presence to inform stamping API
+        let qrcodeSrcManual = '';
+        let hasQrCodeManual = false;
+        try {
+            if (typeof currentInvItemData !== 'undefined' && currentInvItemData && currentInvItemData.qrCodeSrc) {
+                qrcodeSrcManual = currentInvItemData.qrCodeSrc;
+            } else {
+                const qrElement = document.getElementById('qrcodeSrc');
+                if (qrElement) {
+                    qrcodeSrcManual = qrElement.value || '';
+                }
+            }
+            hasQrCodeManual = !!(qrcodeSrcManual && qrcodeSrcManual !== null &&
+                String(qrcodeSrcManual).trim() !== '' && String(qrcodeSrcManual).toLowerCase() !== 'null');
+            console.log('🔍 [E-Stamp] Has QR Code (manual):', hasQrCodeManual);
+        } catch (e) {
+            console.warn('⚠️ [E-Stamp] QR code detection (manual) failed:', e);
+        }
         
         // Generate unique UUID for document reference
         function generateUUID() {
@@ -1930,7 +1969,8 @@ async function processManualEStamping(file) {
             document_base64: signedBase64,
             document_type: "ARInvoices",
             document_id: stagingId,
-            specific_document_ref: specificDocRef
+            specific_document_ref: specificDocRef,
+            is_document_withqrcode: hasQrCodeManual
         };
         
         console.log('📝 Manual E-Stamp API payload:', {
@@ -1985,217 +2025,39 @@ async function processManualEStamping(file) {
 // Apply e-stamp to a previously signed document
 async function applyEStampToSignedDocument(signedUrl, docRef) {
     try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const stagingId = urlParams.get('stagingID');
-        
-        if (!stagingId) {
-            throw new Error('No staging ID found');
-        }
-        
-        // Confirm with user before proceeding
-        const confirmResult = await Swal.fire({
-            title: 'Apply E-Stamp to Document',
+        const safeName = (docRef || 'document').replace(/[^a-zA-Z0-9]/g, '_');
+        const result = await Swal.fire({
+            title: 'E-Stamping via Manual Upload',
             html: `
                 <div class="text-left">
-                    <p class="mb-4">Do you want to apply an electronic stamp (E-meterai) to this signed document?</p>
+                    <p class="mb-3">Automatic e-stamping is disabled.</p>
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                        <div class="flex items-start space-x-2">
-                            <svg class="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <div>
-                                <p class="text-blue-800 font-medium">Document:</p>
-                                <p class="text-blue-700">${docRef}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3 text-sm">
-                        <div class="flex items-start space-x-2">
-                            <svg class="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                            </svg>
-                            <div>
-                                <p class="text-yellow-800 font-medium">Note:</p>
-                                <p class="text-yellow-700">If automatic processing fails due to network restrictions, you'll be offered a manual upload option.</p>
-                            </div>
-                        </div>
+                        <p class="text-blue-800 font-medium">To apply E-Stamp:</p>
+                        <ol class="list-decimal list-inside space-y-1 text-blue-800">
+                            <li>Download this signed document</li>
+                            <li>Click \"Upload for E-Stamp\" and upload the file</li>
+                        </ol>
                     </div>
                 </div>
             `,
-            icon: 'question',
+            icon: 'info',
+            showDenyButton: true,
             showCancelButton: true,
-            confirmButtonText: 'Yes, Apply E-Stamp',
-            cancelButtonText: 'Cancel',
-            confirmButtonColor: '#8B5CF6',
+            confirmButtonText: 'Download Document',
+            denyButtonText: 'Upload for E-Stamp',
+            cancelButtonText: 'Close',
+            confirmButtonColor: '#3B82F6',
+            denyButtonColor: '#8B5CF6',
             cancelButtonColor: '#6B7280',
             width: '500px'
         });
-        
-        if (!confirmResult.isConfirmed) {
-            return;
+        if (result.isConfirmed) {
+            downloadExistingDocument(signedUrl, `${safeName}_signed.pdf`);
+        } else if (result.isDenied) {
+            startManualEStamping();
         }
-        
-        // Show stamping section
-        document.getElementById('completionSection').classList.add('hidden');
-        document.getElementById('stampingSection').classList.remove('hidden');
-        
-        updateStampStatus('Preparing signed document for e-stamping...', 10);
-        
-        // Store the signed document URL for the stamping process
-        signedDocumentUrl = signedUrl;
-        
-        // Try multiple methods to get the signed document base64
-        let signedBase64;
-        
-        try {
-            // Method 1: Try direct fetch (might work with CORS)
-            const signedResponse = await fetch(signedUrl);
-            if (!signedResponse.ok) {
-                throw new Error('Direct fetch failed');
-            }
-            
-            const signedBlob = await signedResponse.blob();
-            signedBase64 = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const base64 = reader.result.split(',')[1];
-                    resolve(base64);
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(signedBlob);
-            });
-            console.log('✅ Direct fetch successful for signed document');
-            
-        } catch (fetchError) {
-            console.log('⚠️ Direct fetch failed due to CORS, trying proxy method...');
-            
-            // Method 2: Use backend proxy to fetch the document
-            try {
-                const proxyResponse = await fetch('https://dentsu-kansai-expressiv.idsdev.site/proxy/download', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        url: signedUrl,
-                        type: 'signed_document'
-                    })
-                });
-                
-                if (!proxyResponse.ok) {
-                    throw new Error('Proxy fetch failed');
-                }
-                
-                const proxyResult = await proxyResponse.json();
-                if (proxyResult.success && proxyResult.base64) {
-                    signedBase64 = proxyResult.base64;
-                    console.log('✅ Proxy fetch successful for signed document');
-                } else {
-                    throw new Error('Invalid proxy response');
-                }
-                
-            } catch (proxyError) {
-                console.log('⚠️ All automatic methods failed, offering manual upload...');
-                
-                // Hide stamping section and offer manual upload
-                document.getElementById('stampingSection').classList.add('hidden');
-                document.getElementById('completionSection').classList.remove('hidden');
-                
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Network Restriction Detected',
-                    html: `
-                        <div class="text-left">
-                            <p class="mb-4">Unable to access the signed document automatically due to network restrictions.</p>
-                            <p class="mb-4"><strong>Please use manual e-stamping instead:</strong></p>
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                                <ol class="list-decimal list-inside space-y-1 text-blue-800">
-                                    <li>Download the signed document first</li>
-                                    <li>Click "Upload for E-Stamp" button</li>
-                                    <li>Upload the downloaded document</li>
-                                </ol>
-                            </div>
-                        </div>
-                    `,
-                    showCancelButton: true,
-                    confirmButtonText: 'Download Document',
-                    cancelButtonText: 'Close',
-                    confirmButtonColor: '#3B82F6',
-                    cancelButtonColor: '#6B7280',
-                    width: '500px'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        downloadExistingDocument(signedUrl, `${docRef.replace(/[^a-zA-Z0-9]/g, '_')}_signed.pdf`);
-                    }
-                });
-                return;
-            }
-        }
-        
-        updateStampStatus('Sending document for e-stamping...', 30);
-        
-        // Generate unique UUID for document reference
-        function generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        }
-        const specificDocRef = generateUUID();
-        
-        // Create e-stamp API payload
-        const stampPayload = {
-            document_base64: signedBase64,
-            document_type: "ARInvoices",
-            document_id: stagingId,
-            specific_document_ref: specificDocRef
-        };
-        
-        console.log('📝 Existing Document E-Stamp API payload:', {
-            ...stampPayload,
-            document_base64: '[BASE64_DATA]'
-        });
-        
-        const stampResponse = await fetch('https://dentsu-kansai-expressiv.idsdev.site/emeterai/stamp-document', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(stampPayload)
-        });
-        
-        if (!stampResponse.ok) {
-            const errorText = await stampResponse.text();
-            throw new Error(`E-stamp API error: ${stampResponse.status} - ${errorText}`);
-        }
-        
-        const stampResult = await stampResponse.json();
-        console.log('📋 Existing Document E-Stamp API Response:', stampResult);
-        
-        if (!stampResult.success || !stampResult.job_id) {
-            throw new Error('Invalid e-stamp API response');
-        }
-        
-        stampJobId = stampResult.job_id;
-        console.log('🆔 Existing Document E-Stamp Job ID:', stampJobId);
-        
-        // Start checking job status immediately
-        updateStampStatus('E-stamping process started...', 60);
-        await checkEStampJobStatus();
-        
     } catch (error) {
-        console.error('❌ E-Stamping of existing document failed:', error);
-        
-        // Hide stamping section
-        document.getElementById('stampingSection').classList.add('hidden');
-        document.getElementById('completionSection').classList.remove('hidden');
-        
-        Swal.fire({
-            icon: 'error',
-            title: 'E-Stamping Failed',
-            text: error.message,
-            confirmButtonText: 'OK'
-        });
+        console.error('E-Stamp instruction dialog error:', error);
     }
 }
 

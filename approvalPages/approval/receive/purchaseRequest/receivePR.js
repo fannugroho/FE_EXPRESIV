@@ -1085,7 +1085,10 @@ function printPR() {
             receivedDateFormatted
         });
         
-        // Open the print page in a new window
+        // Open the print page in a new window - sertakan id agar ambil dari API
+        if (typeof prId !== 'undefined' && prId) {
+            params.set('id', prId);
+        }
         window.open(`printPR.html?${params.toString()}`, '_blank');
     } catch (error) {
         console.error("Error in printPR function:", error);
