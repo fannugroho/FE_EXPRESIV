@@ -1195,7 +1195,7 @@ function populateFinancialSummary(invoice) {
         { id: 'discountAmount', value: invoice.discSum || 0, label: 'Discounted' },
         { id: 'salesAmount', value: invoice.netPriceAfterDiscount || 0, label: 'Sales Amount' },
         { id: 'taxBase', value: invoice.dpp1112 || 0, label: 'Tax Base Other Value' },
-        { id: 'vatAmount', value: invoice.vatSum || 0, label: 'VAT 12%' },
+        { id: 'vatAmount', value: invoice.docTax || 0, label: 'VAT 12%' },
         { id: 'grandTotal', value: invoice.grandTotal || 0, label: 'GRAND TOTAL' },
     ];
 
