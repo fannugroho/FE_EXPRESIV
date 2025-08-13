@@ -966,7 +966,7 @@ function goToTotalDocs() {
 }
 
 function detailDoc(id) {
-    window.location.href = `../../../approval/check/outgoingPayment/checkedOPReim.html?id=${id}&tab=${currentTab}`;
+    window.location.href = `../../../approval/receive/outgoingPayment/receiveOPReim.html?id=${id}&tab=${currentTab}`;
 }
 
 function toggleSidebar() {

@@ -295,18 +295,18 @@ function displayPrintOutReimbursement(reimbursementData) {
 
     // Build the Print Receive Reimbursement URL with minimal parameters
     const baseUrl = window.location.origin;
-    const params = new URLSearchParams();
+    // Use GetPrintReim.html for Print Reimbursement Document
+    const printReimUrl = `${baseUrl}/approvalPages/approval/receive/outgoingPayment/GetPrintReim.html`;
 
-    // Clean and add the reimbursement ID as 'reim-id' parameter
-    const cleanReimId = reimbursementId ? reimbursementId.trim() : '';
-    params.append('reim-id', cleanReimId);
+    // Use expressivNo for GetPrintReim.html parameter
+    const expressivNo = reimbursementData?.expressivNo || reimbursementId;
+    const finalUrl = `${printReimUrl}?reim-id=${expressivNo}&_t=${Date.now()}`;
 
-    // Add timestamp to prevent caching
-    params.append('timestamp', Date.now().toString());
+    console.log('🔧 Print Reimbursement URL points to GetPrintReim.html with expressivNo:', expressivNo);
+    console.log('🔗 Print Reimbursement URL constructed:', finalUrl);
 
-    // Construct the final URL pointing to GetPrintReim.html
-    const printReimUrl = `${baseUrl}/approvalPages/approval/receive/outgoingPayment/GetPrintReim.html?${params.toString()}`;
-    fullUrl = printReimUrl;
+    // MINIMAL URL: Only send reim-id parameter, let GetPrintReim.html handle all data internally
+    fullUrl = finalUrl;
 
     // Create the document item
     const documentItem = document.createElement('div');
@@ -2852,10 +2852,16 @@ async function makeAuthenticatedRequest(url, options = {}) {
     return response;
 }
 
-// Global variable for users
+// Global variables for users and superiors
 let users = [];
+let superiorApprovers = {
+    CH: [], // Checker
+    AC: [], // Acknowledge
+    AP: [], // Approver
+    RE: []  // Receiver
+};
 
-// Function to initialize user dropdowns
+// Function to initialize user dropdowns (with superior API for approval fields)
 async function initializeUserDropdowns() {
     try {
         Swal.fire({
@@ -2871,32 +2877,65 @@ async function initializeUserDropdowns() {
             }
         });
 
-        const response = await makeAuthenticatedRequest('/api/users', {
+        // Get current user ID from token/localStorage
+        let userId = getUserId();
+        if (!userId) {
+            throw new Error('User ID not found in token/localStorage');
+        }
+
+        // Fetch all users for PreparedBy (Proposed by)
+        const usersResponse = await makeAuthenticatedRequest('/api/users', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
                 'accept': '*/*'
             }
         });
+        if (!usersResponse.ok) {
+            throw new Error(`Failed to fetch users: ${usersResponse.status}`);
+        }
+        const usersResult = await usersResponse.json();
+        if (!usersResult.status || !usersResult.data) {
+            throw new Error('Invalid response from /api/users');
+        }
+        users = usersResult.data;
+        window.users = usersResult.data;
 
-        if (!response.ok) {
-            throw new Error(`Failed to fetch users: ${response.status}`);
+        // Fetch superiors for approval fields (Checker, Acknowledge, Approver, Receiver)
+        const docType = 'OP';
+        const superiorsUrl = `/api/employee-superior-document-approvals/employee/${userId}/document-type/${docType}`;
+        const superiorsResponse = await makeAuthenticatedRequest(superiorsUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'accept': '*/*'
+            }
+        });
+        if (!superiorsResponse.ok) {
+            throw new Error(`Failed to fetch superiors: ${superiorsResponse.status}`);
+        }
+        const superiorsResult = await superiorsResponse.json();
+        if (!superiorsResult.status || !superiorsResult.data) {
+            throw new Error('Invalid response from superiors API');
         }
 
-        const result = await response.json();
+        // Group superiors by level
+        superiorApprovers = { CH: [], AC: [], AP: [], RE: [] };
+        superiorsResult.data.forEach(item => {
+            if (item.superiorLevel && superiorApprovers[item.superiorLevel]) {
+                superiorApprovers[item.superiorLevel].push({
+                    id: item.superiorUserId,
+                    fullName: item.superiorName
+                });
+            }
+        });
 
-        if (!result.status || !result.data) {
-            throw new Error('Invalid response from API');
-        }
-
-        users = result.data;
-        window.users = result.data;
-
-        setupUserSearch('Approval.PreparedById');
-        setupUserSearch('Approval.CheckedById');
-        setupUserSearch('Approval.AcknowledgedById');
-        setupUserSearch('Approval.ApprovedById');
-        setupUserSearch('Approval.ReceivedById');
+        // Setup user search for each approval field
+        setupUserSearch('Approval.PreparedById', users); // All users for PreparedBy
+        setupUserSearch('Approval.CheckedById', superiorApprovers.CH);
+        setupUserSearch('Approval.AcknowledgedById', superiorApprovers.AC);
+        setupUserSearch('Approval.ApprovedById', superiorApprovers.AP);
+        setupUserSearch('Approval.ReceivedById', superiorApprovers.RE);
 
         updateUserNamesInApprovalFields();
         autofillPreparedByWithCurrentUser();
@@ -2904,9 +2943,8 @@ async function initializeUserDropdowns() {
         Swal.close();
 
     } catch (error) {
-        console.error('Error loading users:', error);
+        console.error('Error loading users/superiors:', error);
         Swal.close();
-
         if (!error.message.includes('authentication') && !error.message.includes('login')) {
             Swal.fire({
                 title: 'Error',
@@ -2918,8 +2956,8 @@ async function initializeUserDropdowns() {
     }
 }
 
-// Function to setup user search for a specific field
-function setupUserSearch(fieldId) {
+// Function to setup user search for a specific field, with custom user list
+function setupUserSearch(fieldId, userList) {
     const searchInput = document.getElementById(`${fieldId}Search`);
     const dropdown = document.getElementById(`${fieldId}Dropdown`);
     const hiddenSelect = document.getElementById(fieldId);
@@ -2929,20 +2967,23 @@ function setupUserSearch(fieldId) {
         return;
     }
 
+    // Use provided userList, fallback to global users
+    const getUserList = () => Array.isArray(userList) ? userList : (window.users || []);
+
     searchInput.addEventListener('input', function () {
         const searchTerm = this.value.toLowerCase();
-        filterUsersBySearchTerm(fieldId, searchTerm);
+        filterUsersBySearchTerm(fieldId, searchTerm, getUserList());
     });
 
     searchInput.addEventListener('focus', function () {
         if (this.value.trim() === '') {
-            showAllUsers(fieldId);
+            showAllUsers(fieldId, getUserList());
         }
     });
 
     searchInput.addEventListener('click', function () {
         if (this.value.trim() === '') {
-            showAllUsers(fieldId);
+            showAllUsers(fieldId, getUserList());
         }
     });
 
@@ -2953,76 +2994,61 @@ function setupUserSearch(fieldId) {
     });
 }
 
-// Function to filter users based on search term
-function filterUsersBySearchTerm(fieldId, searchTerm) {
+// Function to filter users based on search term, with custom user list
+function filterUsersBySearchTerm(fieldId, searchTerm, userList) {
     const dropdown = document.getElementById(`${fieldId}Dropdown`);
     const hiddenSelect = document.getElementById(fieldId);
-
     if (!dropdown || !hiddenSelect) return;
-
     dropdown.innerHTML = '';
-
     if (!searchTerm.trim()) {
-        showAllUsers(fieldId);
+        showAllUsers(fieldId, userList);
         return;
     }
-
-    const exactMatches = users.filter(user =>
+    const usersToSearch = Array.isArray(userList) ? userList : (window.users || []);
+    const exactMatches = usersToSearch.filter(user =>
         typeof user.fullName === 'string' &&
         user.fullName.toLowerCase().trim() === searchTerm.toLowerCase().trim()
     );
-
-    const startsWithMatches = users.filter(user =>
+    const startsWithMatches = usersToSearch.filter(user =>
         typeof user.fullName === 'string' &&
         user.fullName.toLowerCase().startsWith(searchTerm.toLowerCase()) &&
         user.fullName.toLowerCase().trim() !== searchTerm.toLowerCase().trim()
     );
-
-    const partialMatches = users.filter(user =>
+    const partialMatches = usersToSearch.filter(user =>
         typeof user.fullName === 'string' &&
         user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) &&
         !user.fullName.toLowerCase().startsWith(searchTerm.toLowerCase()) &&
         user.fullName.toLowerCase().trim() !== searchTerm.toLowerCase().trim()
     );
-
     const filteredUsers = [...exactMatches, ...startsWithMatches, ...partialMatches];
-
     filteredUsers.forEach(user => {
         const item = document.createElement('div');
         item.className = 'dropdown-item p-2 hover:bg-gray-100 cursor-pointer';
         item.innerHTML = `<div class="font-medium">${user.fullName}</div>`;
-
         item.addEventListener('click', () => {
             selectUser(fieldId, user);
         });
-
         dropdown.appendChild(item);
     });
-
     dropdown.classList.remove('hidden');
 }
 
-// Function to show all users
-function showAllUsers(fieldId) {
+// Function to show all users (with custom user list)
+function showAllUsers(fieldId, userList) {
     const dropdown = document.getElementById(`${fieldId}Dropdown`);
     const hiddenSelect = document.getElementById(fieldId);
-
     if (!dropdown || !hiddenSelect) return;
-
     dropdown.innerHTML = '';
-
-    users.filter(user => typeof user.fullName === 'string' && user.fullName.trim() !== '').slice(0, 20).forEach(user => {
+    const usersToShow = Array.isArray(userList) ? userList : (window.users || []);
+    usersToShow.filter(user => typeof user.fullName === 'string' && user.fullName.trim() !== '').slice(0, 20).forEach(user => {
         const item = document.createElement('div');
         item.className = 'dropdown-item p-2 hover:bg-gray-100 cursor-pointer';
         item.innerHTML = `<div class="font-medium">${user.fullName}</div>`;
-
         item.addEventListener('click', () => {
             selectUser(fieldId, user);
         });
-
         dropdown.appendChild(item);
     });
-
     dropdown.classList.remove('hidden');
 }
 
@@ -3182,20 +3208,34 @@ function collectApprovalFieldValues() {
     approvalFields.forEach(fieldId => {
         const hiddenSelect = document.getElementById(fieldId);
         const searchInput = document.getElementById(`${fieldId}Search`);
-
         if (hiddenSelect && searchInput) {
             let userId = hiddenSelect.value;
-            const userName = searchInput.value;
-
+            let userName = searchInput.value;
             const fieldName = fieldId.replace('Approval.', '');
-
+            // For approval fields, ensure we use superiorUserId if present
             if (userName && userName.trim() && !userId) {
-                const user = users.find(u => u.fullName === userName.trim());
-                if (user) {
-                    userId = user.id;
+                let found = null;
+                if (fieldId === 'Approval.CheckedById' && Array.isArray(superiorApprovers.CH)) {
+                    found = superiorApprovers.CH.find(u => (u.superiorName || u.fullName) === userName.trim());
+                } else if (fieldId === 'Approval.AcknowledgedById' && Array.isArray(superiorApprovers.AC)) {
+                    found = superiorApprovers.AC.find(u => (u.superiorName || u.fullName) === userName.trim());
+                } else if (fieldId === 'Approval.ApprovedById' && Array.isArray(superiorApprovers.AP)) {
+                    found = superiorApprovers.AP.find(u => (u.superiorName || u.fullName) === userName.trim());
+                } else if (fieldId === 'Approval.ReceivedById' && Array.isArray(superiorApprovers.RE)) {
+                    found = superiorApprovers.RE.find(u => (u.superiorName || u.fullName) === userName.trim());
+                }
+                if (found) {
+                    userId = found.superiorUserId || found.id;
+                    userName = found.superiorName || found.fullName;
+                } else {
+                    // fallback to global users
+                    const user = users.find(u => u.fullName === userName.trim());
+                    if (user) {
+                        userId = user.id;
+                        userName = user.fullName;
+                    }
                 }
             }
-
             approvalData[fieldName] = userId;
             approvalData[`${fieldName}Name`] = userName;
         }

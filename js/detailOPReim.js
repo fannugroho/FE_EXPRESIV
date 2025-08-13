@@ -1743,40 +1743,18 @@ function getReimbursementId(reimbursementData) {
  */
 function buildPrintReimbursementUrl(reimbursementId, reimbursementData) {
     const baseUrl = window.location.origin;
-    const printReimUrl = `${baseUrl}/approvalPages/approval/receive/reimbursement/printReim.html?reim-id=${reimbursementId}`;
+    // Use GetPrintReim.html for Print Reimbursement Document
+    const printReimUrl = `${baseUrl}/approvalPages/approval/receive/outgoingPayment/GetPrintReim.html`;
 
-    if (!reimbursementData) return printReimUrl;
+    // Use expressivNo for GetPrintReim.html parameter
+    const expressivNo = reimbursementData?.expressivNo || reimbursementId;
+    const finalUrl = `${printReimUrl}?reim-id=${expressivNo}&_t=${Date.now()}`;
 
-    const params = new URLSearchParams();
+    console.log('🔧 Print Reimbursement URL points to GetPrintReim.html with expressivNo:', expressivNo);
+    console.log('🔗 Print Reimbursement URL constructed:', finalUrl);
 
-    const paramMapping = [
-        { key: 'payTo', value: reimbursementData.cardName },
-        { key: 'voucherNo', value: reimbursementData.counterRef },
-        { key: 'submissionDate', value: reimbursementData.docDate },
-        { key: 'preparedBy', value: reimbursementData.requesterName },
-        { key: 'totalAmount', value: reimbursementData.totalAmountDue },
-        { key: 'currency', value: reimbursementData.docCurr },
-        { key: 'remarks', value: reimbursementData.comments }
-    ];
-
-    paramMapping.forEach(param => {
-        if (param.value) {
-            params.append(param.key, encodeURIComponent(param.value));
-        }
-    });
-
-    if (reimbursementData.lines?.length > 0) {
-        const details = reimbursementData.lines.map(line => ({
-            category: line.category || '',
-            accountName: line.acctName || '',
-            glAccount: line.acctCode || '',
-            description: line.descrip || '',
-            amount: line.sumApplied || 0
-        }));
-        params.append('details', encodeURIComponent(JSON.stringify(details)));
-    }
-
-    return params.toString() ? `${printReimUrl}&${params.toString()}` : printReimUrl;
+    // MINIMAL URL: Only send reim-id parameter, let GetPrintReim.html handle all data internally
+    return finalUrl;
 }
 
 /**

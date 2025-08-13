@@ -1296,12 +1296,12 @@ function handleSearch() {
 }
 
 function detailDoc(opId) {
-    // Navigate to outgoing payment reimbursement detail page
-    debugNavigation('detailDoc', `detailPages/detailOPReim.html?id=${opId}`);
+    // Navigate to outgoing payment reimbursement receive page
+    debugNavigation('detailDoc', `approvalPages/approval/receive/outgoingPayment/receiveOPReim.html?id=${opId}`);
     if (typeof navigateToPage === 'function') {
-        navigateToPage(`detailPages/detailOPReim.html?id=${opId}`);
+        navigateToPage(`approvalPages/approval/receive/outgoingPayment/receiveOPReim.html?id=${opId}`);
     } else {
-        window.location.href = `detailPages/detailOPReim.html?id=${opId}`;
+        window.location.href = `approvalPages/approval/receive/outgoingPayment/receiveOPReim.html?id=${opId}`;
     }
 }
 
