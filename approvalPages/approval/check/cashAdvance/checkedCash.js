@@ -387,7 +387,6 @@ function displayRevisedRemarks(data) {
     
     if (hasRevisions) {
         revisedRemarksSection.style.display = 'block';
-        revisedCountElement.textContent = data.revisions.length || '0';
         
         // Clear existing revision content from the revisedRemarksSection
         revisedRemarksSection.innerHTML = `
@@ -395,7 +394,7 @@ function displayRevisedRemarks(data) {
             <div class="bg-gray-50 p-4 rounded-lg border">
                 <div class="mb-2">
                     <span class="text-sm font-medium text-gray-600">Total Revisions: </span>
-                    <span id="revisedCount" class="text-sm font-bold text-blue-600">0</span>
+                    <span id="revisedCount" class="text-sm font-bold text-blue-600">${data.revisions.length}</span>
                 </div>
                 <!-- Dynamic revision content will be inserted here by JavaScript -->
             </div>

@@ -547,6 +547,13 @@ function populateSettlementDetails(data) {
         window.selectedCashAdvanceId = data.cashAdvanceReferenceId;
         console.log('Set selectedCashAdvanceId from API data:', data.cashAdvanceReferenceId);
     }
+    
+    // Ensure department dropdown is disabled as it's automatically populated based on requester
+    const deptSelect = document.getElementById('department');
+    if (deptSelect) {
+        deptSelect.disabled = true;
+        deptSelect.classList.add('bg-gray-100', 'cursor-not-allowed');
+    }
     document.getElementById('remarks').value = data.remarks || '';
 
     // Set department and transaction type directly
@@ -2484,6 +2491,13 @@ function makeAllFieldsEditable() {
             el.classList.remove('bg-gray-100');
         }
     });
+    
+    // Keep department dropdown disabled as it's automatically populated based on requester
+    const departmentSelect = document.getElementById('department');
+    if (departmentSelect) {
+        departmentSelect.disabled = true;
+        departmentSelect.classList.add('bg-gray-100', 'cursor-not-allowed');
+    }
     
     // Make table rows editable
     const tableRows = document.querySelectorAll('#tableBody tr');

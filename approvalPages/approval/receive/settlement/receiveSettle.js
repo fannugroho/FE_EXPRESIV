@@ -3,6 +3,10 @@ let uploadedFiles = [];
 let settlementId; // Declare global variable
 let currentTab; // Declare global variable for tab
 
+// Global variables to track revision fields
+let revisionFieldsByUser = new Map(); // Track which users have added fields
+const MAX_REVISION_FIELDS = 4;
+
 // Function to fetch Settlement details when the page loads
 window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -17,7 +21,71 @@ window.onload = function() {
     if (currentTab === 'received' || currentTab === 'rejected') {
         hideApprovalButtons();
     }
+    
+    // Initialize revision functionality
+    const revisionContainer = document.getElementById('revisionContainer');
+    if (revisionContainer) {
+        // Use event delegation to handle input events on all textareas
+        revisionContainer.addEventListener('input', function(event) {
+            if (event.target.tagName === 'TEXTAREA') {
+                checkRevisionButton();
+            }
+        });
+        
+        // Initialize button states
+        checkRevisionButton();
+        updateAddButtonState();
+    }
 };
+
+// Function to hide approval buttons
+function hideApprovalButtons() {
+    const approveButton = document.querySelector('button[onclick="receiveSettle()"]');
+    const rejectButton = document.querySelector('button[onclick="rejectSettle()"]');
+    
+    if (approveButton) {
+        approveButton.style.display = 'none';
+    }
+    if (rejectButton) {
+        rejectButton.style.display = 'none';
+    }
+    
+    // Also hide any parent container if needed
+    const buttonContainer = document.querySelector('.approval-buttons, .button-container');
+    if (buttonContainer && currentTab !== 'receive') {
+        buttonContainer.style.display = 'none';
+    }
+}
+
+// Function to hide revision buttons based on document status
+function hideRevisionButtons(data) {
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
+    const revisionButton = document.getElementById('revisionButton');
+    const revisionContainer = document.getElementById('revisionContainer');
+    
+    // Hide revision buttons only when status is 'acknowledged' or 'rejected'
+    if (data.status === 'Acknowledged' || data.status === 'Rejected' || 
+        data.status === 'acknowledged' || data.status === 'rejected') {
+        
+        if (addRevisionBtn) {
+            addRevisionBtn.style.display = 'none';
+        }
+        if (revisionButton) {
+            revisionButton.style.display = 'none';
+        }
+        if (revisionContainer) {
+            revisionContainer.style.display = 'none';
+        }
+    } else {
+        // Show revision buttons when status allows (including in 'receive' tab)
+        if (addRevisionBtn) {
+            addRevisionBtn.style.display = 'block';
+        }
+        if (revisionButton) {
+            revisionButton.style.display = 'block';
+        }
+    }
+}
 
 function fetchSettlementDetails(settlementId) {
     fetch(`${BASE_URL}/api/settlement/${settlementId}`)
@@ -93,6 +161,17 @@ function populateSettlementDetails(data) {
             statusSelect.appendChild(option);
         }
     }
+
+    // Set docStatus - create option directly from backend data
+    const docStatusSelect = document.getElementById('docStatus');
+    if (data.status && docStatusSelect) {
+        docStatusSelect.innerHTML = ''; // Clear existing options
+        const option = document.createElement('option');
+        option.value = data.status;
+        option.textContent = data.status;
+        option.selected = true;
+        docStatusSelect.appendChild(option);
+    }
     
     // Handle settlement items (amount breakdown)
     if (data.settlementItems) {
@@ -114,6 +193,9 @@ function populateSettlementDetails(data) {
     
     // Make all fields read-only since this is an approval page
     makeAllFieldsReadOnly();
+    
+    // Hide revision buttons based on document status
+    hideRevisionButtons(data);
 }
 
 function populateSettlementItems(items) {
@@ -558,6 +640,7 @@ function displayRevisionRemarks(data) {
                     <span class="text-sm font-medium text-gray-600">Total Revisions: </span>
                     <span id="revisedCount" class="text-sm font-bold text-blue-600">${data.revisions.length}</span>
                 </div>
+                <!-- Dynamic revision content will be inserted here by JavaScript -->
             </div>
         `;
         
@@ -708,4 +791,426 @@ function previewPDF(event) {
     if (fileNames) {
         fileInput.title = fileNames;
     }
+}
+
+// Function to get current user information
+function getUserInfo() {
+    // Use functions from auth.js to get user information
+    let userName = 'Unknown User';
+    let userRole = 'Receiver'; // Default role for this page since we're on the receiver page
+    
+    try {
+        // Get user info from getCurrentUser function in auth.js
+        const currentUser = getCurrentUser();
+        if (currentUser && currentUser.username) {
+            userName = currentUser.username;
+        }
+        
+        // Get user role based on the current page
+        // Since we're on the receiver page, the role is Receiver
+    } catch (e) {
+        console.error('Error getting user info:', e);
+    }
+    
+    return { name: userName, role: userRole };
+}
+
+// Function to add revision field functionality
+function addRevisionField() {
+    const container = document.getElementById('revisionContainer');
+    const currentUser = getUserInfo();
+    const currentFieldCount = container.querySelectorAll('textarea').length;
+    
+    // Check if maximum fields reached
+    if (currentFieldCount >= MAX_REVISION_FIELDS) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Maximum Limit',
+            text: `Maximum ${MAX_REVISION_FIELDS} revision field allowed`
+        });
+        return;
+    }
+    
+    // Check if current user already has a field
+    if (revisionFieldsByUser.has(currentUser.name)) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Already exist',
+            text: 'You already added a revision field. Each user can only add one field.'
+        });
+        return;
+    }
+    
+    // Create wrapper div for the textarea and delete button
+    const fieldWrapper = document.createElement('div');
+    fieldWrapper.className = 'flex items-center space-x-2 mt-2';
+    fieldWrapper.dataset.userName = currentUser.name; // Store user name in wrapper
+    
+    // Create textarea
+    const newField = document.createElement('textarea');
+    newField.className = 'w-full p-2 border rounded-md';
+    newField.placeholder = 'Enter additional revision details';
+    
+    // Add event listener for input to handle protected prefix
+    newField.addEventListener('input', handleRevisionInput);
+    
+    // Initialize with user prefix
+    initializeWithUserPrefix(newField);
+    
+    // Create delete button
+    const deleteButton = document.createElement('button');
+    deleteButton.innerHTML = '&times;'; // × symbol
+    deleteButton.className = 'bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 focus:outline-none';
+    deleteButton.title = 'Delete this revision field';
+    deleteButton.onclick = function() {
+        // Remove user from tracking when field is deleted
+        const userName = fieldWrapper.dataset.userName;
+        revisionFieldsByUser.delete(userName);
+        
+        fieldWrapper.remove();
+        checkRevisionButton(); // Update button state after removing a field
+        checkRevisionContainer(); // Check if container should be hidden
+        updateAddButtonState(); // Update add button state
+    };
+    
+    // Add textarea and delete button to wrapper
+    fieldWrapper.appendChild(newField);
+    fieldWrapper.appendChild(deleteButton);
+    
+    // Add wrapper to container
+    container.appendChild(fieldWrapper);
+    
+    // Track that this user has added a field
+    revisionFieldsByUser.set(currentUser.name, true);
+    
+    // Update the revision button state and add button state
+    checkRevisionButton();
+    updateAddButtonState();
+}
+
+// Function to initialize textarea with user prefix
+function initializeWithUserPrefix(textarea) {
+    const userInfo = getUserInfo();
+    const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+    textarea.value = prefix;
+    
+    // Store the prefix length as a data attribute
+    textarea.dataset.prefixLength = prefix.length;
+    
+    // Set selection range after the prefix
+    textarea.setSelectionRange(prefix.length, prefix.length);
+    textarea.focus();
+}
+
+// Function to handle input and protect the prefix
+function handleRevisionInput(event) {
+    const textarea = event.target;
+    const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+    
+    // If user tries to modify content before the prefix length
+    if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+        // Restore the prefix
+        const userInfo = getUserInfo();
+        const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+        
+        // Only restore if the prefix is damaged
+        if (!textarea.value.startsWith(prefix)) {
+            const userText = textarea.value.substring(prefixLength);
+            textarea.value = prefix + userText;
+            
+            // Reset cursor position after the prefix
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        } else {
+            // Just move cursor after prefix
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        }
+    }
+}
+
+// Check if revision remarks are filled to enable/disable revision button
+function checkRevisionButton() {
+    const revisionButton = document.getElementById('revisionButton');
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    let hasContent = false;
+    
+    // Check if there are any revision fields and if they have content
+    if (revisionFields.length > 0) {
+        revisionFields.forEach(field => {
+            const prefixLength = parseInt(field.dataset.prefixLength || '0');
+            // Check if there's content beyond the prefix
+            if (field.value.trim().length > prefixLength) {
+                hasContent = true;
+            }
+        });
+    }
+    
+    if (hasContent) {
+        revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        revisionButton.disabled = false;
+    } else {
+        revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
+        revisionButton.disabled = true;
+    }
+}
+
+// Check if revision container should be hidden when all fields are removed
+function checkRevisionContainer() {
+    const container = document.getElementById('revisionContainer');
+    const addBtn = document.getElementById('addRevisionBtn');
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    if (revisionFields.length === 0) {
+        container.classList.add('hidden');
+        addBtn.textContent = '+ Add revision';
+        // Clear the tracking map when container is hidden
+        revisionFieldsByUser.clear();
+    }
+}
+
+// Update add button state based on current conditions
+function updateAddButtonState() {
+    const addBtn = document.getElementById('addRevisionBtn');
+    const container = document.getElementById('revisionContainer');
+    const currentUser = getUserInfo();
+    const currentFieldCount = container.querySelectorAll('textarea').length;
+    
+    // Check if user can add more fields
+    const canAddMore = currentFieldCount < MAX_REVISION_FIELDS && !revisionFieldsByUser.has(currentUser.name);
+    
+    if (canAddMore) {
+        addBtn.style.opacity = '1';
+        addBtn.style.cursor = 'pointer';
+        addBtn.style.pointerEvents = 'auto';
+        if (currentFieldCount === 0) {
+            addBtn.textContent = '+ Add revision';
+        } else {
+            addBtn.textContent = '+ Add more revision';
+        }
+    } else {
+        addBtn.style.opacity = '0.5';
+        addBtn.style.cursor = 'not-allowed';
+        addBtn.style.pointerEvents = 'none';
+        
+        if (currentFieldCount >= MAX_REVISION_FIELDS) {
+            addBtn.textContent = `Max ${MAX_REVISION_FIELDS} fields reached`;
+        } else if (revisionFieldsByUser.has(currentUser.name)) {
+            addBtn.textContent = ' ';
+        }
+    }
+}
+
+// Function to toggle revision field visibility
+function toggleRevisionField() {
+    const container = document.getElementById('revisionContainer');
+    const addBtn = document.getElementById('addRevisionBtn');
+    const currentUser = getUserInfo();
+    const currentFieldCount = container.querySelectorAll('textarea').length;
+    
+    // Check if user can add a field
+    if (currentFieldCount >= MAX_REVISION_FIELDS) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Maximum Limit',
+            text: `Maximum ${MAX_REVISION_FIELDS} revision field allowed`
+        });
+        return;
+    }
+    
+    if (revisionFieldsByUser.has(currentUser.name)) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Already exist',
+            text: 'You already added a revision field. Each user can only add one field.'
+        });
+        return;
+    }
+    
+    if (container.classList.contains('hidden')) {
+        // Show container and add first field
+        container.classList.remove('hidden');
+        addRevisionField();
+    } else {
+        // Add another field
+        addRevisionField();
+    }
+}
+
+// Function to submit revision
+function submitRevision() {
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    let allRemarks = '';
+    
+    revisionFields.forEach((field, index) => {
+        // Include the entire content including the prefix
+        if (field.value.trim() !== '') {
+            if (allRemarks !== '') allRemarks += '\n\n';
+            allRemarks += field.value.trim();
+        }
+    });
+    
+    const prefixLength = parseInt(revisionFields[0]?.dataset.prefixLength || '0');
+    if (allRemarks.length <= prefixLength) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please provide revision reason before submitting'
+        });
+        return;
+    }
+    
+    console.log("revisionRemarks");
+    console.log(allRemarks);
+
+    if (!settlementId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Settlement ID not found'
+        });
+        return;
+    }
+
+    const userId = getUserId();
+    if (!userId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
+        return;
+    }
+
+    // Show confirmation dialog
+    Swal.fire({
+        title: 'Submit Revision',
+        text: 'Are you sure you want to submit this revision request?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#f59e0b',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Submit Revision',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Call the existing function with the collected remarks
+            updateSettleStatusWithRemarks('revise', allRemarks);
+        }
+    });
+}
+
+// Function to handle revision for Settlement
+function revisionSettle() {
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    // Check if revision button is disabled
+    if (document.getElementById('revisionButton').disabled) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    
+    let allRemarks = '';
+    
+    revisionFields.forEach((field, index) => {
+        if (field.value.trim() !== '') {
+            if (allRemarks !== '') allRemarks += '\n\n';
+            allRemarks += field.value.trim();
+        }
+    });
+    
+    if (revisionFields.length === 0 || allRemarks.trim() === '') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    
+    // Call the existing function with the collected remarks
+    updateSettleStatusWithRemarks('revise', allRemarks);
+}
+
+// Function to update settlement status with remarks (for revision)
+function updateSettleStatusWithRemarks(status, remarks) {
+    if (!settlementId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Settlement ID not found'
+        });
+        return;
+    }
+
+    const userId = getUserId();
+    if (!userId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
+        return;
+    }
+
+    const requestData = {
+        id: settlementId,
+        UserId: userId,
+        StatusAt: "Receive",
+        Action: status,
+        Remarks: remarks || ''
+    };
+
+    // Show loading
+    Swal.fire({
+        title: 'Processing Revision...',
+        text: 'Please wait while we process your request.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    fetch(`${BASE_URL}/api/settlements/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        if (response.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: 'Settlement revision submitted successfully',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                // Navigate back to the dashboard
+                window.location.href = '../../../dashboard/dashboardReceive/settlement/menuSettleReceive.html';
+            });
+        } else {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `Failed to submit revision. Status: ${response.status}`);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error submitting revision: ' + error.message
+        });
+    });
+}
+
+// Helper function to get logged-in user ID
+function getUserId() {
+    const user = JSON.parse(localStorage.getItem('loggedInUser'));
+    return user ? user.id : null;
 } 
