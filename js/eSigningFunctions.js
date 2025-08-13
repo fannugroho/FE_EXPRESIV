@@ -10,18 +10,188 @@ let stampedDocumentUrl = null;
 let statusCheckInterval = null;
 let documentTrackingData = [];
 
-// Kasbo service base URL configuration (fallbacks to provided host if globals not set)
-const KASBO_SERVICE_BASE_URL = (
-    window.KASBO_SERVICE_BASE_URL ||
-    window.KASBO_BASE_URL ||
-    (window.__CONFIG__ && window.__CONFIG__.kasboBaseUrl) ||
-    'http://dentsu-kansai-expressiv.idsdev.site'
-).toString().replace(/\/+$/, '');
+// Kasbo service environment and base URL configuration (switchable at runtime)
+const KASBO_KNOWN_ENV_URLS = {
+    sandbox: 'https://dentsu-kansai-expressiv.idsdev.site',
+    prod: 'https://dentsu-kansai-expressiv-prod.idsdev.site'
+};
+
+function getKasboEnvironment() {
+    try {
+        const explicitEnv = (window.KASBO_ENV || localStorage.getItem('KASBO_ENV') || '').toString().toLowerCase();
+        if (explicitEnv === 'prod' || explicitEnv === 'production') return 'prod';
+        if (explicitEnv === 'sandbox' || explicitEnv === 'sb') return 'sandbox';
+    } catch (_) {}
+    // Infer from explicit base URL if set
+    const explicitBase = (window.KASBO_SERVICE_BASE_URL || window.KASBO_BASE_URL || (window.__CONFIG__ && window.__CONFIG__.kasboBaseUrl) || '').toString();
+    if (/expressiv-prod/i.test(explicitBase)) return 'prod';
+    return 'sandbox';
+}
+
+function getKasboBaseUrl() {
+    const explicit = (window.KASBO_SERVICE_BASE_URL || window.KASBO_BASE_URL || (window.__CONFIG__ && window.__CONFIG__.kasboBaseUrl) || (function(){ try { return localStorage.getItem('KASBO_SERVICE_BASE_URL'); } catch(_) { return null; } })());
+    if (explicit) return explicit.toString().replace(/\/+$/, '');
+    const env = getKasboEnvironment();
+    const fallback = KASBO_KNOWN_ENV_URLS[env] || KASBO_KNOWN_ENV_URLS.sandbox;
+    return fallback.replace(/\/+$/, '');
+}
+
+function setKasboEnvironment(envOrUrl) {
+    try {
+        // Accept either a key ("sandbox"|"prod") or a full URL
+        if (typeof envOrUrl === 'string' && /^https?:\/\//i.test(envOrUrl)) {
+            localStorage.setItem('KASBO_SERVICE_BASE_URL', envOrUrl);
+            window.KASBO_SERVICE_BASE_URL = envOrUrl;
+            const inferredEnv = /expressiv-prod/i.test(envOrUrl) ? 'prod' : 'sandbox';
+            localStorage.setItem('KASBO_ENV', inferredEnv);
+            window.KASBO_ENV = inferredEnv;
+        } else {
+            const envKey = (envOrUrl || '').toString().toLowerCase() === 'prod' ? 'prod' : 'sandbox';
+            localStorage.setItem('KASBO_ENV', envKey);
+            window.KASBO_ENV = envKey;
+            const url = KASBO_KNOWN_ENV_URLS[envKey];
+            localStorage.setItem('KASBO_SERVICE_BASE_URL', url);
+            window.KASBO_SERVICE_BASE_URL = url;
+        }
+    } catch (_) {}
+    // Best-effort refresh hook
+    if (typeof refreshEnvironment === 'function') {
+        try { refreshEnvironment(); } catch (_) {}
+    }
+}
+
+function isProductionEnvironment() {
+    try {
+        const env = getKasboEnvironment();
+        if (env === 'prod') return true;
+        const base = getKasboBaseUrl();
+        return /expressiv-prod/i.test(base);
+    } catch (_) { return false; }
+}
+
+// Capture helper to get current user's email identifier
+function getCaptureUserEmail() {
+    try {
+        if (typeof currentUser !== 'undefined' && currentUser) {
+            return (currentUser.email || currentUser.username || currentUser.userId || 'unknown') + '';
+        }
+    } catch (_) {}
+    try {
+        if (typeof window.getCurrentUser === 'function') {
+            const u = window.getCurrentUser();
+            if (u) return (u.email || u.username || u.userId || 'unknown') + '';
+        }
+    } catch (_) {}
+    return 'unknown';
+}
 
 // Helper to build Kasbo URLs
 function kasboUrl(path) {
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    return `${KASBO_SERVICE_BASE_URL}${normalizedPath}`;
+    return `${getKasboBaseUrl()}${normalizedPath}`;
+}
+
+// Environment UI helpers (optional)
+function refreshEnvironment() {
+    const env = getKasboEnvironment();
+    let base = getKasboBaseUrl();
+    // Ensure base URL aligns with selected environment
+    try {
+        const expected = (KASBO_KNOWN_ENV_URLS[env] || KASBO_KNOWN_ENV_URLS.sandbox).replace(/\/+$/, '');
+        if (base !== expected) {
+            try { localStorage.setItem('KASBO_SERVICE_BASE_URL', expected); } catch (_) {}
+            window.KASBO_SERVICE_BASE_URL = expected;
+            base = expected;
+        }
+    } catch (_) {}
+    // Update select
+    const select = document.getElementById('kasboEnvSelect');
+    if (select && select.value !== env) {
+        select.value = env;
+    }
+    // Update badge
+    const badge = document.getElementById('kasboEnvBadge');
+    if (badge) {
+        const isProd = env === 'prod';
+        badge.textContent = isProd ? 'Production' : 'Sandbox';
+        badge.className = `text-xs px-2 py-1 rounded ${isProd ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`;
+        badge.title = base;
+    }
+    // Reload lists to reflect environment
+    try {
+        if (typeof loadExistingSignedDocuments === 'function') loadExistingSignedDocuments();
+        if (typeof loadExistingStampedDocuments === 'function') loadExistingStampedDocuments();
+    } catch (_) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Force base URL to match the current environment on load
+    try {
+        const env = getKasboEnvironment();
+        const expected = (KASBO_KNOWN_ENV_URLS[env] || KASBO_KNOWN_ENV_URLS.sandbox).replace(/\/+$/, '');
+        const current = getKasboBaseUrl();
+        if (current !== expected) {
+            try { localStorage.setItem('KASBO_SERVICE_BASE_URL', expected); } catch (_) {}
+            window.KASBO_SERVICE_BASE_URL = expected;
+        }
+    } catch (_) {}
+    // Initialize select state and UI on load
+    refreshEnvironment();
+    const select = document.getElementById('kasboEnvSelect');
+    if (select) {
+        select.addEventListener('change', function() {
+            const nextEnv = this.value === 'prod' ? 'prod' : 'sandbox';
+            if (nextEnv === 'prod' && typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Switch to Production?',
+                    text: 'You are switching to Production. Real charges may apply for e-sign and e-stamp.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, switch to Production',
+                    cancelButtonText: 'Cancel'
+                }).then((res) => {
+                    if (res.isConfirmed) {
+                        setKasboEnvironment('prod');
+                        refreshEnvironment();
+                    } else {
+                        this.value = 'sandbox';
+                        setKasboEnvironment('sandbox');
+                        refreshEnvironment();
+                    }
+                });
+            } else {
+                setKasboEnvironment(nextEnv);
+                refreshEnvironment();
+            }
+        });
+    }
+});
+
+async function confirmProductionAction(actionLabel) {
+    if (!isProductionEnvironment()) return true;
+    // Double-check URL base alignment to avoid false positives
+    try {
+        const env = getKasboEnvironment();
+        const expected = (KASBO_KNOWN_ENV_URLS[env] || KASBO_KNOWN_ENV_URLS.sandbox).replace(/\/+$/, '');
+        const current = getKasboBaseUrl();
+        if (current !== expected) {
+            try { localStorage.setItem('KASBO_SERVICE_BASE_URL', expected); } catch(_) {}
+            window.KASBO_SERVICE_BASE_URL = expected;
+        }
+    } catch(_) {}
+    const message = `You are about to perform ${actionLabel} in PRODUCTION. This will incur real costs. Do you want to proceed?`;
+    if (typeof Swal !== 'undefined') {
+        const res = await Swal.fire({
+            icon: 'warning',
+            title: 'Confirm Production Action',
+            text: message,
+            showCancelButton: true,
+            confirmButtonText: 'Yes, proceed',
+            cancelButtonText: 'Cancel'
+        });
+        return !!res.isConfirmed;
+    }
+    return window.confirm(message);
 }
 
 // UUID generation function for unique document references
@@ -507,6 +677,10 @@ async function startESigningProcess() {
     }
 
     try {
+        // Confirm when running in production
+        const confirmed = await confirmProductionAction('an E-Sign operation');
+        if (!confirmed) { return; }
+
         // Update UI to processing state
         updateStepProgress(2);
         showProcessingSection();
@@ -689,6 +863,10 @@ function extractSignedUrl(resultString) {
 // Start E-Stamp process
 async function startEStampProcess() {
     try {
+        // Confirm when running in production
+        const confirmed = await confirmProductionAction('an E-Stamp operation');
+        if (!confirmed) { return; }
+
         updateProcessStatus('Starting e-stamp process...', 80);
         
         const urlParams = new URLSearchParams(window.location.search);
@@ -738,7 +916,8 @@ async function startEStampProcess() {
         const response = await fetch(stampUrl, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-User-Email': getCaptureUserEmail()
             },
             body: JSON.stringify(stampPayload)
         });
@@ -791,7 +970,11 @@ async function checkEStampJobStatus() {
         const statusUrl = kasboUrl(`/jobs/${stampJobId}/status`);
         console.log('🔍 Checking e-stamp status at:', statusUrl);
         
-        const response = await fetch(statusUrl);
+        const response = await fetch(statusUrl, {
+            headers: {
+                'X-User-Email': getCaptureUserEmail()
+            }
+        });
         console.log('🔍 E-Stamp status response:', response.status);
 
         if (!response.ok) {
@@ -1008,9 +1191,10 @@ async function downloadSignedDocument() {
     }
 
     try {
-        // Create download link
+        // Create download link (use absolute URL; if relative, prefix with current environment base)
         const link = document.createElement('a');
-        link.href = signedDocumentUrl;
+        const isAbsolute = /^https?:\/\//i.test(signedDocumentUrl);
+        link.href = isAbsolute ? signedDocumentUrl : `${getKasboBaseUrl().replace(/\/+$/, '')}/${signedDocumentUrl.replace(/^\/+/, '')}`;
         
         // Generate filename with staging ID and timestamp
         const urlParams = new URLSearchParams(window.location.search);
@@ -1053,7 +1237,9 @@ async function downloadStampedDocument() {
     }
 
     try {
-        const downloadUrl = kasboUrl(`/esign/download/stamped/ARInvoices/${stampedDocumentUrl}`);
+        // Build download URL respecting current environment
+        const isAbsolute = /^https?:\/\//i.test(stampedDocumentUrl);
+        const downloadUrl = isAbsolute ? stampedDocumentUrl : kasboUrl(`/esign/download/stamped/ARInvoices/${stampedDocumentUrl}`);
         
         // Create download link
         const link = document.createElement('a');
@@ -1642,7 +1828,8 @@ async function startEStampingProcess() {
         const stampResponse = await fetch(kasboUrl('/emeterai/stamp-document'), {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-User-Email': getCaptureUserEmail()
             },
             body: JSON.stringify(stampPayload)
         });
@@ -1924,6 +2111,10 @@ function startManualEStamping() {
 // Process manual e-stamping with uploaded file
 async function processManualEStamping(file) {
     try {
+        // Confirm when running in production
+        const confirmed = await confirmProductionAction('an E-Stamp operation');
+        if (!confirmed) { return; }
+
         const urlParams = new URLSearchParams(window.location.search);
         const stagingId = urlParams.get('stagingID');
         
@@ -1995,7 +2186,8 @@ async function processManualEStamping(file) {
         const stampResponse = await fetch(kasboUrl('/emeterai/stamp-document'), {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-User-Email': getCaptureUserEmail()
             },
             body: JSON.stringify(stampPayload)
         });

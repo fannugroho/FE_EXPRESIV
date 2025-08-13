@@ -1132,13 +1132,21 @@ function makeAllFieldsReadOnly() {
         field.removeAttribute('onkeyup');
     });
     
-    // Disable all select fields with gray background
-    const selectFields = document.querySelectorAll('select');
+    // Disable all select fields with gray background (exclude environment switcher)
+    const selectFields = document.querySelectorAll('select:not(#kasboEnvSelect)');
     selectFields.forEach(field => {
         field.disabled = true;
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
         field.classList.remove('bg-white');
     });
+
+    // Ensure environment switcher remains interactive
+    const envSelect = document.getElementById('kasboEnvSelect');
+    if (envSelect) {
+        envSelect.disabled = false;
+        envSelect.classList.remove('cursor-not-allowed');
+        envSelect.classList.remove('bg-gray-100');
+    }
     
     // Disable all checkboxes
     const checkboxFields = document.querySelectorAll('input[type="checkbox"]');
