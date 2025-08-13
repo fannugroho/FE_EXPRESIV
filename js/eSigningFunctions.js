@@ -10,6 +10,20 @@ let stampedDocumentUrl = null;
 let statusCheckInterval = null;
 let documentTrackingData = [];
 
+// Kasbo service base URL configuration (fallbacks to provided host if globals not set)
+const KASBO_SERVICE_BASE_URL = (
+    window.KASBO_SERVICE_BASE_URL ||
+    window.KASBO_BASE_URL ||
+    (window.__CONFIG__ && window.__CONFIG__.kasboBaseUrl) ||
+    'http://dentsu-kansai-expressiv.idsdev.site'
+).toString().replace(/\/+$/, '');
+
+// Helper to build Kasbo URLs
+function kasboUrl(path) {
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    return `${KASBO_SERVICE_BASE_URL}${normalizedPath}`;
+}
+
 // UUID generation function for unique document references
 function generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -54,7 +68,7 @@ async function loadExistingSignedDocuments() {
         
         console.log('📄 Loading signed documents for staging ID:', stagingId);
         
-        const apiUrl = `https://dentsu-kansai-expressiv.idsdev.site/esign/staging/${stagingId}/documents`;
+        const apiUrl = kasboUrl(`/esign/staging/${stagingId}/documents`);
         console.log('📍 API URL:', apiUrl);
         
         const response = await fetch(apiUrl);
@@ -555,9 +569,9 @@ async function startESigningProcess() {
             ...apiPayload,
             document_base64: '[BASE64_DATA]' // Don't log the actual base64
         });
-        console.log('📍 E-Sign URL:', 'https://dentsu-kansai-expressiv.idsdev.site/esign/process');
+        console.log('📍 E-Sign URL:', kasboUrl('/esign/process'));
         
-        const response = await fetch('https://dentsu-kansai-expressiv.idsdev.site/esign/process', {
+        const response = await fetch(kasboUrl('/esign/process'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -606,13 +620,13 @@ async function checkESignJobStatus() {
 
     try {
         // Try both the job status endpoint and transaction status endpoint
-        let statusUrl = `https://dentsu-kansai-expressiv.idsdev.site/jobs/${currentJobId}/status`;
+        let statusUrl = kasboUrl(`/jobs/${currentJobId}/status`);
         let response = await fetch(statusUrl);
         
         // If job status fails, try transaction status endpoint
         if (!response.ok) {
             console.log('Job status endpoint failed, trying transaction status...');
-            statusUrl = `https://dentsu-kansai-expressiv.idsdev.site/esign/transaction/${currentJobId}/status`;
+            statusUrl = kasboUrl(`/esign/transaction/${currentJobId}/status`);
             response = await fetch(statusUrl);
         }
 
@@ -718,9 +732,9 @@ async function startEStampProcess() {
         };
 
         console.log('🏷️ E-Stamp payload:', stampPayload);
-        console.log('📍 E-Stamp URL:', `https://dentsu-kansai-expressiv.idsdev.site/esign/stamp/ARInvoices/${stagingId}`);
+        console.log('📍 E-Stamp URL:', kasboUrl(`/esign/stamp/ARInvoices/${stagingId}`));
 
-        const stampUrl = `https://dentsu-kansai-expressiv.idsdev.site/esign/stamp/ARInvoices/${stagingId}`;
+        const stampUrl = kasboUrl(`/esign/stamp/ARInvoices/${stagingId}`);
         const response = await fetch(stampUrl, {
             method: 'POST',
             headers: {
@@ -774,7 +788,7 @@ async function checkEStampJobStatus() {
     }
 
     try {
-        const statusUrl = `https://dentsu-kansai-expressiv.idsdev.site/jobs/${stampJobId}/status`;
+        const statusUrl = kasboUrl(`/jobs/${stampJobId}/status`);
         console.log('🔍 Checking e-stamp status at:', statusUrl);
         
         const response = await fetch(statusUrl);
@@ -1039,7 +1053,7 @@ async function downloadStampedDocument() {
     }
 
     try {
-        const downloadUrl = `https://dentsu-kansai-expressiv.idsdev.site/esign/download/stamped/ARInvoices/${stampedDocumentUrl}`;
+        const downloadUrl = kasboUrl(`/esign/download/stamped/ARInvoices/${stampedDocumentUrl}`);
         
         // Create download link
         const link = document.createElement('a');
@@ -1077,7 +1091,7 @@ async function downloadStampedDocument() {
 // Enhanced function to get document by transaction ID
 async function getDocumentByTransactionId(transactionId) {
     try {
-        const response = await fetch(`https://dentsu-kansai-expressiv.idsdev.site/esign/transaction/${transactionId}/document`);
+        const response = await fetch(kasboUrl(`/esign/transaction/${transactionId}/document`));
         
         if (response.ok) {
             const result = await response.json();
@@ -1220,7 +1234,7 @@ async function loadExistingStampedDocuments() {
         
         console.log('📄 Loading stamped documents for staging ID:', stagingId);
         
-        const apiUrl = `https://dentsu-kansai-expressiv.idsdev.site/emeterai/staging/${stagingId}/stamped`;
+        const apiUrl = kasboUrl(`/emeterai/staging/${stagingId}/stamped`);
         console.log('📍 Stamped Documents API URL:', apiUrl);
         
         const response = await fetch(apiUrl);
@@ -1397,7 +1411,7 @@ async function downloadStampedDocument(refNum, filename) {
     try {
         console.log('📥 Downloading stamped document:', refNum, filename);
         
-        const response = await fetch(`https://dentsu-kansai-expressiv.idsdev.site/emeterai/stamped/${refNum}`);
+        const response = await fetch(kasboUrl(`/emeterai/stamped/${refNum}`));
         
         if (!response.ok) {
             throw new Error(`Failed to download document: ${response.status} ${response.statusText}`);
@@ -1443,7 +1457,7 @@ async function downloadStampedDocument(refNum, filename) {
 // View stamped document details
 async function viewStampedDocumentDetails(refNum) {
     try {
-        const response = await fetch(`https://dentsu-kansai-expressiv.idsdev.site/emeterai/stamped/${refNum}`);
+        const response = await fetch(kasboUrl(`/emeterai/stamped/${refNum}`));
         
         if (!response.ok) {
             throw new Error(`Failed to fetch document details: ${response.status}`);
@@ -1536,7 +1550,7 @@ async function startEStampingProcess() {
             
             // Method 2: Use backend proxy to fetch the document
             try {
-                const proxyResponse = await fetch('https://dentsu-kansai-expressiv.idsdev.site/proxy/download', {
+                const proxyResponse = await fetch(kasboUrl('/proxy/download'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1625,7 +1639,7 @@ async function startEStampingProcess() {
             document_base64: '[BASE64_DATA]' // Don't log the actual base64
         });
         
-        const stampResponse = await fetch('https://dentsu-kansai-expressiv.idsdev.site/emeterai/stamp-document', {
+        const stampResponse = await fetch(kasboUrl('/emeterai/stamp-document'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1709,7 +1723,7 @@ async function checkEStampJobStatus() {
         
         console.log('📊 Checking e-stamp job status (5 seconds after response):', stampJobId);
         
-        const response = await fetch(`https://dentsu-kansai-expressiv.idsdev.site/jobs/${stampJobId}/status`);
+        const response = await fetch(kasboUrl(`/jobs/${stampJobId}/status`));
         
         if (!response.ok) {
             throw new Error(`Status check failed: ${response.status}`);
@@ -1978,7 +1992,7 @@ async function processManualEStamping(file) {
             document_base64: '[BASE64_DATA]'
         });
         
-        const stampResponse = await fetch('https://dentsu-kansai-expressiv.idsdev.site/emeterai/stamp-document', {
+        const stampResponse = await fetch(kasboUrl('/emeterai/stamp-document'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
