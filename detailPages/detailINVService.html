@@ -314,9 +314,19 @@
             text-align: center !important;
         }
 
-        /* Total LC column - right aligned */
+        /* Total/Amount and Price columns - right aligned */
         .total-lc-column input {
             text-align: right !important;
+        }
+        .line-total-column input {
+            text-align: right !important;
+        }
+        .price-column input {
+            text-align: right !important;
+        }
+        /* Quantity column - center aligned */
+        .quantity-column input {
+            text-align: center !important;
         }
 
         /* Source column - center aligned */
@@ -1405,13 +1415,16 @@
                         <thead class="bg-purple-100">
                             <tr>
                                 <th class="p-2 no-column">No.</th>
+                                <th class="p-2 service-code-column">Item Code</th>
                                 <th class="p-2 description-column">Description</th>
-                                <th class="p-2 account-code-column">G/L Account</th>
+                                <th class="p-2 account-code-column">GL Account</th>
                                 <th class="p-2 account-name-column">Account Name</th>
                                 <th class="p-2 tax-code-column">Tax Code</th>
-                                <th class="p-2 wtax-liable-column">WTax Liable</th>
-                                <th class="p-2 total-lc-column">Total LC</th>
-                                <th class="p-2 source-column">Source</th>
+                                <th class="p-2 wtax-liable-column">Wtax</th>
+                                <th class="p-2 uom-column">UoM</th>
+                                <th class="p-2 quantity-column">Sales Qty</th>
+                                <th class="p-2 price-column">Price Per UoM</th>
+                                <th class="p-2 line-total-column">Amount</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody">

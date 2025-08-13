@@ -1105,70 +1105,18 @@ class PrintManager {
 
     static buildPrintUrl(opReimId, opReimData) {
         const baseUrl = window.location.origin;
-        const printReimUrl = `${baseUrl}/approvalPages/approval/receive/reimbursement/printReim.html?reim-id=${opReimId}`;
+        // Use GetPrintReim.html for Print Reimbursement Document
+        const printReimUrl = `${baseUrl}/approvalPages/approval/receive/outgoingPayment/GetPrintReim.html`;
 
-        if (!opReimData) return printReimUrl;
+        // Use expressivNo for GetPrintReim.html parameter
+        const expressivNo = opReimData?.expressivNo || opReimId;
+        const finalUrl = `${printReimUrl}?reim-id=${expressivNo}&_t=${Date.now()}`;
 
-        const params = new URLSearchParams();
+        console.log('🔧 Print Reimbursement URL points to GetPrintReim.html with expressivNo:', expressivNo);
+        console.log('🔗 Print Reimbursement URL constructed:', finalUrl);
 
-        const paramMappings = [
-            { data: 'counterRef', param: 'voucherNo' },
-            { data: 'docDate', param: 'submissionDate' },
-            { data: 'requesterName', param: 'preparedBy' },
-            { data: 'trsfrSum', param: 'totalAmount' },
-            { data: 'docCurr', param: 'currency' },
-            { data: 'jrnlMemo', param: 'remarks' }
-        ];
-
-        paramMappings.forEach(({ data, param }) => {
-            if (opReimData[data]) {
-                params.append(param, opReimData[data]);
-            }
-        });
-
-        if (opReimData.approval) {
-            if (opReimData.approval.checkedBy) {
-                const checkerName = UserManager.getUserNameById(opReimData.approval.checkedBy);
-                params.append('checkedBy', checkerName);
-            }
-            if (opReimData.approval.acknowledgedBy) {
-                const acknowledgerName = UserManager.getUserNameById(opReimData.approval.acknowledgedBy);
-                params.append('acknowledgeBy', acknowledgerName);
-            }
-            if (opReimData.approval.approvedBy) {
-                const approverName = UserManager.getUserNameById(opReimData.approval.approvedBy);
-                params.append('approvedBy', approverName);
-            }
-            if (opReimData.approval.receivedBy) {
-                const receiverName = UserManager.getUserNameById(opReimData.approval.receivedBy);
-                params.append('receivedBy', receiverName);
-            }
-        }
-
-        if (opReimData.department) {
-            params.append('department', opReimData.department);
-        }
-
-        if (opReimData.referenceDoc) {
-            params.append('referenceDoc', opReimData.referenceDoc);
-        }
-
-        if (opReimData.typeOfTransaction) {
-            params.append('typeOfTransaction', opReimData.typeOfTransaction);
-        }
-
-        if (opReimData.lines && opReimData.lines.length > 0) {
-            const details = opReimData.lines.map(line => ({
-                category: line.category || 'General',
-                accountName: line.acctName || '',
-                glAccount: line.acctCode || '',
-                description: line.descrip || '',
-                amount: line.sumApplied || 0
-            }));
-            params.append('details', JSON.stringify(details));
-        }
-
-        return params.toString() ? `${printReimUrl}&${params.toString()}` : printReimUrl;
+        // MINIMAL URL: Only send reim-id parameter, let GetPrintReim.html handle all data internally
+        return finalUrl;
     }
 
     static createPrintDocumentItem(opReimId, printUrl) {
