@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Print Reimbursement Document</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../../../../js/auth.js"></script>
+    <script src="GetPrintReim.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 21cm;
+            min-height: 29.7cm;
+            padding: 1cm;
+            margin: 0 auto;
+            background: white;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 10px;
+        }
+
+        .logo-section {
+            width: 40%;
+        }
+
+        .form-info {
+            width: 60%;
+            text-align: right;
+        }
+
+        .logo {
+            width: 150px;
+            margin-bottom: 5px;
+        }
+
+        .company-name {
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            margin: 20px 0;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            border: 1px solid #000;
+            margin-bottom: 1rem;
+        }
+
+        th {
+            border: 1px solid #000;
+            font-size: 11px;
+            padding: 10px 8px;
+            text-align: center;
+            background-color: #f8f9fa;
+            font-weight: bold;
+            vertical-align: middle;
+            line-height: 1.2;
+        }
+
+        td {
+            border: 1px solid #000;
+            font-size: 11px;
+            padding: 8px;
+            text-align: left;
+            vertical-align: middle;
+            line-height: 1.3;
+        }
+
+        /* Specific styling for amount and credit columns */
+        .amount-cell {
+            text-align: right;
+            font-weight: 500;
+            padding-right: 12px;
+        }
+
+        .credit-cell {
+            text-align: center;
+            font-weight: 500;
+        }
+
+        /* Footer row styling */
+        .total-row td {
+            font-weight: bold;
+            background-color: #f8f9fa;
+            border: 1px solid #000;
+            padding: 12px 8px;
+        }
+
+        .total-amount {
+            text-align: right;
+            font-weight: bold;
+            padding-right: 12px;
+        }
+
+        /* Header row styling */
+        table thead tr {
+            background-color: #f8f9fa;
+        }
+
+        /* Alternating row colors for better readability */
+        table tbody tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+
+        table tbody tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+
+        /* Hover effect for rows (not for print) */
+        @media screen {
+            table tbody tr:hover {
+                background-color: #f0f8ff;
+            }
+        }
+
+        /* Print-specific improvements */
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .no-print {
+                display: none;
+            }
+
+            .container {
+                width: 100%;
+                padding: 0;
+                box-shadow: none;
+            }
+
+            @page {
+                size: A4 portrait;
+                margin: 0.5cm;
+            }
+
+            table {
+                border: 1px solid #000 !important;
+                page-break-inside: avoid;
+                border-collapse: collapse !important;
+            }
+
+            th,
+            td {
+                border: 1px solid #000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                padding: 8px !important;
+            }
+
+            .total-row td {
+                background-color: #f8f9fa !important;
+                border: 1px solid #000 !important;
+                font-weight: bold !important;
+            }
+
+            table thead tr {
+                background-color: #f8f9fa !important;
+            }
+
+            table tbody tr:nth-child(even) {
+                background-color: #fafafa !important;
+            }
+
+            table tbody tr:nth-child(odd) {
+                background-color: #ffffff !important;
+            }
+        }
+
+        .signature-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .signature-box {
+            width: 19%;
+            text-align: center;
+            position: relative;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .signature-title {
+            font-weight: bold;
+            margin-bottom: 50px;
+            font-size: 12px;
+        }
+
+        .approval-stamp {
+            position: relative;
+            width: 100%;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .approval-stamp-text {
+            color: #0056b3;
+            font-weight: bold;
+            font-size: 12px;
+            border: 2px solid #0056b3;
+            border-radius: 5px;
+            padding: 3px 10px;
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Styling for approval names and dates */
+        .signature-box p {
+            margin: 5px 0;
+            text-align: center;
+        }
+
+        .signature-box p:not(.signature-title):not(.approval-date) {
+            font-weight: bold;
+            font-size: 12px;
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+
+        .approval-date {
+            font-size: 11px;
+            color: #555;
+            margin-top: 3px;
+            font-style: italic;
+            font-weight: normal;
+        }
+
+        /* Error message styling */
+        .error-message {
+            background-color: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mx-auto">
+        <!-- Error Message Container -->
+        <div id="errorContainer" class="error-message hidden no-print">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clip-rule="evenodd"></path>
+                </svg>
+                <span id="errorMessage">An error occurred while loading the page.</span>
+            </div>
+        </div>
+
+        <!-- Loading Container -->
+        <div id="loadingContainer" class="text-center py-8 no-print">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-gray-600">Loading reimbursement data...</p>
+        </div>
+
+        <!-- Print Controls -->
+        <div class="no-print mb-4 flex justify-between">
+            <button id="printButton" onclick="printDocument();"
+                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Print Document
+            </button>
+            <button id="backButton" onclick="window.history.back()"
+                class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                Back
+            </button>
+        </div>
+
+        <!-- Main Content Container -->
+        <div id="mainContent" class="hidden">
+            <!-- Header Section -->
+            <div class="header">
+                <div class="logo-section">
+                    <img src="../../../../image/Seiho.png" alt="Kansai Paint Logo" class="logo"
+                        onerror="this.src='data:image/png;base64,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'">
+                    <div class="company-name">PT. KANSAI PAINT INDONESIA</div>
+                    <p class="text-sm">Blok DD-7 & DD-6 Kawasan Industri MM2100 </p>
+                    <p class="text-sm">Danau Indah, Cikarang Barat Kab. Bekasi Jawa Barat 17847</p>
+                    <p class="mt-4">Payment to : <span id="payToText"></span></p>
+                </div>
+                <div class="form-info">
+                    <p class="text-sm" style="display: none;">Batch No. : <span id="batchNoText"></span></p>
+                    <p class="text-sm">Voucher No. : <span id="voucherNoText"></span></p>
+                    <p class="text-sm mt-2">Submission Date : <span id="submissionDateText"></span></p>
+                </div>
+            </div>
+
+            <!-- Title -->
+            <div class="title">
+                REIMBURSEMENT REQUEST
+            </div>
+
+            <!-- Type of Transaction -->
+            <div class="text-center mb-4">
+                <p>Type of Transaction: <span id="typeOfTransactionText" class="font-semibold"></span></p>
+            </div>
+
+            <!-- Main Table -->
+            <table>
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Account Name</th>
+                        <th>G/L Account</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Credit</th>
+                    </tr>
+                </thead>
+                <tbody id="reimbursementDetails">
+                    <!-- Rows will be added dynamically -->
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="4" class="text-right">Total</td>
+                        <td class="total-amount" id="totalAmountFooter"></td>
+                        <td class="credit-cell">-</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <!-- Department and Status -->
+            <div class="flex items-center mb-4">
+                <p id="departmentText" class="mr-4">Department: <span id="departmentValue"></span></p>
+                <p id="statusText" class="mr-4" style="display: none;">Status: <span id="statusValue"></span></p>
+            </div>
+
+            <!-- Supporting Documents -->
+            <div class="mb-4">
+                <p class="mb-2" style="display: none;">Supporting Document :</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p>Reference Doc: <span id="refdoc"></span></p>
+                        <p>Note/Remark : <span id="remarksText"></span></p>
+                    </div>
+                    <div>
+                        <p style="display: none;">Currency: <span id="currencyText"></span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Signature Section -->
+            <div class="signature-section">
+                <div class="signature-box">
+                    <p class="signature-title">Prepared by :</p>
+                    <div class="approval-stamp">
+                        <span class="approval-stamp-text">Signed</span>
+                    </div>
+                    <p id="preparedBy"></p>
+                    <p class="approval-date" id="preparedByDate"></p>
+                </div>
+                <div class="signature-box">
+                    <p class="signature-title">Acknowledge by :</p>
+                    <div class="approval-stamp">
+                        <span class="approval-stamp-text">Signed</span>
+                    </div>
+                    <p id="acknowledgeBy"></p>
+                    <p class="approval-date" id="acknowledgeByDate"></p>
+                </div>
+                <div class="signature-box">
+                    <p class="signature-title">Checked by :</p>
+                    <div class="approval-stamp">
+                        <span class="approval-stamp-text">Signed</span>
+                    </div>
+                    <p id="checkedBy"></p>
+                    <p class="approval-date" id="checkedByDate"></p>
+                </div>
+                <div class="signature-box">
+                    <p class="signature-title">Approved by :</p>
+                    <div class="approval-stamp">
+                        <span class="approval-stamp-text">Approved</span>
+                    </div>
+                    <p id="approvedByText"></p>
+                    <p class="approval-date" id="approvedByDate"></p>
+                </div>
+                <div class="signature-box">
+                    <p class="signature-title">Received by :</p>
+                    <div class="approval-stamp">
+                        <span class="approval-stamp-text">Received</span>
+                    </div>
+                    <p id="receivedBy"></p>
+                    <p class="approval-date" id="receivedByDate"></p>
+                </div>
+            </div>
+
+            <!-- Amount Summary -->
+            <div class="mt-6">
+                <p>Amount Payment: <span class="font-bold" id="amountText">IDR</span></p>
+                <p>Amount in Word: <span id="amountInWordText"></span></p>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

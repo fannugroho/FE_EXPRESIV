@@ -2700,12 +2700,12 @@
             if (input.type === 'number') {
                 input.type = 'text';
             }
-            
+        
             const cursorPos = input.selectionStart;
             const originalLength = input.value.length;
             
             let value = input.value.replace(/[^\d,.]/g, '');
-            
+
             let parts = value.split('.');
             if (parts.length > 1) {
                 value = parts[0] + '.' + parts.slice(1).join('');
@@ -3338,9 +3338,7 @@
                 }
             }, 500);
         });
-        
-
-        
+  
         // Initialize functionality
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize E-Signing functionality

@@ -1115,70 +1115,18 @@ class PrintManager {
 
     static buildPrintUrl(opReimId, opReimData) {
         const baseUrl = window.location.origin;
-        const printReimUrl = `${baseUrl}/approvalPages/approval/receive/reimbursement/printReim.html?reim-id=${opReimId}`;
+        // Use GetPrintReim.html for Print Reimbursement Document
+        const printReimUrl = `${baseUrl}/approvalPages/approval/receive/outgoingPayment/GetPrintReim.html`;
 
-        if (!opReimData) return printReimUrl;
+        // Use expressivNo for GetPrintReim.html parameter
+        const expressivNo = opReimData?.expressivNo || opReimId;
+        const finalUrl = `${printReimUrl}?reim-id=${expressivNo}&_t=${Date.now()}`;
 
-        const params = new URLSearchParams();
+        console.log('🔧 Print Reimbursement URL points to GetPrintReim.html with expressivNo:', expressivNo);
+        console.log('🔗 Print Reimbursement URL constructed:', finalUrl);
 
-        const paramMappings = [
-            { data: 'counterRef', param: 'voucherNo' },
-            { data: 'docDate', param: 'submissionDate' },
-            { data: 'requesterName', param: 'preparedBy' },
-            { data: 'trsfrSum', param: 'totalAmount' },
-            { data: 'docCurr', param: 'currency' },
-            { data: 'jrnlMemo', param: 'remarks' }
-        ];
-
-        paramMappings.forEach(({ data, param }) => {
-            if (opReimData[data]) {
-                params.append(param, opReimData[data]);
-            }
-        });
-
-        if (opReimData.approval) {
-            if (opReimData.approval.checkedBy) {
-                const checkerName = UserManager.getUserNameById(opReimData.approval.checkedBy);
-                params.append('checkedBy', checkerName);
-            }
-            if (opReimData.approval.acknowledgedBy) {
-                const acknowledgerName = UserManager.getUserNameById(opReimData.approval.acknowledgedBy);
-                params.append('acknowledgeBy', acknowledgerName);
-            }
-            if (opReimData.approval.approvedBy) {
-                const approverName = UserManager.getUserNameById(opReimData.approval.approvedBy);
-                params.append('approvedBy', approverName);
-            }
-            if (opReimData.approval.receivedBy) {
-                const receiverName = UserManager.getUserNameById(opReimData.approval.receivedBy);
-                params.append('receivedBy', receiverName);
-            }
-        }
-
-        if (opReimData.department) {
-            params.append('department', opReimData.department);
-        }
-
-        if (opReimData.referenceDoc) {
-            params.append('referenceDoc', opReimData.referenceDoc);
-        }
-
-        if (opReimData.typeOfTransaction) {
-            params.append('typeOfTransaction', opReimData.typeOfTransaction);
-        }
-
-        if (opReimData.lines && opReimData.lines.length > 0) {
-            const details = opReimData.lines.map(line => ({
-                category: line.category || 'General',
-                accountName: line.acctName || '',
-                glAccount: line.acctCode || '',
-                description: line.descrip || '',
-                amount: line.sumApplied || 0
-            }));
-            params.append('details', JSON.stringify(details));
-        }
-
-        return params.toString() ? `${printReimUrl}&${params.toString()}` : printReimUrl;
+        // MINIMAL URL: Only send reim-id parameter, let GetPrintReim.html handle all data internally
+        return finalUrl;
     }
 
     static createPrintDocumentItem(opReimId, printUrl) {
@@ -1849,3 +1797,122 @@ document.addEventListener('DOMContentLoaded', () => {
     DataManager.initialize();
     console.log('✅ Approve Outgoing Payment Reimbursement System initialized successfully');
 });
+
+
+// Function to handle print functionality with proper URL encoding
+function printOPReim() {
+    try {
+        // Get document ID
+        const docId = documentId;
+
+        if (!docId) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Document ID not found',
+                icon: 'error'
+            });
+            return;
+        }
+
+        if (!outgoingPaymentReimData) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Document data not available',
+                icon: 'error'
+            });
+            return;
+        }
+
+        // Extract data for URL parameters (avoid over-encoding)
+        const approval = outgoingPaymentReimData.approval || {};
+        const printParams = {
+            'docId': docId,
+            'reimId': outgoingPaymentReimData.expressivNo || docId,
+            'payTo': outgoingPaymentReimData.cardName || outgoingPaymentReimData.requesterName || '',
+            'voucherNo': outgoingPaymentReimData.counterRef || '',
+            'submissionDate': outgoingPaymentReimData.docDate || outgoingPaymentReimData.trsfrDate || '',
+            'preparedBy': approval.preparedByName || '',
+            'checkedBy': approval.checkedByName || '',
+            'acknowledgedBy': approval.acknowledgedByName || '',
+            'approvedBy': approval.approvedByName || '',
+            'receivedBy': approval.receivedByName || '',
+            'currency': outgoingPaymentReimData.docCurr || 'IDR',
+            'totalAmount': outgoingPaymentReimData.trsfrSum || 0,
+            'remarks': outgoingPaymentReimData.remarks || outgoingPaymentReimData.jrnlMemo || ''
+        };
+
+        // Build details array from lines
+        const details = [];
+        if (outgoingPaymentReimData.lines && outgoingPaymentReimData.lines.length > 0) {
+            outgoingPaymentReimData.lines.forEach(line => {
+                details.push({
+                    category: 'OUTGOING PAYMENT',
+                    accountName: line.acctName || '',
+                    glAccount: line.acctCode || '',
+                    description: line.descrip || '',
+                    amount: line.sumApplied || 0,
+                    division: line.divisionCode || line.division || '',
+                    currency: line.CurrencyItem || line.currencyItem || 'IDR'
+                });
+            });
+        }
+
+        // Store comprehensive data in localStorage for print page
+        const printData = {
+            ...outgoingPaymentReimData,
+            attachments: existingAttachments || [],
+            printParams: printParams,
+            details: details
+        };
+
+        localStorage.setItem(`opReimData_${docId}`, JSON.stringify(printData));
+
+        console.log('📄 Stored comprehensive data for print:', printData);
+
+        // Build clean URL with properly encoded parameters
+        const baseUrl = window.location.origin;
+        let printUrl = `${baseUrl}/approvalPages/approval/receive/outgoingPayment/printOPReim.html`;
+
+        // Add URL parameters with single encoding
+        const urlParams = new URLSearchParams();
+        Object.entries(printParams).forEach(([key, value]) => {
+            if (value !== null && value !== undefined && value !== '') {
+                urlParams.append(key, String(value));
+            }
+        });
+
+        // Add details as JSON (will be properly encoded by URLSearchParams)
+        if (details.length > 0) {
+            urlParams.append('details', JSON.stringify(details));
+        }
+
+        printUrl += '?' + urlParams.toString();
+
+        console.log('📄 Print URL created:', printUrl);
+        console.log('📄 URL length:', printUrl.length);
+
+        // Open print page in new window
+        const newWindow = window.open(printUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+
+        if (newWindow) {
+            Swal.fire({
+                title: 'Success',
+                text: 'Print page opened in new window',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        } else {
+            throw new Error('Failed to open print window. Please check if pop-ups are blocked.');
+        }
+
+    } catch (error) {
+        console.error('Error opening print page:', error);
+
+        Swal.fire({
+            title: 'Error',
+            text: `Failed to open print page: ${error.message}`,
+            icon: 'error'
+        });
+    }
+}
