@@ -705,18 +705,34 @@ function populateInvoiceData(invoice) {
 
         if (doNumbersElement) {
             if (invoice.u_bsi_udf1) {
-                const doValues = Array.isArray(invoice.u_bsi_udf1) ? invoice.u_bsi_udf1 : [invoice.u_bsi_udf1];
-                console.log('📋 DO Numbers:', doValues);
+                // Normalize DO values: support semicolon-separated strings with or without spaces
+                const rawDo = invoice.u_bsi_udf1;
+                let doValues = [];
+                if (Array.isArray(rawDo)) {
+                    rawDo.forEach(v => {
+                        if (typeof v === 'string') {
+                            doValues.push(...v.split(/;\s*/).map(s => s.trim()).filter(Boolean));
+                        } else if (v != null) {
+                            doValues.push(String(v));
+                        }
+                    });
+                } else if (typeof rawDo === 'string') {
+                    doValues = rawDo.split(/;\s*/).map(s => s.trim()).filter(Boolean);
+                } else if (rawDo != null) {
+                    doValues = [String(rawDo)];
+                }
+                console.log('📋 DO Numbers (normalized):', doValues);
 
                 if (doValues.length > 1) {
                     doNumbersElement.className = 'field-value multiple';
-                    // Group values into rows of 3 with proper formatting
+                    // Group values into rows of 3; show label only on the first row
                     const rows = [];
                     for (let i = 0; i < doValues.length; i += 3) {
                         const row = doValues.slice(i, i + 3);
                         const isLastRow = i + 3 >= doValues.length;
                         const separator = isLastRow ? '.' : ';';
-                        rows.push(`<div class="data-item"><strong>DO No.</strong> : ${row.join('; ')}${separator}</div>`);
+                        const prefix = i === 0 ? '<strong>DO No.</strong> : ' : '';
+                        rows.push(`<div class="data-item">${prefix}${row.join('; ')}${separator}</div>`);
                     }
                     doNumbersElement.innerHTML = rows.join('');
                 } else {
