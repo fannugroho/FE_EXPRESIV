@@ -19,6 +19,11 @@ window.onload = function() {
     if (currentTab === 'checked' || currentTab === 'rejected') {
         hideApprovalButtons();
     }
+    
+    // Only show revision functionality on 'prepared' tab (first tab)
+    if (currentTab !== 'prepared') {
+        hideRevisionButton();
+    }
 };
 
 function fetchPRDetails(prId, prType) {
@@ -903,8 +908,6 @@ function makeAllFieldsReadOnly() {
 function hideApprovalButtons() {
     const approveButton = document.querySelector('button[onclick="approvePR()"]');
     const rejectButton = document.querySelector('button[onclick="rejectPR()"]');
-    const addRevisionBtn = document.getElementById('addRevisionBtn');
-    const revisionButton = document.getElementById('revisionButton');
     
     if (approveButton) {
         approveButton.style.display = 'none';
@@ -912,17 +915,38 @@ function hideApprovalButtons() {
     if (rejectButton) {
         rejectButton.style.display = 'none';
     }
-    if (addRevisionBtn) {
-        addRevisionBtn.style.display = 'none';
-    }
-    if (revisionButton) {
-        revisionButton.style.display = 'none';
-    }
     
     // Also hide any parent container if needed
     const buttonContainer = document.querySelector('.approval-buttons, .button-container');
     if (buttonContainer && currentTab !== 'prepared') {
         buttonContainer.style.display = 'none';
+    }
+}
+
+// Function to hide revision button and all revision-related elements
+function hideRevisionButton() {
+    // Hide the revision button
+    const revisionButton = document.querySelector('button[onclick="revisionPR()"]');
+    if (revisionButton) {
+        revisionButton.style.display = 'none';
+    }
+    
+    // Hide the add revision button
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
+    if (addRevisionBtn) {
+        addRevisionBtn.style.display = 'none';
+    }
+    
+    // Hide the revision container if it exists
+    const revisionContainer = document.getElementById('revisionContainer');
+    if (revisionContainer) {
+        revisionContainer.style.display = 'none';
+    }
+    
+    // Hide the revision section label
+    const revisionLabel = document.querySelector('label[for="addRevisionBtn"]');
+    if (revisionLabel) {
+        revisionLabel.style.display = 'none';
     }
 }
 

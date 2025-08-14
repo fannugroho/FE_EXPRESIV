@@ -126,13 +126,112 @@ function setupButtonVisibility() {
     const submitButtonContainer = document.getElementById('submitButtonContainer');
     
     if (currentTab === 'revision') {
-        // Show only submit button for revision tab
-        // Button visibility will be controlled by status in fetchPRDetails
+        // Show submit button for revision tab
+        if (submitButtonContainer) {
+            submitButtonContainer.style.display = 'flex';
+        }
+        // Make fields editable for revision tab
+        makeAllFieldsEditable();
+        console.log('Applied editable mode for revision tab');
     } else if (currentTab === 'prepared') {
         // Hide submit button for prepared tab
         if (submitButtonContainer) {
             submitButtonContainer.style.display = 'none';
         }
+        // Make fields read-only for prepared tab
+        makeAllFieldsReadOnly();
+        console.log('Applied read-only mode for prepared tab');
+    } else {
+        // Default: Make fields read-only for any other tab
+        if (submitButtonContainer) {
+            submitButtonContainer.style.display = 'none';
+        }
+        makeAllFieldsReadOnly();
+        console.log('Applied read-only mode for unknown tab:', currentTab);
+    }
+}
+
+// Function to make all fields read-only
+function makeAllFieldsReadOnly() {
+    // Make all input fields read-only
+    document.querySelectorAll('input, textarea, select').forEach(el => {
+        if (!el.classList.contains('action-btn') && !el.classList.contains('delete-btn')) {
+            el.readOnly = true;
+            el.disabled = true;
+            el.classList.add('bg-gray-100');
+        }
+    });
+    
+    // Make table rows read-only
+    const tableRows = document.querySelectorAll('#tableBody tr');
+    tableRows.forEach(row => {
+        const inputs = row.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            input.readOnly = true;
+            input.disabled = true;
+            input.classList.add('bg-gray-100');
+        });
+        
+        // Hide delete buttons in table
+        const deleteButtons = row.querySelectorAll('button[onclick*="deleteRow"]');
+        deleteButtons.forEach(btn => {
+            btn.style.display = 'none';
+        });
+    });
+    
+    // Hide add row button
+    const addRowButton = document.querySelector('button[onclick*="addRow"]');
+    if (addRowButton) {
+        addRowButton.style.display = 'none';
+    }
+    
+    // Disable file upload
+    const fileInput = document.getElementById('Reference');
+    if (fileInput) {
+        fileInput.disabled = true;
+        fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+    }
+}
+
+// Function to make all fields editable
+function makeAllFieldsEditable() {
+    // Make all input fields editable
+    document.querySelectorAll('input, textarea, select').forEach(el => {
+        if (!el.classList.contains('action-btn') && !el.classList.contains('delete-btn')) {
+            el.readOnly = false;
+            el.disabled = false;
+            el.classList.remove('bg-gray-100');
+        }
+    });
+    
+    // Make table rows editable
+    const tableRows = document.querySelectorAll('#tableBody tr');
+    tableRows.forEach(row => {
+        const inputs = row.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            input.readOnly = false;
+            input.disabled = false;
+            input.classList.remove('bg-gray-100');
+        });
+        
+        // Show delete buttons in table
+        const deleteButtons = row.querySelectorAll('button[onclick*="deleteRow"]');
+        deleteButtons.forEach(btn => {
+            btn.style.display = 'inline-block';
+        });
+    });
+    
+    // Show add row button
+    const addRowButton = document.querySelector('button[onclick*="addRow"]');
+    if (addRowButton) {
+        addRowButton.style.display = 'inline-block';
+    }
+    
+    // Enable file upload
+    const fileInput = document.getElementById('Reference');
+    if (fileInput) {
+        fileInput.disabled = false;
+        fileInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
     }
 }
 
@@ -160,6 +259,9 @@ async function fetchPRDetails(prId, prType) {
             if (responseData.data.status === 'Revision') {
                 document.getElementById('submitButtonContainer').style.display = 'block';
             }
+            
+            // Apply tab-based behavior after data is loaded
+            setupButtonVisibility();
         }
     } catch (error) {
         // console.error('Error:', error);

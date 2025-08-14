@@ -52,6 +52,36 @@ function hideApprovalButtons() {
     }
 }
 
+// Function to hide revision buttons based on document status
+function hideRevisionButtons(data) {
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
+    const revisionButton = document.getElementById('revisionButton');
+    const revisionContainer = document.getElementById('revisionContainer');
+    
+    // Hide revision buttons only when status is 'acknowledged' or 'rejected'
+    if (data.status === 'Acknowledged' || data.status === 'Rejected' || 
+        data.status === 'acknowledged' || data.status === 'rejected') {
+        
+        if (addRevisionBtn) {
+            addRevisionBtn.style.display = 'none';
+        }
+        if (revisionButton) {
+            revisionButton.style.display = 'none';
+        }
+        if (revisionContainer) {
+            revisionContainer.style.display = 'none';
+        }
+    } else {
+        // Show revision buttons when status allows (including in 'checked' tab)
+        if (addRevisionBtn) {
+            addRevisionBtn.style.display = 'block';
+        }
+        if (revisionButton) {
+            revisionButton.style.display = 'block';
+        }
+    }
+}
+
 // Function to filter users for the search dropdown in approval section
 function filterUsers(fieldId) {
     const searchInput = document.getElementById(`${fieldId}Search`);
@@ -183,7 +213,7 @@ function populateSettleDetails(data) {
     }
     
     document.getElementById('purpose').value = data.purpose || '';
-    document.getElementById('paidTo').value = data.payToBusinessPartnerName || '';
+    document.getElementById('paidTo').value = data.payToName || '';
 
     // Set transaction type - create option directly from backend data
     const transactionTypeSelect = document.getElementById('TransactionType');
@@ -226,6 +256,10 @@ function populateSettleDetails(data) {
         document.getElementById('remarks').value = data.remarks;
     }
     
+    // Display revision and rejection remarks
+    displayRevisionRemarks(data);
+    displayRejectionRemarks(data);
+    
     // Display attachments if they exist
     console.log('Attachments data:', data.attachments);
     if (data.attachments) {
@@ -237,6 +271,9 @@ function populateSettleDetails(data) {
     
     // Make all fields read-only since this is an approval page
     makeAllFieldsReadOnly();
+    
+    // Hide revision buttons based on document status
+    hideRevisionButtons(data);
     
     console.log('Settlement details populated successfully');
 }
@@ -444,6 +481,10 @@ function goToMenuSettle() {
     window.location.href = '../../../dashboard/dashboardAcknowledge/settlement/menuSettleAcknow.html';
 }
 
+function goToMenuAcknowSettle() {
+    window.location.href = '../../../dashboard/dashboardAcknowledge/settlement/menuSettleAcknow.html';
+}
+
 function previewPDF(event) {
     const files = event.target.files;
     if (files.length + uploadedFiles.length > 5) {
@@ -577,6 +618,116 @@ function makeAllFieldsReadOnly() {
     }
 }
 
+// Function to display revision remarks from API
+function displayRevisionRemarks(data) {
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    
+    const hasRevisions = data.revisions && data.revisions.length > 0;
+    
+    if (hasRevisions) {
+        revisedRemarksSection.style.display = 'block';
+        
+        revisedRemarksSection.innerHTML = `
+            <h3 class="text-lg font-semibold mb-2 text-gray-800">Revision History</h3>
+            <div class="bg-gray-50 p-4 rounded-lg border">
+                <div class="mb-2">
+                    <span class="text-sm font-medium text-gray-600">Total Revisions: </span>
+                    <span id="revisedCount" class="text-sm font-bold text-blue-600">${data.revisions.length}</span>
+                </div>
+            </div>
+        `;
+        
+        const revisionsByStage = {};
+        data.revisions.forEach(revision => {
+            let stageName = 'Unknown';
+            if (revision.stage === 'Checked' || revision.stage === 1) {
+                stageName = 'Checked';
+            } else if (revision.stage === 'Acknowledged' || revision.stage === 2) {
+                stageName = 'Acknowledged';
+            } else if (revision.stage === 'Approved' || revision.stage === 3) {
+                stageName = 'Approved';
+            } else if (revision.stage === 'Received' || revision.stage === 4) {
+                stageName = 'Received';
+            }
+            
+            if (!revisionsByStage[stageName]) {
+                revisionsByStage[stageName] = [];
+            }
+            revisionsByStage[stageName].push(revision);
+        });
+        
+        Object.keys(revisionsByStage).forEach(stage => {
+            const stageRevisions = revisionsByStage[stage];
+            
+            const stageHeader = document.createElement('div');
+            stageHeader.className = 'mb-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded';
+            stageHeader.innerHTML = `
+                <h4 class="text-sm font-bold text-blue-800 mb-2">${stage} Stage Revisions (${stageRevisions.length})</h4>
+            `;
+            revisedRemarksSection.appendChild(stageHeader);
+            
+            stageRevisions.forEach((revision, index) => {
+                const revisionContainer = document.createElement('div');
+                revisionContainer.className = 'mb-3 ml-4';
+                revisionContainer.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <label class="text-sm font-medium text-gray-700">Revision ${index + 1}:</label>
+                            <div class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap">${revision.remarks || ''}</div>
+                            <div class="text-xs text-gray-500 mt-1">
+                                Date: ${revision.revisionDate ? new Date(revision.revisionDate).toLocaleDateString() : 'N/A'}
+                                ${revision.revisedByName ? ` | By: ${revision.revisedByName}` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                revisedRemarksSection.appendChild(revisionContainer);
+            });
+        });
+    } else {
+        revisedRemarksSection.style.display = 'none';
+    }
+}
+
+// Function to display rejection remarks
+function displayRejectionRemarks(data) {
+    if (data.status !== 'Rejected') {
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        if (rejectionSection) {
+            rejectionSection.style.display = 'none';
+        }
+        return;
+    }
+    
+    const rejectionSection = document.getElementById('rejectionRemarksSection');
+    const rejectionTextarea = document.getElementById('rejectionRemarks');
+    
+    if (rejectionSection && rejectionTextarea) {
+        let rejectionRemarks = '';
+        
+        if (data.remarksRejectByChecker) {
+            rejectionRemarks = data.remarksRejectByChecker;
+        } else if (data.remarksRejectByAcknowledger) {
+            rejectionRemarks = data.remarksRejectByAcknowledger;
+        } else if (data.remarksRejectByApprover) {
+            rejectionRemarks = data.remarksRejectByApprover;
+        } else if (data.remarksRejectByReceiver) {
+            rejectionRemarks = data.remarksRejectByReceiver;
+        } else if (data.rejectedRemarks) {
+            rejectionRemarks = data.rejectedRemarks;
+        } else if (data.remarks) {
+            rejectionRemarks = data.remarks;
+        }
+        
+        if (rejectionRemarks.trim() !== '') {
+            rejectionSection.style.display = 'block';
+            rejectionTextarea.value = rejectionRemarks;
+        } else {
+            rejectionSection.style.display = 'none';
+        }
+    }
+}
+
 // Function to display attachments (similar to detail pages)
 function displayAttachments(attachments) {
     console.log('displayAttachments called with:', attachments);
@@ -609,5 +760,272 @@ function displayAttachments(attachments) {
         });
     } else {
         attachmentsList.innerHTML = '<p class="text-gray-500 text-sm">No attachments available</p>';
+    }
+}
+
+// Helper function to get logged-in user ID
+function getUserId() {
+    const user = JSON.parse(localStorage.getItem('loggedInUser'));
+    return user ? user.id : null;
+}
+
+// Function to handle revision for Settlement
+function revisionSettle() {
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    // Check if revision button is disabled
+    if (document.getElementById('revisionButton').disabled) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    
+    let allRemarks = '';
+    
+    revisionFields.forEach((field, index) => {
+        if (field.value.trim() !== '') {
+            if (allRemarks !== '') allRemarks += '\n\n';
+            allRemarks += field.value.trim();
+        }
+    });
+    
+    if (revisionFields.length === 0 || allRemarks.trim() === '') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add and fill revision field first'
+        });
+        return;
+    }
+    
+    // Call the existing function with the collected remarks
+    updateSettleStatusWithRemarks('revise', allRemarks);
+}
+
+// Function to update settlement status with remarks (for revision)
+function updateSettleStatusWithRemarks(status, remarks) {
+    if (!settlementId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Settlement ID not found'
+        });
+        return;
+    }
+
+    const userId = getUserId();
+    if (!userId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
+        return;
+    }
+
+    const requestData = {
+        id: settlementId,
+        UserId: userId,
+        StatusAt: "Acknowledge",
+        Action: status,
+        Remarks: remarks || ''
+    };
+
+    // Show loading
+    Swal.fire({
+        title: 'Processing Revision...',
+        text: 'Please wait while we process your request.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    fetch(`${BASE_URL}/api/settlements/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        if (response.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: 'Settlement revision submitted successfully',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                // Navigate back to the dashboard
+                window.location.href = '../../../dashboard/dashboardAcknowledge/settlement/menuSettleAcknow.html';
+            });
+        } else {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `Failed to submit revision. Status: ${response.status}`);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error submitting revision: ' + error.message
+        });
+    });
+}
+
+// Function to submit revision
+function submitRevision() {
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    let allRemarks = '';
+    
+    revisionFields.forEach((field, index) => {
+        // Include the entire content including the prefix
+        if (field.value.trim() !== '') {
+            if (allRemarks !== '') allRemarks += '\n\n';
+            allRemarks += field.value.trim();
+        }
+    });
+    
+    const prefixLength = parseInt(revisionFields[0]?.dataset.prefixLength || '0');
+    if (allRemarks.length <= prefixLength) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Silakan berikan alasan revisi sebelum mengirim'
+        });
+        return;
+    }
+    
+    console.log("revisionRemarks");
+    console.log(allRemarks);
+
+    if (!settlementId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Settlement ID not found'
+        });
+        return;
+    }
+
+    const userId = getUserId();
+    if (!userId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
+        return;
+    }
+
+    // Show confirmation dialog
+    Swal.fire({
+        title: 'Submit Revision',
+        text: 'Are you sure you want to submit this revision request?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#f59e0b',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Submit Revision',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Call the existing function with the collected remarks
+            updateSettleStatusWithRemarks('revise', allRemarks);
+        }
+    });
+}
+
+// Function to revision settlement
+function revisionSettle() {
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    let hasContent = false;
+    
+    revisionFields.forEach(field => {
+        const prefixLength = parseInt(field.dataset.prefixLength || '0');
+        const content = field.value.trim();
+        if (content.length > prefixLength) {
+            hasContent = true;
+        }
+    });
+    
+    if (!hasContent) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Silakan berikan alasan revisi sebelum mengirim'
+        });
+        return;
+    }
+    
+    // Enable the revision button
+    const revisionButton = document.getElementById('revisionButton');
+    if (revisionButton) {
+        revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        revisionButton.onclick = submitRevision;
+    }
+    
+    // Show confirmation dialog
+    Swal.fire({
+        title: 'Submit Revision',
+        text: 'Are you sure you want to submit this revision request?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#f59e0b',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Submit Revision',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            submitRevision();
+        }
+    });
+}
+
+// Function to toggle revision field
+function toggleRevisionField() {
+    const revisionContainer = document.getElementById('revisionContainer');
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
+    
+    if (revisionContainer.classList.contains('hidden')) {
+        revisionContainer.classList.remove('hidden');
+        addRevisionBtn.textContent = '- Remove revision';
+        
+        // Add revision textarea
+        const revisionField = document.createElement('div');
+        revisionField.className = 'mt-2';
+        revisionField.innerHTML = `
+            <textarea 
+                class="w-full p-2 border rounded-md" 
+                placeholder="Enter revision remarks..."
+                rows="3"
+                data-prefix-length="0"
+            ></textarea>
+        `;
+        revisionContainer.appendChild(revisionField);
+        
+        // Enable the revision button
+        const revisionButton = document.getElementById('revisionButton');
+        if (revisionButton) {
+            revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            revisionButton.onclick = revisionSettle;
+        }
+    } else {
+        revisionContainer.classList.add('hidden');
+        addRevisionBtn.textContent = '+ Add revision';
+        revisionContainer.innerHTML = '';
+        
+        // Disable the revision button
+        const revisionButton = document.getElementById('revisionButton');
+        if (revisionButton) {
+            revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
+            revisionButton.onclick = null;
+        }
     }
 }
