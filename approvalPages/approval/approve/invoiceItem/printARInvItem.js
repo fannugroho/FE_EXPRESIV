@@ -226,10 +226,10 @@ function formatMultipleValuesTwoPerLine(values, prefix) {
 
         if (row.length === 2) {
             // Two items in the row
-            const separator = isLastRow ? '.' : ',';
+            const separator = isLastRow ? ',' : ';';
             const item1 = row[0].length > 20 ? wrapText(row[0], 20) : row[0];
             const item2 = row[1].length > 20 ? wrapText(row[1], 20) : row[1];
-            rows.push(`<div class="data-item">${item1}, ${item2}${separator}</div>`);
+            rows.push(`<div class="data-item">${item1}; ${item2}${separator}</div>`);
         } else {
             // Single item in the last row
             const singleItem = row[0].length > 20 ? wrapText(row[0], 20) : row[0];
@@ -386,11 +386,34 @@ function populateInvoiceData(invoice) {
     // Order numbers - use specific fields for DO and PO numbers with character limits
     const doNumbersElement = document.getElementById('doNumbers');
     if (invoice.u_bsi_udf1) {
-        const doValues = Array.isArray(invoice.u_bsi_udf1) ? invoice.u_bsi_udf1 : [invoice.u_bsi_udf1];
+        // Normalize DO values: support semicolon-separated strings with or without spaces
+        const rawDo = invoice.u_bsi_udf1;
+        let doValues = [];
+        if (Array.isArray(rawDo)) {
+            rawDo.forEach(v => {
+                if (typeof v === 'string') {
+                    doValues.push(...v.split(/;\s*/).map(s => s.trim()).filter(Boolean));
+                } else if (v != null) {
+                    doValues.push(String(v));
+                }
+            });
+        } else if (typeof rawDo === 'string') {
+            doValues = rawDo.split(/;\s*/).map(s => s.trim()).filter(Boolean);
+        } else if (rawDo != null) {
+            doValues = [String(rawDo)];
+        }
         if (doValues.length > 1) {
             doNumbersElement.className = 'field-value multiple';
-            const formattedDO = formatMultipleValuesTwoPerLine(doValues, '<strong>DO No.</strong> : ');
-            doNumbersElement.innerHTML = formattedDO;
+            // Three per line; show label only on first line
+            const rows = [];
+            for (let i = 0; i < doValues.length; i += 3) {
+                const row = doValues.slice(i, i + 3);
+                const isLastRow = i + 3 >= doValues.length;
+                const separator = isLastRow ? '.' : ';';
+                const prefix = i === 0 ? '<strong>DO No.</strong> : ' : '';
+                rows.push(`<div class="data-item">${prefix}${row.join('; ')}${separator}</div>`);
+            }
+            doNumbersElement.innerHTML = rows.join('');
         } else {
             doNumbersElement.className = 'field-value';
             doNumbersElement.innerHTML = `<strong>DO No.</strong> : ${doValues[0]}`;
