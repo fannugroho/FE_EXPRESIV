@@ -1,5 +1,361 @@
-// ===== CLEAN RECEIVE OUTGOING PAYMENT REIMBURSEMENT SYSTEM =====
 // File: receiveOPReim.js
+
+/*
+ ┌─────────────────────────────────────────────────────────────────────────────────┐
+ │                    🔧 CENTRALIZED API MANAGEMENT SYSTEM                          │
+ ├─────────────────────────────────────────────────────────────────────────────────┤
+ │                                                                                 │
+ │ 📍 LOKASI API CONFIGURATION:                                                   │
+ │   • API_CONFIG (Line ~20) - Semua endpoint dan konfigurasi API                 │
+ │   • CentralizedAPIClient (Line ~95) - Wrapper untuk makeAuthenticatedRequest   │
+ │   • OPReimAPIService (Line ~155) - Service methods untuk business logic        │
+ │   • APIHelpers (Line ~235) - Utility functions untuk API operations            │
+ │                                                                                 │
+ │ 🎯 KEUNTUNGAN CENTRALIZATION:                                                  │
+ │   ✅ Single source of truth untuk semua API endpoints                          │
+ │   ✅ Konsisten error handling dan logging                                      │
+ │   ✅ Mudah untuk mengubah base URL atau endpoint                               │
+ │   ✅ Timeout management yang terpusat                                          │
+ │   ✅ Type safety dan dokumentasi yang jelas                                    │
+ │                                                                                 │
+ │ 📝 CARA MENAMBAH API BARU:                                                     │
+ │   1. Tambahkan endpoint di API_CONFIG.ENDPOINTS                                │
+ │   2. Tambahkan method di OPReimAPIService                                      │
+ │   3. Gunakan CentralizedAPIClient untuk request                                │
+ │   4. Error handling otomatis sudah tersedia                                    │
+ │                                                                                 │
+ │ 🔍 CARA MENGUBAH EXISTING API:                                                 │
+ │   1. Cari di API_CONFIG.ENDPOINTS                                              │
+ │   2. Update endpoint atau konfigurasi                                          │
+ │   3. Semua usage akan terupdate otomatis                                       │
+ │                                                                                 │
+ └─────────────────────────────────────────────────────────────────────────────────┘
+ */
+
+// ===== API CONFIGURATION - CENTRALIZED =====
+// Semua konfigurasi API dipusatkan di sini untuk memudahkan maintenance
+const API_CONFIG = {
+    // Base Configuration
+    BASE_URL: window.location.origin,
+
+    // API Endpoints - DAFTAR LENGKAP API YANG DIGUNAKAN
+    ENDPOINTS: {
+        // 📋 Outgoing Payment Reimbursement APIs
+        OP_REIM: {
+            HEADERS: '/api/staging-outgoing-payments/headers',      // GET /{id} - Ambil detail dokumen
+            ATTACHMENTS: '/api/staging-outgoing-payments/attachments', // GET /{id} - Ambil attachments
+            APPROVALS: '/api/staging-outgoing-payments/approvals'    // PUT /{id} - Receive/Reject dokumen
+        },
+
+        // 👥 Users & Authentication APIs
+        USERS: '/api/users',                                       // GET - Ambil daftar users
+
+        // 💰 Reimbursements APIs
+        REIMBURSEMENTS: '/api/reimbursements',                     // GET /{expressivNo} - Ambil data reimbursement
+
+        // 📁 Files APIs
+        FILES: '/api/files'                                        // GET /{filePath} - Download files
+    },
+
+    // HTTP Methods
+    METHODS: {
+        GET: 'GET',
+        POST: 'POST',
+        PUT: 'PUT',
+        PATCH: 'PATCH',
+        DELETE: 'DELETE'
+    },
+
+    // Content Types
+    CONTENT_TYPES: {
+        JSON: 'application/json',
+        JSON_PATCH: 'application/json-patch+json',
+        FORM_DATA: 'multipart/form-data'
+    },
+
+    // Request Timeouts (milliseconds)
+    TIMEOUTS: {
+        DEFAULT: 30000,   // 30 seconds - untuk request biasa
+        UPLOAD: 120000,   // 2 minutes - untuk upload file
+        DOWNLOAD: 60000   // 1 minute - untuk download file
+    },
+
+    // Error Messages - Pesan error dalam Bahasa Indonesia
+    ERROR_MESSAGES: {
+        NETWORK_ERROR: 'Terjadi kesalahan jaringan. Silakan periksa koneksi Anda.',
+        TIMEOUT_ERROR: 'Request timeout. Silakan coba lagi.',
+        UNAUTHORIZED: 'Akses tidak diizinkan. Silakan login kembali.',
+        FORBIDDEN: 'Akses ditolak. Anda tidak memiliki izin.',
+        NOT_FOUND: 'Resource tidak ditemukan.',
+        SERVER_ERROR: 'Terjadi kesalahan server. Silakan coba lagi nanti.',
+        VALIDATION_ERROR: 'Kesalahan validasi. Silakan periksa input Anda.'
+    },
+
+    // Helper Methods
+    buildUrl(endpoint, id = null, params = null) {
+        let url = `${this.BASE_URL}${endpoint}`;
+
+        if (id) {
+            url += `/${id}`;
+        }
+
+        if (params) {
+            const urlParams = new URLSearchParams(params);
+            url += `?${urlParams.toString()}`;
+        }
+
+        return url;
+    },
+
+    getErrorMessage(status) {
+        switch (status) {
+            case 401:
+                return this.ERROR_MESSAGES.UNAUTHORIZED;
+            case 403:
+                return this.ERROR_MESSAGES.FORBIDDEN;
+            case 404:
+                return this.ERROR_MESSAGES.NOT_FOUND;
+            case 422:
+                return this.ERROR_MESSAGES.VALIDATION_ERROR;
+            case 500:
+            case 502:
+            case 503:
+                return this.ERROR_MESSAGES.SERVER_ERROR;
+            default:
+                return this.ERROR_MESSAGES.NETWORK_ERROR;
+        }
+    }
+};
+
+// ===== DAFTAR API YANG DIGUNAKAN DALAM APLIKASI INI =====
+/*
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           📋 API ENDPOINTS REFERENCE                             │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│ 🔸 OUTGOING PAYMENT REIMBURSEMENT APIs:                                        │
+│   • GET  /api/staging-outgoing-payments/headers/{id}                           │
+│     └─ Mengambil detail dokumen outgoing payment reimbursement                 │
+│     └─ Usage: await OPReimAPIService.fetchOPReimDetails(docId)                 │
+│                                                                                 │
+│   • GET  /api/staging-outgoing-payments/attachments/{id}                       │
+│     └─ Mengambil daftar attachments dokumen                                    │
+│     └─ Usage: await OPReimAPIService.fetchAttachments(docId)                   │
+│                                                                                 │
+│   • PUT  /api/staging-outgoing-payments/approvals/{id}                         │
+│     └─ Receive atau Reject dokumen (dengan status approval)                    │
+│     └─ Usage: await OPReimAPIService.receiveDocument(docId, requestData)       │
+│     └─ Usage: await OPReimAPIService.rejectDocument(docId, requestData)        │
+│                                                                                 │
+│ 🔸 USER MANAGEMENT APIs:                                                       │
+│   • GET  /api/users                                                            │
+│     └─ Mengambil daftar semua users untuk dropdown approval                    │
+│     └─ Usage: await OPReimAPIService.fetchUsers()                              │
+│                                                                                 │
+│ 🔸 REIMBURSEMENT APIs:                                                         │
+│   • GET  /api/reimbursements/{expressivNo}                                     │
+│     └─ Mengambil data reimbursement terkait berdasarkan expressivNo            │
+│     └─ Usage: await OPReimAPIService.fetchReimbursementData(expressivNo)       │
+│                                                                                 │
+│ 🔸 FILE MANAGEMENT APIs:                                                       │
+│   • GET  /api/files/{filePath}                                                 │
+│     └─ Download/view file attachments                                          │
+│     └─ Usage: await OPReimAPIService.fetchFileContent(filePath)                │
+│                                                                                 │
+│ � CONTOH USAGE PATTERN:                                                       │
+│                                                                                 │
+│   // ✅ CARA YANG BENAR - Menggunakan OPReimAPIService                         │
+│   try {                                                                        │
+│     const data = await OPReimAPIService.fetchOPReimDetails(docId);             │
+│     console.log('Data received:', data);                                       │
+│   } catch (error) {                                                            │
+│     console.error('Error:', APIHelpers.handleAPIError(error, 'fetchDetails')); │
+│   }                                                                            │
+│                                                                                 │
+│   // ❌ CARA YANG SALAH - Jangan langsung gunakan makeAuthenticatedRequest     │
+│   // makeAuthenticatedRequest('/api/staging-outgoing-payments/headers/123')    │
+│                                                                                 │
+│ �📝 Notes:                                                                      │
+│   - Semua request menggunakan authentication token otomatis                    │
+│   - Error handling dilakukan secara terpusat di CentralizedAPIClient          │
+│   - Timeout dikonfigurasi berdasarkan jenis operasi di API_CONFIG             │
+│   - Logging otomatis untuk debugging dan monitoring                            │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+*/
+
+// ===== CENTRALIZED API CLIENT =====
+// Wrapper untuk makeAuthenticatedRequest dengan error handling yang konsisten
+class CentralizedAPIClient {
+    static async request(endpoint, options = {}) {
+        const {
+            method = API_CONFIG.METHODS.GET,
+            headers = {},
+            body = null,
+            timeout = API_CONFIG.TIMEOUTS.DEFAULT,
+            ...otherOptions
+        } = options;
+
+        const requestOptions = {
+            method,
+            headers: {
+                'Content-Type': API_CONFIG.CONTENT_TYPES.JSON,
+                ...headers
+            },
+            ...otherOptions
+        };
+
+        if (body && method !== API_CONFIG.METHODS.GET) {
+            if (body instanceof FormData) {
+                // Don't set Content-Type for FormData, let browser set it
+                delete requestOptions.headers['Content-Type'];
+                requestOptions.body = body;
+            } else {
+                requestOptions.body = JSON.stringify(body);
+            }
+        }
+
+        try {
+            console.log(`🌐 API Request: ${method} ${endpoint}`);
+
+            const response = await makeAuthenticatedRequest(endpoint, requestOptions);
+
+            if (!response.ok) {
+                const errorMessage = API_CONFIG.getErrorMessage(response.status);
+                throw new Error(`${errorMessage} (Status: ${response.status})`);
+            }
+
+            console.log(`✅ API Response: ${response.status} ${response.statusText}`);
+            return await response.json();
+
+        } catch (error) {
+            console.error(`❌ API Error: ${method} ${endpoint}`, error);
+            throw error;
+        }
+    }
+
+    // GET request
+    static async get(endpoint, params = null, options = {}) {
+        const url = params ? API_CONFIG.buildUrl(endpoint, null, params) : endpoint;
+        return this.request(url, {
+            method: API_CONFIG.METHODS.GET,
+            ...options
+        });
+    }
+
+    // POST request
+    static async post(endpoint, data = null, options = {}) {
+        return this.request(endpoint, {
+            method: API_CONFIG.METHODS.POST,
+            body: data,
+            ...options
+        });
+    }
+
+    // PUT request
+    static async put(endpoint, data = null, options = {}) {
+        return this.request(endpoint, {
+            method: API_CONFIG.METHODS.PUT,
+            body: data,
+            ...options
+        });
+    }
+
+    // PATCH request
+    static async patch(endpoint, data = null, options = {}) {
+        return this.request(endpoint, {
+            method: API_CONFIG.METHODS.PATCH,
+            body: data,
+            headers: {
+                'Content-Type': API_CONFIG.CONTENT_TYPES.JSON_PATCH
+            },
+            ...options
+        });
+    }
+
+    // DELETE request
+    static async delete(endpoint, options = {}) {
+        return this.request(endpoint, {
+            method: API_CONFIG.METHODS.DELETE,
+            ...options
+        });
+    }
+}
+
+// ===== API UTILITIES & HELPERS =====
+/**
+ * 🛠️ Helper functions untuk memudahkan penggunaan API
+ */
+class APIHelpers {
+    /**
+     * Quick access untuk API endpoints yang sering digunakan
+     */
+    static get ENDPOINTS() {
+        return {
+            getOPReimDetails: (id) => `${API_CONFIG.ENDPOINTS.OP_REIM.HEADERS}/${id}`,
+            getAttachments: (id) => `${API_CONFIG.ENDPOINTS.OP_REIM.ATTACHMENTS}/${id}`,
+            approveDocument: (id) => `${API_CONFIG.ENDPOINTS.OP_REIM.APPROVALS}/${id}`,
+            getUsers: () => API_CONFIG.ENDPOINTS.USERS,
+            getReimbursement: (expressivNo) => `${API_CONFIG.ENDPOINTS.REIMBURSEMENTS}/${expressivNo}`,
+            downloadFile: (filePath) => `${API_CONFIG.ENDPOINTS.FILES}/${filePath}`
+        };
+    }
+
+    /**
+     * Validate API response structure
+     */
+    static validateResponse(response, expectedFields = []) {
+        if (!response) {
+            throw new Error('Response is null or undefined');
+        }
+
+        for (const field of expectedFields) {
+            if (!(field in response)) {
+                console.warn(`Missing field in API response: ${field}`);
+            }
+        }
+
+        return response;
+    }
+
+    /**
+     * Handle API errors dengan user-friendly messages
+     */
+    static handleAPIError(error, context = '') {
+        console.error(`API Error in ${context}:`, error);
+
+        let userMessage = error.message;
+
+        // Extract meaningful error messages from common API responses
+        if (error.message.includes('401')) {
+            userMessage = 'Sesi Anda telah berakhir. Silakan login kembali.';
+        } else if (error.message.includes('403')) {
+            userMessage = 'Anda tidak memiliki izin untuk melakukan aksi ini.';
+        } else if (error.message.includes('404')) {
+            userMessage = 'Data tidak ditemukan. Mungkin sudah dihapus atau dipindahkan.';
+        } else if (error.message.includes('500')) {
+            userMessage = 'Terjadi kesalahan server. Tim IT telah diberitahu.';
+        }
+
+        return userMessage;
+    }
+
+    /**
+     * Format API request untuk logging
+     */
+    static formatRequestLog(method, endpoint, data = null) {
+        const log = {
+            timestamp: new Date().toISOString(),
+            method,
+            endpoint,
+            hasData: !!data,
+            dataSize: data ? JSON.stringify(data).length : 0
+        };
+
+        console.log('📋 API Request Log:', log);
+        return log;
+    }
+}
 
 // ===== GLOBAL VARIABLES =====
 let documentId = null;
@@ -40,54 +396,130 @@ class OPReimReceiveState {
 
 const receiveState = new OPReimReceiveState();
 
-// ===== 2. API SERVICE =====
+// ===== 2. API SERVICE - MENGGUNAKAN CENTRALIZED API CLIENT =====
+/**
+ * 🔧 OPReimAPIService - Service untuk semua API calls terkait Outgoing Payment Reimbursement
+ * 
+ * Class ini menggunakan CentralizedAPIClient untuk:
+ * - Konsistensi error handling
+ * - Logging yang uniform
+ * - Timeout management
+ * - Authentication handling otomatis
+ * 
+ * Semua endpoint sudah didefinisikan di API_CONFIG di atas untuk memudahkan maintenance
+ */
 class OPReimAPIService {
+
+    /**
+     * 📋 Fetch detail dokumen outgoing payment reimbursement
+     * @param {string} id - ID dokumen staging outgoing payment
+     * @returns {Promise<Object>} Data detail dokumen
+     */
     static async fetchOPReimDetails(id) {
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${id}`, {
-            method: 'GET'
-        });
-        return await response.json();
+        const endpoint = `${API_CONFIG.ENDPOINTS.OP_REIM.HEADERS}/${id}`;
+        return await CentralizedAPIClient.get(endpoint);
     }
 
+    /**
+     * 👥 Fetch daftar users untuk dropdown approval
+     * @returns {Promise<Object>} Data users dengan format { data: [...] }
+     */
     static async fetchUsers() {
-        const response = await makeAuthenticatedRequest('/api/users', {
-            method: 'GET'
-        });
-        return await response.json();
+        return await CentralizedAPIClient.get(API_CONFIG.ENDPOINTS.USERS);
     }
 
+    /**
+     * 📎 Fetch attachments dokumen
+     * @param {string} id - ID dokumen staging outgoing payment
+     * @returns {Promise<Object>} Data attachments dengan format { data: [...] }
+     */
     static async fetchAttachments(id) {
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/attachments/${id}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        return await response.json();
+        const endpoint = `${API_CONFIG.ENDPOINTS.OP_REIM.ATTACHMENTS}/${id}`;
+        return await CentralizedAPIClient.get(endpoint);
     }
 
+    /**
+     * 💰 Fetch data reimbursement berdasarkan expressivNo
+     * @param {string} expressivNo - Nomor expressiv reimbursement
+     * @returns {Promise<Object>} Data reimbursement terkait
+     */
     static async fetchReimbursementData(expressivNo) {
-        const response = await makeAuthenticatedRequest(`/api/reimbursements/${expressivNo}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        return await response.json();
+        const endpoint = `${API_CONFIG.ENDPOINTS.REIMBURSEMENTS}/${expressivNo}`;
+        return await CentralizedAPIClient.get(endpoint);
     }
 
+    /**
+     * ✅ Approve dokumen (Checked, Acknowledged, Approved)
+     * Menggunakan PUT method dengan content-type application/json
+     * @param {string} id - ID dokumen staging outgoing payment
+     * @param {Object} requestData - Data approval dengan status approval
+     * @returns {Promise<Object>} Response hasil approve
+     */
+    static async approveDocument(id, requestData) {
+        const endpoint = `${API_CONFIG.ENDPOINTS.OP_REIM.APPROVALS}/${id}`;
+        return await CentralizedAPIClient.put(endpoint, requestData);
+    }
+
+    /**
+     * ✅ Receive dokumen (approve untuk diterima)
+     * Menggunakan PUT method dengan content-type application/json (sama seperti approve lainnya)
+     * @param {string} id - ID dokumen staging outgoing payment
+     * @param {Object} requestData - Data approval dengan status "Received"
+     * @returns {Promise<Object>} Response hasil receive
+     */
     static async receiveDocument(id, requestData) {
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/approvals/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json-patch+json' },
-            body: JSON.stringify(requestData)
-        });
-        return await response.json();
+        const endpoint = `${API_CONFIG.ENDPOINTS.OP_REIM.APPROVALS}/${id}`;
+        return await CentralizedAPIClient.put(endpoint, requestData);
     }
 
+    /**
+     * ❌ Reject dokumen
+     * Menggunakan PUT method dengan content-type application/json
+     * @param {string} id - ID dokumen staging outgoing payment
+     * @param {Object} requestData - Data approval dengan status "Rejected" dan rejection remarks
+     * @returns {Promise<Object>} Response hasil reject
+     */
     static async rejectDocument(id, requestData) {
-        const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/approvals/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestData)
+        const endpoint = `${API_CONFIG.ENDPOINTS.OP_REIM.APPROVALS}/${id}`;
+        return await CentralizedAPIClient.put(endpoint, requestData);
+    }
+
+    /**
+     * 📤 Upload file attachment (jika diperlukan untuk future enhancement)
+     * @param {string} id - ID dokumen staging outgoing payment
+     * @param {FormData} formData - Form data berisi file yang akan di-upload
+     * @returns {Promise<Object>} Response hasil upload
+     */
+    static async uploadAttachment(id, formData) {
+        const endpoint = `${API_CONFIG.ENDPOINTS.OP_REIM.ATTACHMENTS}/${id}`;
+        return await CentralizedAPIClient.post(endpoint, formData, {
+            timeout: API_CONFIG.TIMEOUTS.UPLOAD
         });
-        return await response.json();
+    }
+
+    /**
+     * 🗑️ Delete attachment (jika diperlukan untuk future enhancement)
+     * @param {string} id - ID dokumen staging outgoing payment
+     * @param {string} attachmentId - ID attachment yang akan dihapus
+     * @returns {Promise<Object>} Response hasil delete
+     */
+    static async deleteAttachment(id, attachmentId) {
+        const endpoint = `${API_CONFIG.ENDPOINTS.OP_REIM.ATTACHMENTS}/${id}/${attachmentId}`;
+        return await CentralizedAPIClient.delete(endpoint);
+    }
+
+    /**
+     * 📁 Fetch file content untuk download/view
+     * @param {string} filePath - Path file yang akan diambil
+     * @param {Object} options - Options tambahan untuk request
+     * @returns {Promise<Object>} Content file atau URL redirect
+     */
+    static async fetchFileContent(filePath, options = {}) {
+        const endpoint = `${API_CONFIG.ENDPOINTS.FILES}/${filePath}`;
+        return await CentralizedAPIClient.get(endpoint, null, {
+            timeout: API_CONFIG.TIMEOUTS.DOWNLOAD,
+            ...options
+        });
     }
 }
 
@@ -581,6 +1013,17 @@ class UserManager {
 
 // ===== 8. PERMISSION MANAGER =====
 class PermissionManager {
+    /**
+     * 🔐 STATUS MAPPING - Urutan workflow approval
+     */
+    static APPROVAL_WORKFLOW = [
+        { status: 'Prepared', nextStatus: 'Checked', roleField: 'preparedBy', dateField: 'preparedDate', nameField: 'preparedByName' },
+        { status: 'Checked', nextStatus: 'Acknowledged', roleField: 'checkedBy', dateField: 'checkedDate', nameField: 'checkedByName' },
+        { status: 'Acknowledged', nextStatus: 'Approved', roleField: 'acknowledgedBy', dateField: 'acknowledgedDate', nameField: 'acknowledgedByName' },
+        { status: 'Approved', nextStatus: 'Received', roleField: 'approvedBy', dateField: 'approvedDate', nameField: 'approvedByName' },
+        { status: 'Received', nextStatus: null, roleField: 'receivedBy', dateField: 'receivedDate', nameField: 'receivedByName' }
+    ];
+
     static checkUserPermissions(data) {
         const currentUser = getCurrentUser();
         if (!currentUser) {
@@ -595,145 +1038,444 @@ class PermissionManager {
             return;
         }
 
-        const currentStatus = this.determineCurrentStatus(approval);
-        const isAssignedReceiver = approval.receivedBy === currentUser.userId;
-        const isReadyForReceiving = currentStatus === 'Approved' && !approval.receivedDate;
-        const isAboveReceiver = this.isUserAboveReceiver(currentUser.userId, approval.receivedBy);
+        // Gunakan sistem approval workflow yang baru
+        const permissionResult = this.checkUserPermissionsNew(data);
+        this.updateUIBasedOnPermissions(permissionResult, approval);
+    }
 
-        console.log('Permission check:', {
-            currentStatus,
-            currentUserId: currentUser.userId,
-            receivedById: approval.receivedBy,
-            isAssignedReceiver,
-            isReadyForReceiving,
-            isAboveReceiver
+    /**
+     * 👤 Mengecek user permissions berdasarkan status dokumen dan role user
+     */
+    static checkUserPermissionsNew(data) {
+        const currentUser = getCurrentUser();
+        if (!currentUser || !data || !data.approval) {
+            console.warn('⚠️ Missing user or approval data');
+            return { canApprove: false, currentStep: null, userRole: null };
+        }
+
+        const approval = data.approval;
+        const currentUserId = currentUser.userId;
+
+        // Cek status dokumen saat ini
+        const currentStep = this.determineCurrentApprovalStep(approval);
+        const userRole = this.getUserRoleInApproval(currentUserId, approval);
+        const canApprove = this.canUserApproveAtCurrentStep(currentUserId, approval, currentStep);
+
+        console.log('🔍 Permission Check:', {
+            currentUserId,
+            currentStep: currentStep?.status,
+            userRole,
+            canApprove,
+            approval
         });
 
-        this.hideButtonsBasedOnStatus(data);
-        this.updateButtonStates(currentStatus, isAssignedReceiver, isReadyForReceiving, approval);
+        return {
+            canApprove,
+            currentStep,
+            userRole,
+            nextAction: currentStep?.nextStatus,
+            isAssignedToCurrentStep: this.isUserAssignedToStep(currentUserId, approval, currentStep)
+        };
+    }
+
+    /**
+     * 📋 Menentukan step approval saat ini berdasarkan status dokumen
+     * Current step = step terakhir yang sudah diselesaikan
+     * Next action = action yang bisa dilakukan berikutnya
+     */
+    static determineCurrentApprovalStep(approval) {
+        if (!approval) return this.APPROVAL_WORKFLOW[0]; // Default: Prepared
+
+        // Jika sudah rejected, return rejected status
+        if (approval.rejectedDate) {
+            return { status: 'Rejected', nextStatus: null, roleField: null, dateField: 'rejectedDate' };
+        }
+
+        // Cari step terakhir yang sudah diselesaikan (memiliki tanggal)
+        let lastCompletedStep = null;
+
+        for (let i = 0; i < this.APPROVAL_WORKFLOW.length; i++) {
+            const step = this.APPROVAL_WORKFLOW[i];
+            if (approval[step.dateField]) {
+                lastCompletedStep = step;
+            } else {
+                // Berhenti pada step pertama yang belum diselesaikan
+                break;
+            }
+        }
+
+        // Jika ada step yang sudah diselesaikan, return step tersebut
+        if (lastCompletedStep) {
+            return lastCompletedStep;
+        }
+
+        // Jika tidak ada step yang diselesaikan, return step pertama
+        return this.APPROVAL_WORKFLOW[0];
+    }
+
+    /**
+     * 👥 Menentukan role user dalam approval workflow
+     */
+    static getUserRoleInApproval(userId, approval) {
+        const roles = [];
+
+        this.APPROVAL_WORKFLOW.forEach(step => {
+            if (approval[step.roleField] === userId) {
+                roles.push(step.status);
+            }
+        });
+
+        return roles.length > 0 ? roles : ['None'];
+    }
+
+    /**
+     * ✅ Mengecek apakah user bisa approve di step saat ini
+     * UPDATED STRICT LOGIC: 
+     * 1. Jika dokumen sudah Received/Rejected → Semua user view-only (kecuali ReceivedBy bisa print)
+     * 2. Jika user sudah melakukan action mereka → View-only
+     * 3. Status dokumen harus tepat sebelum role user
+     * 4. User harus assigned untuk step berikutnya
+     */
+    static canUserApproveAtCurrentStep(userId, approval, currentStep) {
+        if (!currentStep) return false;
+
+        // Jika dokumen sudah received atau rejected, tidak ada yang bisa approve
+        if (currentStep.status === 'Received' || currentStep.status === 'Rejected') {
+            return false;
+        }
+
+        // Cari next step berdasarkan current step
+        const nextStep = this.getNextStep(currentStep);
+        if (!nextStep) return false; // Tidak ada step berikutnya
+
+        // Cek apakah user adalah assigned approver untuk next step
+        const isAssigned = approval[nextStep.roleField] === userId;
+        if (!isAssigned) return false;
+
+        // Cek apakah user sudah melakukan action mereka (sudah ada tanggal)
+        const hasUserAlreadyActed = approval[nextStep.dateField];
+        if (hasUserAlreadyActed) {
+            console.log(`❌ Permission denied: User ${nextStep.status} has already completed their action`);
+            return false;
+        }
+
+        // STRICT PERMISSION CHECK berdasarkan role dan status
+        const currentStatus = currentStep.status;
+        const userRole = nextStep.status; // Role yang akan user lakukan
+
+        // Mapping yang ketat: User hanya bisa approve jika status tepat sebelum role mereka
+        const allowedTransitions = {
+            'Checked': 'Prepared',      // CheckedBy hanya bisa approve jika status = Prepared
+            'Acknowledged': 'Checked',  // AcknowledgedBy hanya bisa approve jika status = Checked
+            'Approved': 'Acknowledged', // ApprovedBy hanya bisa approve jika status = Acknowledged
+            'Received': 'Approved'      // ReceivedBy hanya bisa approve jika status = Approved
+        };
+
+        const requiredStatus = allowedTransitions[userRole];
+        if (currentStatus !== requiredStatus) {
+            console.log(`❌ Permission denied: User role ${userRole} requires status ${requiredStatus}, but current status is ${currentStatus}`);
+            return false;
+        }
+
+        // Special case untuk CheckedBy: bisa approve meskipun Prepared belum fully completed
+        if (userRole === 'Checked') {
+            return true; // CheckedBy bisa approve prepared document
+        }
+
+        // Untuk role lainnya: current step harus sudah diselesaikan
+        const isCurrentStepCompleted = approval[currentStep.dateField];
+
+        console.log(`🔍 Updated Strict Permission Check:`, {
+            userRole,
+            currentStatus,
+            requiredStatus,
+            isAssigned,
+            hasUserAlreadyActed,
+            isCurrentStepCompleted,
+            canApprove: isAssigned && !hasUserAlreadyActed && isCurrentStepCompleted
+        });
+
+        return isAssigned && !hasUserAlreadyActed && isCurrentStepCompleted;
+    }
+
+    /**
+     * 🔄 Mendapatkan step berikutnya berdasarkan current step
+     */
+    static getNextStep(currentStep) {
+        if (!currentStep || !currentStep.nextStatus) return null;
+
+        return this.APPROVAL_WORKFLOW.find(step => step.status === currentStep.nextStatus);
+    }
+
+    /**
+     * 🔗 Mengecek apakah user assigned ke step berikutnya
+     */
+    static isUserAssignedToStep(userId, approval, currentStep) {
+        const nextStep = this.getNextStep(currentStep);
+        if (!nextStep || !nextStep.roleField) return false;
+        return approval[nextStep.roleField] === userId;
+    }
+
+    /**
+     * ⏮️ Mengecek apakah step sebelumnya sudah diselesaikan
+     */
+    static isPreviousStepCompleted(approval, currentStep) {
+        const currentIndex = this.APPROVAL_WORKFLOW.findIndex(step => step.status === currentStep.status);
+
+        // Jika ini adalah step pertama (Prepared), selalu return true
+        if (currentIndex <= 0) return true;
+
+        // Cek apakah step sebelumnya sudah diselesaikan
+        const previousStep = this.APPROVAL_WORKFLOW[currentIndex - 1];
+        return approval[previousStep.dateField] !== null && approval[previousStep.dateField] !== undefined;
+    }
+
+    /**
+     * 🎯 Update UI berdasarkan permission check
+     */
+    static updateUIBasedOnPermissions(permissionResult, approval) {
+        const { canApprove, currentStep, userRole, nextAction, isAssignedToCurrentStep } = permissionResult;
+
+        // Update page title berdasarkan role dan status
+        this.updatePageTitle(currentStep, userRole, isAssignedToCurrentStep);
+
+        // Update button states
+        this.updateButtonStates(canApprove, currentStep, nextAction);
+
+        // Update status display
+        this.updateStatusDisplay(currentStep, approval);
+
+        // Update form readonly state
+        this.updateFormState(canApprove);
+    }
+
+    /**
+     * 📝 Update judul halaman berdasarkan role dan status (UPDATED STRICT LOGIC)
+     */
+    static updatePageTitle(currentStep, userRole, isAssignedToCurrentStep) {
+        const titleElement = document.querySelector('h2');
+        if (!titleElement) return;
+
+        const currentUser = getCurrentUser();
+        if (!currentUser || !receiveState.opReimData?.approval) {
+            titleElement.textContent = 'Outgoing Payment Reimbursement';
+            return;
+        }
+
+        const approval = receiveState.opReimData.approval;
+        const currentUserId = currentUser.userId;
+        const currentStatus = currentStep ? currentStep.status : 'Prepared';
+
+        // Cek role user dalam approval workflow
+        const userRoles = [];
+        if (approval.preparedBy === currentUserId) userRoles.push('PreparedBy');
+        if (approval.checkedBy === currentUserId) userRoles.push('CheckedBy');
+        if (approval.acknowledgedBy === currentUserId) userRoles.push('AcknowledgedBy');
+        if (approval.approvedBy === currentUserId) userRoles.push('ApprovedBy');
+        if (approval.receivedBy === currentUserId) userRoles.push('ReceivedBy');
+
+        let newTitle = 'Outgoing Payment Reimbursement';
+
+        // UPDATED TITLE LOGIC berdasarkan status dokumen dan role user
+        if (currentStatus === 'Received') {
+            // Dokumen sudah complete - semua user view mode
+            newTitle = 'Detail Outgoing Payment Reimbursement (Completed)';
+        } else if (currentStatus === 'Rejected') {
+            // Dokumen sudah rejected - semua user view mode
+            newTitle = 'Detail Outgoing Payment Reimbursement (Rejected)';
+        } else if (userRoles.includes('PreparedBy') && currentStatus === 'Prepared') {
+            // PreparedBy melihat dokumen yang masih Prepared = Detail mode
+            newTitle = 'Detail Outgoing Payment Reimbursement';
+        } else if (userRoles.includes('CheckedBy') && currentStatus === 'Prepared' && !approval.checkedDate) {
+            // CheckedBy melihat dokumen Prepared dan belum check = bisa Check
+            newTitle = 'Check Outgoing Payment Reimbursement';
+        } else if (userRoles.includes('AcknowledgedBy') && currentStatus === 'Checked' && !approval.acknowledgedDate) {
+            // AcknowledgedBy melihat dokumen Checked dan belum acknowledge = bisa Acknowledge
+            newTitle = 'Acknowledge Outgoing Payment Reimbursement';
+        } else if (userRoles.includes('ApprovedBy') && currentStatus === 'Acknowledged' && !approval.approvedDate) {
+            // ApprovedBy melihat dokumen Acknowledged dan belum approve = bisa Approve
+            newTitle = 'Approve Outgoing Payment Reimbursement';
+        } else if (userRoles.includes('ReceivedBy') && currentStatus === 'Approved' && !approval.receivedDate) {
+            // ReceivedBy melihat dokumen Approved dan belum receive = bisa Receive
+            newTitle = 'Receive Outgoing Payment Reimbursement';
+        } else {
+            // Untuk semua kondisi lainnya = View mode
+            newTitle = `Detail Outgoing Payment Reimbursement (${currentStatus})`;
+        }
+
+        titleElement.textContent = newTitle;
+        console.log('📝 Updated Page title:', newTitle, {
+            userRoles,
+            currentStatus,
+            userId: currentUserId,
+            completedActions: {
+                checked: !!approval.checkedDate,
+                acknowledged: !!approval.acknowledgedDate,
+                approved: !!approval.approvedDate,
+                received: !!approval.receivedDate
+            }
+        });
+    }
+
+    /**
+     * 🔘 Update status tombol berdasarkan permission (UPDATED STRICT LOGIC)
+     */
+    static updateButtonStates(canApprove, currentStep, nextAction) {
+        const receiveButton = document.getElementById('receiveButton');
+        const rejectButton = document.getElementById('rejectButton');
+        const printButton = document.getElementById('printButton');
+
+        if (!receiveButton || !rejectButton) return;
+
+        const currentUser = getCurrentUser();
+        if (!currentUser || !receiveState.opReimData?.approval) {
+            this.hideAllButtons(receiveButton, rejectButton);
+            this.hidePrintButton(printButton);
+            return;
+        }
+
+        const approval = receiveState.opReimData.approval;
+        const currentUserId = currentUser.userId;
+        const currentStatus = currentStep ? currentStep.status : 'Prepared';
+
+        // UPDATED BUTTON LOGIC berdasarkan status dokumen dan user role
+
+        // 1. Jika dokumen sudah Received atau Rejected = semua action buttons hidden
+        if (currentStatus === 'Received' || currentStatus === 'Rejected') {
+            this.hideAllButtons(receiveButton, rejectButton);
+
+            // Print button hanya untuk ReceivedBy jika dokumen completed
+            if (currentStatus === 'Received' && approval.receivedBy === currentUserId) {
+                this.showPrintButton(printButton);
+                console.log('🖨️ Print button enabled - ReceivedBy viewing completed document');
+            } else {
+                this.hidePrintButton(printButton);
+            }
+
+            console.log('📝 Action buttons hidden - Document completed/rejected');
+            return;
+        }
+
+        // 2. Cek apakah user adalah PreparedBy yang melihat dokumen Prepared
+        const isPreparedByViewingPrepared = (approval.preparedBy === currentUserId && currentStatus === 'Prepared');
+        if (isPreparedByViewingPrepared) {
+            this.hideAllButtons(receiveButton, rejectButton);
+            this.hidePrintButton(printButton);
+            console.log('📝 Buttons hidden - PreparedBy viewing Prepared document');
+            return;
+        }
+
+        // 3. Cek apakah user sudah melakukan action mereka
+        const hasUserAlreadyActed = this.hasUserCompletedTheirAction(currentUserId, approval);
+        if (hasUserAlreadyActed) {
+            this.hideAllButtons(receiveButton, rejectButton);
+            this.hidePrintButton(printButton);
+            console.log('📝 Buttons hidden - User has already completed their action');
+            return;
+        }
+
+        // 4. User bisa melakukan action
+        if (canApprove && nextAction) {
+            // User bisa approve - update button text dan enable
+            receiveButton.textContent = nextAction;
+            receiveButton.disabled = false;
+            receiveButton.style.display = 'inline-block';
+            receiveButton.className = receiveButton.className.replace('bg-gray-400', 'bg-green-600').replace('opacity-50', '').replace('cursor-not-allowed', '');
+
+            rejectButton.disabled = false;
+            rejectButton.style.display = 'inline-block';
+            rejectButton.className = rejectButton.className.replace('bg-gray-400', 'bg-red-400').replace('opacity-50', '').replace('cursor-not-allowed', '');
+
+            this.hidePrintButton(printButton); // Hide print saat masih bisa approve
+
+            console.log(`✅ Action buttons enabled - Action: ${nextAction}`);
+        } else {
+            // User tidak bisa approve - disable buttons
+            receiveButton.textContent = 'Not Authorized';
+            receiveButton.disabled = true;
+            receiveButton.style.display = 'inline-block';
+            receiveButton.className = receiveButton.className.replace('bg-green-600', 'bg-gray-400') + ' opacity-50 cursor-not-allowed';
+
+            rejectButton.disabled = true;
+            rejectButton.style.display = 'inline-block';
+            rejectButton.className = rejectButton.className.replace('bg-red-400', 'bg-gray-400') + ' opacity-50 cursor-not-allowed';
+
+            this.hidePrintButton(printButton);
+
+            console.log('❌ Action buttons disabled - No permission');
+        }
+    }
+
+    /**
+     * 🔍 Helper: Cek apakah user sudah melakukan action mereka
+     */
+    static hasUserCompletedTheirAction(userId, approval) {
+        // Cek setiap role dan apakah user sudah melakukan action tersebut
+        if (approval.checkedBy === userId && approval.checkedDate) return true;
+        if (approval.acknowledgedBy === userId && approval.acknowledgedDate) return true;
+        if (approval.approvedBy === userId && approval.approvedDate) return true;
+        if (approval.receivedBy === userId && approval.receivedDate) return true;
+
+        return false;
+    }
+
+    /**
+     * 🙈 Helper method untuk hide semua action buttons
+     */
+    static hideAllButtons(receiveButton, rejectButton) {
+        if (receiveButton) {
+            receiveButton.style.display = 'none';
+        }
+        if (rejectButton) {
+            rejectButton.style.display = 'none';
+        }
+    }
+
+    /**
+     * �️ Helper method untuk show print button
+     */
+    static showPrintButton(printButton) {
+        if (printButton) {
+            printButton.style.display = 'inline-block';
+            printButton.disabled = false;
+            printButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    /**
+     * 🙈 Helper method untuk hide print button
+     */
+    static hidePrintButton(printButton) {
+        if (printButton) {
+            printButton.style.display = 'none';
+        }
+    }
+
+    /**
+     * 📊 Update tampilan status
+     */
+    static updateStatusDisplay(currentStep, approval) {
+        const statusSelect = document.getElementById('status');
+        if (!statusSelect) return;
+
+        if (currentStep) {
+            statusSelect.value = currentStep.status;
+            console.log(`📊 Status display updated: ${currentStep.status}`);
+        }
+    }
+
+    /**
+     * 📝 Update state form (readonly/editable)
+     */
+    static updateFormState(canApprove) {
+        // Semua field tetap readonly kecuali yang spesifik diizinkan untuk edit
+        // Untuk saat ini, semua field tetap readonly
+        console.log(`📝 Form state: ${canApprove ? 'Can approve' : 'Read-only'}`);
     }
 
     static determineCurrentStatus(approval) {
-        if (approval.receivedDate) return 'Received';
-        if (approval.approvedDate) return 'Approved';
-        if (approval.acknowledgedDate) return 'Acknowledged';
-        if (approval.checkedDate) return 'Checked';
-        if (approval.rejectedDate) return 'Rejected';
-        return 'Prepared';
-    }
-
-    static updateButtonStates(currentStatus, isAssignedReceiver, isReadyForReceiving, approval) {
-        const receiveButton = document.querySelector('button[onclick="receiveOPReim()"]') || document.getElementById('receiveButton');
-        const rejectButton = document.querySelector('button[onclick="rejectOPReim()"]') || document.getElementById('rejectButton');
-        const printButton = document.querySelector('button[onclick="printOPReim()"]') || document.getElementById('printButton');
-
-        if (currentStatus === 'Approved' && isAssignedReceiver) {
-            this.enableButtons(receiveButton, rejectButton);
-            // Show print button when approved
-            if (printButton) {
-                printButton.style.display = 'inline-block';
-                printButton.disabled = false;
-                printButton.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-            UIUtils.showInfo('Ready for Receiving', 'You can now receive this document');
-        } else if (currentStatus === 'Approved' && !isAssignedReceiver) {
-            this.disableButtons(receiveButton, rejectButton);
-            // Show print button even if not assigned receiver when approved
-            if (printButton) {
-                printButton.style.display = 'inline-block';
-                printButton.disabled = false;
-                printButton.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-            const receiverName = UserManager.getUserNameById(approval.receivedBy);
-            UIUtils.showWarning('Document Pending', `Only ${receiverName} can receive this document`);
-        } else if (currentStatus === 'Received') {
-            this.disableButtons(receiveButton, rejectButton);
-            // Show print button when received
-            if (printButton) {
-                printButton.style.display = 'inline-block';
-                printButton.disabled = false;
-                printButton.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-            UIUtils.showInfo('Document Status', 'This document has been received');
-        } else if (currentStatus !== 'Approved') {
-            this.disableButtons(receiveButton, rejectButton);
-            // Hide print button for other statuses
-            if (printButton) {
-                printButton.style.display = 'none';
-            }
-            const statusMessage = this.getStatusMessage(currentStatus);
-            UIUtils.showInfo('Document Status', statusMessage);
-        }
-    }
-
-    static enableButtons(receiveButton, rejectButton) {
-        if (receiveButton) {
-            receiveButton.disabled = false;
-            receiveButton.classList.remove('opacity-50', 'cursor-not-allowed');
-        }
-        if (rejectButton) {
-            rejectButton.disabled = false;
-            rejectButton.classList.remove('opacity-50', 'cursor-not-allowed');
-        }
-    }
-
-    static disableButtons(receiveButton, rejectButton) {
-        if (receiveButton) {
-            receiveButton.disabled = true;
-            receiveButton.classList.add('opacity-50', 'cursor-not-allowed');
-        }
-        if (rejectButton) {
-            rejectButton.disabled = true;
-            rejectButton.classList.add('opacity-50', 'cursor-not-allowed');
-        }
-    }
-
-    static hideButtonsBasedOnStatus(data) {
-        const receiveButton = document.querySelector('button[onclick="receiveOPReim()"]') || document.getElementById('receiveButton');
-        const rejectButton = document.querySelector('button[onclick="rejectOPReim()"]') || document.getElementById('rejectButton');
-        const printButton = document.querySelector('button[onclick="printOPReim()"]') || document.getElementById('printButton');
-
-        const currentStatus = this.determineCurrentStatus(data.approval || {});
-
-        // Show buttons only when ready for receiving (Approved status)
-        // Hide action buttons when document is already processed
-        if (currentStatus === 'Received' || currentStatus === 'Rejected') {
-            if (receiveButton) receiveButton.style.display = 'none';
-            if (rejectButton) rejectButton.style.display = 'none';
-            // Show print button when received
-            if (printButton && currentStatus === 'Received') {
-                printButton.style.display = 'inline-block';
-            } else if (printButton) {
-                printButton.style.display = 'none';
-            }
-        } else {
-            if (receiveButton) receiveButton.style.display = 'inline-block';
-            if (rejectButton) rejectButton.style.display = 'inline-block';
-            // Show print button when approved, hide for other statuses
-            if (printButton) {
-                if (currentStatus === 'Approved') {
-                    printButton.style.display = 'inline-block';
-                } else {
-                    printButton.style.display = 'none';
-                }
-            }
-        }
-    }
-
-    static isUserAboveReceiver(currentUserId, receiverId) {
-        return currentUserId !== receiverId;
-    }
-
-    static getStatusMessage(status) {
-        const messages = {
-            'Prepared': 'This document is prepared and waiting to be checked.',
-            'Checked': 'This document has been checked and is waiting to be acknowledged.',
-            'Acknowledged': 'This document has been acknowledged and is waiting to be approved.',
-            'Approved': 'This document has been approved and is ready for receiving.',
-            'Received': 'This document has been received.',
-            'Rejected': 'This document has been rejected.'
-        };
-        return messages[status] || 'This document is not ready for receiving.';
+        const step = this.determineCurrentApprovalStep(approval);
+        return step ? step.status : 'Prepared';
     }
 
     static validateDocumentStatus() {
@@ -750,20 +1492,10 @@ class PermissionManager {
         }
 
         const approval = receiveState.opReimData.approval;
+        const permissionResult = this.checkUserPermissionsNew(receiveState.opReimData);
 
-        if (approval.receivedDate) {
-            UIUtils.showInfo('Already Received', 'This document has already been received.');
-            return false;
-        }
-
-        if (approval.receivedBy !== currentUser.userId) {
-            const receiverName = UserManager.getUserNameById(approval.receivedBy);
-            UIUtils.showWarning('Not Authorized', `Only ${receiverName} can receive this document.`);
-            return false;
-        }
-
-        if (!approval.approvedDate) {
-            UIUtils.showWarning('Not Ready', 'This document must be approved before it can be received.');
+        if (!permissionResult.canApprove) {
+            UIUtils.showWarning('Not Authorized', 'You are not authorized to perform this action.');
             return false;
         }
 
@@ -1235,7 +1967,7 @@ class PrintManager {
 
         const viewBtn = document.createElement('button');
         viewBtn.className = 'text-green-600 hover:text-green-800 text-sm px-2 py-1 rounded border border-green-300 hover:bg-green-50';
-        viewBtn.innerHTML = 'View';
+        view
         viewBtn.onclick = () => this.viewPrintVoucher(printUrl);
 
         const openBtn = document.createElement('button');
@@ -1483,13 +2215,25 @@ class DataManager {
 
 // ===== 12. ACTION MANAGER =====
 class ActionManager {
-    static async receiveOPReim() {
+    /**
+     * 🎯 Universal approval action - dapat menangani Checked, Acknowledged, Approved, atau Received
+     */
+    static async performApprovalAction() {
         try {
             if (!PermissionManager.validateDocumentStatus()) {
                 return;
             }
 
-            UIUtils.showLoading('Processing...', 'Submitting receipt confirmation');
+            // Get current permission state to determine action
+            const permissionResult = PermissionManager.checkUserPermissionsNew(receiveState.opReimData);
+
+            if (!permissionResult.canApprove || !permissionResult.nextAction) {
+                UIUtils.showWarning('Not Authorized', 'You are not authorized to perform this action.');
+                return;
+            }
+
+            const actionType = permissionResult.nextAction;
+            UIUtils.showLoading('Processing...', `Submitting ${actionType.toLowerCase()} confirmation`);
 
             const userId = UserManager.getCurrentUserId();
             if (!userId) {
@@ -1500,44 +2244,72 @@ class ActionManager {
             const currentUserName = currentUser ? currentUser.username : 'Unknown User';
             const currentDate = new Date().toISOString();
 
-            const requestData = this.buildReceiveRequestData(userId, currentUserName, currentDate);
+            const requestData = this.buildApprovalRequestData(userId, currentUserName, currentDate, actionType);
 
-            const response = await OPReimAPIService.receiveDocument(receiveState.documentId, requestData);
+            // Use PUT method for all approval actions (consistent with API design)
+            const response = await OPReimAPIService.approveDocument(receiveState.documentId, requestData);
 
-            console.log('✅ Document received successfully:', response);
+            console.log(`✅ Document ${actionType.toLowerCase()} successfully:`, response);
 
-            UIUtils.showSuccess('Success', 'Document has been received successfully')
-                .then(() => DataManager.goToMenu());
+            UIUtils.showSuccess('Success', `Document has been ${actionType.toLowerCase()} successfully`)
+                .then(() => {
+                    // Go back to previous page if possible, else fallback to menu
+                    if (window.history.length > 1) {
+                        window.history.back();
+                    } else {
+                        window.location.href = '/pages/menuOPReim.html';
+                    }
+                });
 
         } catch (error) {
-            console.error('❌ Error receiving document:', error);
-            UIUtils.showError('Error', `Failed to receive document: ${error.message}`);
+            console.error(`❌ Error performing ${permissionResult?.nextAction || 'approval'} action:`, error);
+
+            // Enhanced error message with more details
+            let errorMessage = error.message;
+            if (error.message.includes('400')) {
+                errorMessage = 'Invalid request data. Please check the document status and try again.';
+            } else if (error.message.includes('401')) {
+                errorMessage = 'Authentication failed. Please login again.';
+            } else if (error.message.includes('403')) {
+                errorMessage = 'You do not have permission to perform this action.';
+            } else if (error.message.includes('404')) {
+                errorMessage = 'Document not found. Please refresh the page and try again.';
+            } else if (error.message.includes('422')) {
+                errorMessage = 'Validation error. Please check the document data and try again.';
+            } else if (error.message.includes('500')) {
+                errorMessage = 'Server error. Please try again later or contact support.';
+            }
+
+            UIUtils.showError('Error', `Failed to ${permissionResult?.nextAction?.toLowerCase() || 'process'} document: ${errorMessage}`);
         }
     }
 
-    static buildReceiveRequestData(userId, currentUserName, currentDate) {
+    /**
+     * 📝 Build approval request data based on action type
+     */
+    static buildApprovalRequestData(userId, currentUserName, currentDate, actionType) {
         const approval = receiveState.opReimData.approval || {};
 
-        return {
+        // Base request data structure
+        const requestData = {
             stagingID: receiveState.documentId,
             createdAt: approval.createdAt || currentDate,
             updatedAt: currentDate,
-            approvalStatus: "Received",
             preparedBy: approval.preparedBy || null,
             checkedBy: approval.checkedBy || null,
             acknowledgedBy: approval.acknowledgedBy || null,
             approvedBy: approval.approvedBy || null,
-            receivedBy: userId,
+            receivedBy: approval.receivedBy || null,
             preparedDate: approval.preparedDate || null,
             preparedByName: approval.preparedByName || null,
             checkedByName: approval.checkedByName || null,
             acknowledgedByName: approval.acknowledgedByName || null,
             approvedByName: approval.approvedByName || null,
-            receivedByName: currentUserName,
+            receivedByName: approval.receivedByName || null,
             checkedDate: approval.checkedDate || null,
             acknowledgedDate: approval.acknowledgedDate || null,
             approvedDate: approval.approvedDate || null,
-            receivedDate: currentDate,
+            receivedDate: approval.receivedDate || null,
             rejectedDate: approval.rejectedDate || null,
             rejectionRemarks: approval.rejectionRemarks || "",
             revisionNumber: approval.revisionNumber || null,
@@ -1545,6 +2317,43 @@ class ActionManager {
             revisionRemarks: approval.revisionRemarks || null,
             header: {}
         };
+
+        // Update fields based on action type
+        switch (actionType) {
+            case 'Checked':
+                requestData.approvalStatus = 'Checked';
+                requestData.checkedDate = currentDate;
+                requestData.checkedByName = currentUserName;
+                break;
+
+            case 'Acknowledged':
+                requestData.approvalStatus = 'Acknowledged';
+                requestData.acknowledgedDate = currentDate;
+                requestData.acknowledgedByName = currentUserName;
+                break;
+
+            case 'Approved':
+                requestData.approvalStatus = 'Approved';
+                requestData.approvedDate = currentDate;
+                requestData.approvedByName = currentUserName;
+                break;
+
+            case 'Received':
+                requestData.approvalStatus = 'Received';
+                requestData.receivedDate = currentDate;
+                requestData.receivedByName = currentUserName;
+                break;
+
+            default:
+                throw new Error(`Unsupported action type: ${actionType}`);
+        }
+
+        return requestData;
+    }
+
+    // Legacy method - keep for backward compatibility but redirect to new method
+    static async receiveOPReim() {
+        return this.performApprovalAction();
     }
 
     static async rejectOPReim() {
@@ -1684,7 +2493,12 @@ class ActionManager {
 
 // Navigate back to the menu
 function goToMenuReceiveOPReim() {
-    window.location.href = '../../../dashboard/dashboardReceive/OPReim/menuOPReimReceive.html';
+    // Go back to previous page if possible, else fallback to menu
+    if (window.history.length > 1) {
+        window.history.back();
+    } else {
+        window.location.href = '/pages/menuOPReim.html';
+    }
 }
 
 // Initialize page on load
@@ -1772,9 +2586,14 @@ async function handleReimbursementData(result) {
     }
 }
 
-// Receive the outgoing payment reimbursement
+// Receive/Approve the outgoing payment reimbursement
 async function receiveOPReim() {
-    await ActionManager.receiveOPReim();
+    await ActionManager.performApprovalAction();
+}
+
+// Legacy function alias for backward compatibility
+async function approveOPReim() {
+    await ActionManager.performApprovalAction();
 }
 
 // Reject the outgoing payment reimbursement
@@ -1955,9 +2774,8 @@ function viewAttachment(attachmentId) {
 }
 
 // Legacy function for displaying print out reimbursement
-function displayPrintOutReimbursement(data) {
-    PrintManager.displayPrintOutReimbursement(data);
-}
+// Legacy function for displaying print out reimbursement (kept for backward compatibility)
+// Now uses the more detailed implementation below
 
 // ===== 14. INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -2084,9 +2902,242 @@ function printOPReim() {
     }
 }
 
+// ===== 15. PRINT REIMBURSEMENT FUNCTIONS =====
+// Function to display Print Out Reimbursement document
+function displayPrintOutReimbursement(reimbursementData) {
+    console.log('🔍 DEBUG: displayPrintOutReimbursement called with:', reimbursementData);
+    console.log('📍 Current location:', window.location);
+
+    const container = document.getElementById('printOutReimbursementList');
+    if (!container) {
+        console.warn('Print Out Reimbursement container not found: printOutReimbursementList');
+        return;
+    }
+
+    // Clear existing content
+    container.innerHTML = '';
+
+    // Get reimbursement ID from various possible sources
+    let reimbursementId = null;
+
+    // Try to get from URL parameters first
+    const urlParams = new URLSearchParams(window.location.search);
+    reimbursementId = urlParams.get('reimbursement-id') || urlParams.get('id');
+    console.log('🆔 Reimbursement ID from URL:', reimbursementId);
+
+    // If not in URL, try to get from form data
+    if (!reimbursementId) {
+        const counterRefField = document.getElementById('CounterRef');
+        if (counterRefField && counterRefField.value) {
+            reimbursementId = counterRefField.value;
+        }
+    }
+
+    // If still not found, try to get from reimbursement data
+    if (!reimbursementId && reimbursementData && reimbursementData.id) {
+        reimbursementId = reimbursementData.id;
+    }
+
+    if (!reimbursementId) {
+        container.innerHTML = '<p class="text-gray-500 text-sm">Reimbursement ID not found</p>';
+        return;
+    }
+
+    // Build the Print Receive Reimbursement URL with parameters - DYNAMIC PATH RESOLUTION
+    const baseUrl = window.location.origin;
+    const currentPath = window.location.pathname;
+    const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/'));
+
+    // Construct relative path to GetPrintReim.html (same directory)
+    const printReimUrl = `${baseUrl}${currentDir}/GetPrintReim.html?reim-id=${reimbursementId}`;
+
+    console.log('🔗 Dynamic Print URL constructed:', printReimUrl);
+    console.log('📂 Current directory:', currentDir);
+    console.log('🏠 Base URL:', baseUrl);
+
+    // Add additional parameters if available from reimbursement data
+    let fullUrl = printReimUrl;
+    if (reimbursementData) {
+        const params = new URLSearchParams();
+
+        // Add all available parameters from reimbursement data
+        if (reimbursementData.cardName) params.append('payTo', encodeURIComponent(reimbursementData.cardName));
+        if (reimbursementData.counterRef) params.append('voucherNo', encodeURIComponent(reimbursementData.counterRef));
+        if (reimbursementData.docDate) params.append('submissionDate', reimbursementData.docDate);
+        if (reimbursementData.requesterName) params.append('preparedBy', encodeURIComponent(reimbursementData.requesterName));
+        if (reimbursementData.totalAmountDue) params.append('totalAmount', reimbursementData.totalAmountDue);
+        if (reimbursementData.docCurr) params.append('currency', reimbursementData.docCurr);
+        if (reimbursementData.comments) params.append('remarks', encodeURIComponent(reimbursementData.comments));
+
+        // Add details if available
+        if (reimbursementData.lines && reimbursementData.lines.length > 0) {
+            const details = reimbursementData.lines.map(line => ({
+                category: line.category || '',
+                accountName: line.acctName || '',
+                glAccount: line.acctCode || '',
+                description: line.descrip || '',
+                amount: line.sumApplied || 0
+            }));
+            params.append('details', encodeURIComponent(JSON.stringify(details)));
+        }
+
+        // If we have parameters, append them to the URL
+        if (params.toString()) {
+            fullUrl += '&' + params.toString();
+        }
+    }
+
+    // Create the document item
+    const documentItem = document.createElement('div');
+    documentItem.className = 'flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200';
+
+    const fileInfo = document.createElement('div');
+    fileInfo.className = 'flex items-center space-x-2';
+
+    // Use a document icon for the print reimbursement
+    fileInfo.innerHTML = `
+        <span class="text-lg">📄</span>
+        <div>
+            <div class="font-medium text-sm text-blue-800">Print Receive Reimbursement</div>
+            <div class="text-xs text-gray-500">Document • PDF</div>
+            <div class="text-xs text-blue-600">Reimbursement ID: ${reimbursementId}</div>
+        </div>
+    `;
+
+    const actions = document.createElement('div');
+    actions.className = 'flex space-x-2';
+
+    // View button
+    const viewBtn = document.createElement('button');
+    viewBtn.className = 'text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded border border-blue-300 hover:bg-blue-50';
+    viewBtn.innerHTML = 'View';
+    viewBtn.onclick = () => viewPrintReimbursement(fullUrl);
+
+    // Open in new tab button
+    const openBtn = document.createElement('button');
+    openBtn.className = 'text-green-600 hover:text-green-800 text-sm px-2 py-1 rounded border border-green-300 hover:bg-green-50';
+    openBtn.innerHTML = 'Open';
+    openBtn.onclick = () => openPrintReimbursement(fullUrl);
+
+    actions.appendChild(viewBtn);
+    actions.appendChild(openBtn);
+
+    documentItem.appendChild(fileInfo);
+    documentItem.appendChild(actions);
+    container.appendChild(documentItem);
+}
+
+// Function to view Print Reimbursement document
+async function viewPrintReimbursement(url) {
+    try {
+        console.log('🚀 Attempting to open Print URL:', url);
+
+        // Add cache busting parameter to ensure fresh load
+        const cacheBustUrl = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+        console.log('🔄 Cache-busted URL:', cacheBustUrl);
+
+        // Show loading indicator
+        Swal.fire({
+            title: 'Loading...',
+            text: 'Loading Print Receive Reimbursement document...',
+            icon: 'info',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Open the URL in a new window/tab with cache-busted URL
+        const newWindow = window.open(cacheBustUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+
+        if (newWindow) {
+            // Close loading indicator
+            Swal.close();
+
+            // Show success message
+            Swal.fire({
+                title: 'Success',
+                text: 'Print Receive Reimbursement document opened in new window',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+        } else {
+            throw new Error('Failed to open document window');
+        }
+
+    } catch (error) {
+        console.error('Error viewing Print Reimbursement document:', error);
+
+        Swal.fire({
+            title: 'Error',
+            text: `Failed to open Print Receive Reimbursement document: ${error.message}`,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Function to open Print Reimbursement document in new tab
+function openPrintReimbursement(url) {
+    try {
+        console.log('🔗 Opening Print URL directly:', url);
+
+        // Add cache busting parameter
+        const cacheBustUrl = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+        console.log('🔄 Cache-busted direct URL:', cacheBustUrl);
+
+        window.open(cacheBustUrl, '_blank');
+    } catch (error) {
+        console.error('Error opening Print Reimbursement document:', error);
+
+        Swal.fire({
+            title: 'Error',
+            text: `Failed to open Print Receive Reimbursement document: ${error.message}`,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// ===== 16. EVENT LISTENERS SETUP =====
+function setupEventListeners() {
+    // Back button
+    const backButton = document.getElementById('backButton');
+    if (backButton) {
+        backButton.addEventListener('click', goToMenuReceiveOPReim);
+    }
+
+    // Reject button
+    const rejectButton = document.getElementById('rejectButton');
+    if (rejectButton) {
+        rejectButton.addEventListener('click', rejectOPReim);
+    }
+
+    // Receive button - now supports all approval actions
+    const receiveButton = document.getElementById('receiveButton');
+    if (receiveButton) {
+        receiveButton.addEventListener('click', receiveOPReim);
+    }
+
+    // Print button
+    const printButton = document.getElementById('printButton');
+    if (printButton) {
+        printButton.addEventListener('click', printOPReim);
+    }
+}
+
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Initializing Receive Outgoing Payment Reimbursement System...');
+
+    // Setup event listeners
+    setupEventListeners();
+
+    // Initialize data manager
     DataManager.initialize();
+
     console.log('✅ Receive Outgoing Payment Reimbursement System initialized successfully');
 });
