@@ -463,6 +463,7 @@ async function saveDocument(isSubmit = false) {
         formData.append('RequesterId', requesterId);
         formData.append('Purpose', document.getElementById("Purpose").value);
         formData.append('DepartmentId', document.getElementById("department").value);
+        formData.append('Currency', document.getElementById("Currency").value);
         formData.append('SubmissionDate', document.getElementById("SubmissionDate").value);
         formData.append('TransactionType', document.getElementById("TransactionType").value);
         formData.append('Remarks', document.getElementById("Remarks").value);
@@ -710,6 +711,7 @@ function validateHeaderFields() {
         { id: 'requesterSearch', label: 'Requester' },
         { id: 'RequesterId', label: 'Requester (hidden)' }, // hidden select, must have value
         { id: 'department', label: 'Department' },
+        { id: 'Currency', label: 'Currency' },
         { id: 'TransactionType', label: 'Transaction Type' },
         { id: 'Purpose', label: 'Purpose' },
         { id: 'SubmissionDate', label: 'Submission Date' },
@@ -1088,6 +1090,59 @@ const mockUsers = [
     { id: 9, name: "Indah Permata", department: "Sales" },
     { id: 10, name: "Joko Widodo", department: "Management" }
 ];
+
+async function fetchCurrencies() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/MasterCurrency/search`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch currencies');
+        }
+        
+        const result = await response.json();
+        
+        if (result.status && result.data) {
+            populateCurrencySelect(result.data);
+        } else {
+            console.error('Failed to fetch currencies:', result.message);
+            // Fallback to default currencies
+            populateCurrencySelect([
+                { code: 'IDR', description: 'Indonesian Rupiah' },
+                { code: 'USD', description: 'US Dollar' },
+                { code: 'SGD', description: 'Singapore Dollar' }
+            ]);
+        }
+    } catch (error) {
+        console.error('Error fetching currencies:', error);
+        // Fallback to default currencies
+        populateCurrencySelect([
+            { code: 'IDR', description: 'Indonesian Rupiah' },
+            { code: 'USD', description: 'US Dollar' },
+            { code: 'SGD', description: 'Singapore Dollar' }
+        ]);
+    }
+}
+
+function populateCurrencySelect(currencies) {
+    const currencySelect = document.getElementById('Currency');
+    if (!currencySelect) return;
+
+    // Clear existing options except the first (placeholder)
+    currencySelect.innerHTML = '<option value="" disabled selected>Select Currency</option>';
+
+    currencies.forEach(currency => {
+        const option = document.createElement('option');
+        option.value = currency.code;
+        option.textContent = currency.code;
+        currencySelect.appendChild(option);
+    });
+
+    // Set default to IDR if available
+    const idrOption = currencySelect.querySelector('option[value="IDR"]');
+    if (idrOption) {
+        idrOption.selected = true;
+        currencySelect.value = 'IDR';
+    }
+}
 
 // Fungsi untuk memfilter dan menampilkan dropdown pengguna
 function filterUsers(fieldId) {
@@ -1792,6 +1847,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     fetchUsers();
     fetchTransactionType();
     fetchBusinessPartners();
+    fetchCurrencies();
     
     // Initialize total amount calculation
     calculateTotalAmount();

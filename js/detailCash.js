@@ -637,6 +637,7 @@ function fetchDropdownOptions(approvalData = null) {
     fetchUsers(approvalData);
     fetchTransactionType();
     fetchBusinessPartners();
+    fetchCurrencies(approvalData);
     
     // Initialize superior employee dropdowns
     const transactionType = document.getElementById("TransactionType")?.value || 'NRM';
@@ -855,8 +856,6 @@ function populateUserSelects(users, caData = null) {
     if (window.currentValues && window.currentValues.employeeId) {
         const employee = users.find(user => user.id === window.currentValues.employeeId);
         if (employee) {
-            const employeeIdentifier = employee.kansaiEmployeeId || employee.username || employee.id;
-            document.getElementById('employeeId').value = employeeIdentifier;
             document.getElementById('employeeName').value = employee.fullName;
         }
     } else {
@@ -865,10 +864,8 @@ function populateUserSelects(users, caData = null) {
         if (loggedInUserId && window.employees) {
             const loggedInEmployee = window.employees.find(emp => emp.id === loggedInUserId);
             if (loggedInEmployee) {
-                const employeeNIK = loggedInEmployee.kansaiEmployeeId || '';
                 const employeeName = loggedInEmployee.fullName || '';
 
-                document.getElementById("employeeId").value = employeeNIK;
                 document.getElementById("employeeName").value = employeeName;
             }
         }
@@ -1361,6 +1358,8 @@ async function populateCashAdvanceDetails(data) {
             toggleClosedByVisibility();
         }
     }
+
+
     
     // Handle PayTo business partner - map from API response
     if (data.payToCode && data.payToName) {
@@ -2225,6 +2224,9 @@ async function updateCashAdvance(isSubmit = false) {
 
         //pay toCode
         formData.append('PayToCode', document.getElementById('paidTo').value);
+        
+        // Add currency field
+        formData.append('Currency', document.getElementById('Currency').value);
 
         // Approvals with special handling for preparedBy
         const preparedByValue = document.getElementById('Approval.PreparedById')?.value;
@@ -2976,6 +2978,7 @@ function fetchDropdownOptions(caData = null) {
     fetchUsers(caData);
     fetchTransactionType();
     fetchBusinessPartners();
+    fetchCurrencies(caData);
 }
 
 // --- Superior Employee Functions ---
@@ -3428,6 +3431,70 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
         
     } catch (error) {
         console.error("Error fetching superior employees:", error);
+    }
+}
+
+async function fetchCurrencies(caData = null) {
+    try {
+        const response = await fetch(`${BASE_URL}/api/MasterCurrency/search`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch currencies');
+        }
+        
+        const result = await response.json();
+        
+        if (result.status && result.data) {
+            populateCurrencySelect(result.data, caData);
+        } else {
+            console.error('Failed to fetch currencies:', result.message);
+            // Fallback to default currencies
+            populateCurrencySelect([
+                { code: 'IDR', description: 'Indonesian Rupiah' },
+                { code: 'USD', description: 'US Dollar' },
+                { code: 'SGD', description: 'Singapore Dollar' }
+            ], caData);
+        }
+    } catch (error) {
+        console.error('Error fetching currencies:', error);
+        // Fallback to default currencies
+        populateCurrencySelect([
+            { code: 'IDR', description: 'Indonesian Rupiah' },
+            { code: 'USD', description: 'US Dollar' },
+            { code: 'SGD', description: 'Singapore Dollar' }
+        ], caData);
+    }
+}
+
+function populateCurrencySelect(currencies, caData = null) {
+    const currencySelect = document.getElementById('Currency');
+    if (!currencySelect) return;
+
+    // The value to set should come from caData first, then window.currentValues
+    let valueToSet = null;
+    if (caData && caData.currency) {
+        valueToSet = caData.currency;
+    } else if (window.currentValues && window.currentValues.currency) {
+        valueToSet = window.currentValues.currency;
+    }
+
+    console.log('Attempting to set currency to:', valueToSet);
+
+    // Clear existing options except the first (placeholder)
+    currencySelect.innerHTML = '<option value="" disabled selected>Select Currency</option>';
+
+    currencies.forEach(currency => {
+        const option = document.createElement('option');
+        option.value = currency.code;
+        option.textContent = currency.code;
+        currencySelect.appendChild(option);
+    });
+
+    // Set the value from caData or window.currentValues
+    if (valueToSet) {
+        currencySelect.value = valueToSet;
+        console.log(`Set currency select to: ${valueToSet}`);
+    } else {
+        console.log('No currency value to set from caData or window.currentValues.');
     }
 }
 

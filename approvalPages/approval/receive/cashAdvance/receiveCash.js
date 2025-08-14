@@ -31,6 +31,7 @@ function populateCADetails(data) {
     document.getElementById('paidTo').value = data.payToName || data.payToBusinessPartnerName || '';
     document.getElementById('postingDate').value = data.submissionDate ? data.submissionDate.split('T')[0] : '';
     document.getElementById('remarks').value = data.remarks || '';
+    document.getElementById('Currency').value = data.currency || '';
     const transactionTypeSelect = document.getElementById('typeTransaction');
     if (data.transactionType && transactionTypeSelect) {
         transactionTypeSelect.innerHTML = '';

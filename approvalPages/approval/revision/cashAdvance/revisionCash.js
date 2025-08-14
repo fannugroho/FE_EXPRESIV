@@ -1131,6 +1131,7 @@ async function populateForm(data) {
     
     document.getElementById("employeeNIK").value = data.employeeNIK || '';
     document.getElementById("employeeName").value = data.employeeName || '';
+    document.getElementById('Currency').value = data.currency || '';
     
     if (data.departmentId) {
         document.getElementById("departmentId").value = data.departmentId;
@@ -1199,6 +1200,9 @@ async function populateForm(data) {
         // Setup event listeners for approval fields after superior employees are loaded
         setupApprovalFieldEventListeners();
     }
+    
+    // Fetch currencies and populate dropdown
+    await fetchCurrencies(cashAdvanceData);
     
     // Apply tab-based behavior after form is populated
     applyTabBasedBehavior();
@@ -1620,6 +1624,7 @@ async function updateCashAdvance(isSubmit = false) {
     formData.append('PayToCode', document.getElementById("paidTo").value);
     formData.append('DepartmentId', document.getElementById("departmentId").value);
     formData.append('TransactionType', document.getElementById("transactionType").value);
+    formData.append('Currency', document.getElementById("Currency").value);
     
     // Add EmployeeNIK which is required by the API
     formData.append('EmployeeNIK', document.getElementById("employeeNIK").value);
@@ -2149,6 +2154,70 @@ function hideSubmitButton() {
 }
 
 // Function to show submit button
+async function fetchCurrencies(caData = null) {
+    try {
+        const response = await fetch(`${BASE_URL}/api/MasterCurrency/search`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch currencies');
+        }
+        
+        const result = await response.json();
+        
+        if (result.status && result.data) {
+            populateCurrencySelect(result.data, caData);
+        } else {
+            console.error('Failed to fetch currencies:', result.message);
+            // Fallback to default currencies
+            populateCurrencySelect([
+                { code: 'IDR', description: 'Indonesian Rupiah' },
+                { code: 'USD', description: 'US Dollar' },
+                { code: 'SGD', description: 'Singapore Dollar' }
+            ], caData);
+        }
+    } catch (error) {
+        console.error('Error fetching currencies:', error);
+        // Fallback to default currencies
+        populateCurrencySelect([
+            { code: 'IDR', description: 'Indonesian Rupiah' },
+            { code: 'USD', description: 'US Dollar' },
+            { code: 'SGD', description: 'Singapore Dollar' }
+        ], caData);
+    }
+}
+
+function populateCurrencySelect(currencies, caData = null) {
+    const currencySelect = document.getElementById('Currency');
+    if (!currencySelect) return;
+
+    // The value to set should come from caData first, then window.currentValues
+    let valueToSet = null;
+    if (caData && caData.currency) {
+        valueToSet = caData.currency;
+    } else if (window.currentValues && window.currentValues.currency) {
+        valueToSet = window.currentValues.currency;
+    }
+
+    console.log('Attempting to set currency to:', valueToSet);
+
+    // Clear existing options except the first (placeholder)
+    currencySelect.innerHTML = '<option value="" disabled selected>Select Currency</option>';
+
+    currencies.forEach(currency => {
+        const option = document.createElement('option');
+        option.value = currency.code;
+        option.textContent = currency.code;
+        currencySelect.appendChild(option);
+    });
+
+    // Set the value from caData or window.currentValues
+    if (valueToSet) {
+        currencySelect.value = valueToSet;
+        console.log(`Set currency select to: ${valueToSet}`);
+    } else {
+        console.log('No currency value to set from caData or window.currentValues.');
+    }
+}
+
 function showSubmitButton() {
     const submitButton = document.querySelector('button[onclick="submitRevision()"]');
     if (submitButton) {
