@@ -715,8 +715,8 @@ function populateInvoiceData(invoice) {
                     for (let i = 0; i < doValues.length; i += 3) {
                         const row = doValues.slice(i, i + 3);
                         const isLastRow = i + 3 >= doValues.length;
-                        const separator = isLastRow ? '.' : ',';
-                        rows.push(`<div class="data-item"><strong>DO No.</strong> : ${row.join(', ')}${separator}</div>`);
+                        const separator = isLastRow ? '.' : ';';
+                        rows.push(`<div class="data-item"><strong>DO No.</strong> : ${row.join('; ')}${separator}</div>`);
                     }
                     doNumbersElement.innerHTML = rows.join('');
                 } else {

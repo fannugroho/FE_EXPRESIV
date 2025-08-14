@@ -226,10 +226,10 @@ function formatMultipleValuesTwoPerLine(values, prefix) {
 
         if (row.length === 2) {
             // Two items in the row
-            const separator = isLastRow ? '.' : ',';
+            const separator = isLastRow ? '.' : ';';
             const item1 = row[0].length > 20 ? wrapText(row[0], 20) : row[0];
             const item2 = row[1].length > 20 ? wrapText(row[1], 20) : row[1];
-            rows.push(`<div class="data-item">${item1}, ${item2}${separator}</div>`);
+            rows.push(`<div class="data-item">${item1}; ${item2}${separator}</div>`);
         } else {
             // Single item in the last row
             const singleItem = row[0].length > 20 ? wrapText(row[0], 20) : row[0];
