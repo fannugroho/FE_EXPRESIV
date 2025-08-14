@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Purchase Request Form</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../../../../js/auth.js"></script>
     <script src="printPR.js"></script>
     <style>
         body {
@@ -13,7 +15,7 @@
             margin: 0;
             padding: 0;
         }
-        
+
         .container {
             width: 21cm;
             min-height: 29.7cm;
@@ -21,7 +23,7 @@
             margin: 0 auto;
             background: white;
         }
-        
+
         .header {
             display: flex;
             justify-content: space-between;
@@ -29,81 +31,84 @@
             border-bottom: 1px solid #000;
             padding-bottom: 10px;
         }
-        
+
         .logo-section {
             width: 30%;
         }
-        
+
         .form-info {
             width: 45%;
             text-align: right;
             font-size: 12px;
 
         }
-        
+
         .logo {
             width: 150px;
             margin-bottom: 5px;
         }
-        
+
         .company-name {
             font-weight: bold;
             font-size: 12px;
         }
-        
+
         .title {
             text-align: center;
             font-weight: bold;
             font-size: 14px;
             margin: 20px 0;
         }
-        
+
         .section {
             display: grid;
             justify-content: space-between;
             margin-bottom: 15px;
-            padding-bottom:15px;
+            padding-bottom: 15px;
         }
-        
+
         .form-row {
             display: flex;
             margin-bottom: 5px;
         }
-        
+
         .form-label {
             width: 200px;
             font-weight: bold;
             font-size: 12px;
         }
-        
+
         .form-field {
             width: 200%;
             flex: 1;
             font-size: 12px;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
         }
-        
-        table, th, td {
+
+        table,
+        th,
+        td {
             border: 1px solid #000;
             font-size: 11px;
         }
-        
-        th, td {
+
+        th,
+        td {
             padding: 8px;
             text-align: left;
         }
-        
+
         .signature-section {
             display: flex;
             justify-content: space-between;
             margin-top: 20px;
         }
-        
+
         .signature-box {
             width: 23%;
             text-align: center;
@@ -111,25 +116,25 @@
             font-weight: bold;
             font-size: 12px;
         }
-        
+
         .signature-title {
             font-weight: bold;
             margin-bottom: 10px;
             font-size: 12px;
         }
-        
+
         .signature-line {
             width: 100%;
             border-bottom: 1px solid #000;
             margin-bottom: 5px;
         }
-        
+
         .footer-note {
             font-size: 12px;
             margin-top: 20px;
             font-style: italic;
         }
-        
+
         /* Approval date styling */
         .approval-date {
             font-size: 12px;
@@ -137,7 +142,7 @@
             margin-top: 5px;
             font-style: italic;
         }
-        
+
         /* Approval stamp styling */
         .approval-stamp {
             position: relative;
@@ -148,7 +153,7 @@
             justify-content: center;
             margin-bottom: 5px;
         }
-        
+
         .approval-stamp-text {
             color: #0056b3;
             font-weight: bold;
@@ -164,18 +169,18 @@
             left: 50%;
             transform: translate(-50%, -50%);
         }
-        
+
         @media print {
             .no-print {
                 display: none;
             }
-            
+
             .container {
                 width: 100%;
                 padding: 0;
                 box-shadow: none;
             }
-            
+
             @page {
                 size: A4 portrait;
                 margin: 0.5cm;
@@ -183,27 +188,30 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <!-- Print controls - only visible on screen -->
         <div class="no-print mb-4 flex justify-between">
-            <button onclick="window.print();" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            <button onclick="window.print();"
+                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                 Print Document
             </button>
             <button onclick="goBack()" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
                 Back
             </button>
         </div>
-        
+
         <div class="header">
             <div class="logo-section">
-                <img src="../../../../image/Seiho.png" alt="Kansai Paint Logo" class="logo" onerror="this.src='data:image/png;base64,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'">
+                <img src="../../../../image/Seiho.png" alt="Kansai Paint Logo" class="logo"
+                    onerror="this.src='data:image/png;base64,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'">
                 <div class="company-name">PT. KANSAI PAINT INDONESIA</div>
             </div>
-                <div class="form-info">
+            <div class="form-info">
                 <div class="form-row">
-                        <div class="form-label">Doc No:</div>
-                        <div class="form-field">QF-PR-021</div>
+                    <div class="form-label">Doc No:</div>
+                    <div class="form-field">QF-PR-021</div>
                 </div>
 
                 <div class="form-row">
@@ -216,11 +224,11 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="title">
             PURCHASE REQUEST (PR) FORM
         </div>
-        
+
         <div class="section">
             <div class="form-row">
                 <div class="form-label">Date of Issued :</div>
@@ -243,7 +251,7 @@
                 <div class="form-field" id="remarks"></div>
             </div>
         </div>
-        
+
         <table>
             <thead>
                 <tr>
@@ -254,7 +262,7 @@
                     <th style="width: 20%">Purpose</th>
                     <th style="width: 10%">Quantity</th>
                     <th style="width: 5%">UoM</th>
-                <!--    <th style="width: 10%">Est. Unit Price</th>
+                    <!--    <th style="width: 10%">Est. Unit Price</th>
                 -->
                     <th style="width: 10%">Requested ETA/KPIN</th>
                 </tr>
@@ -263,16 +271,17 @@
                 <!-- Items will be populated by JavaScript -->
             </tbody>
         </table>
-        
+
         <div style="margin-top: 20px; font-size: 10px;">
             <p>*Attached pictures which relevant for purchase of fixed asset or equipments is a must</p>
-            <p>*The Unit of Measurement (UoM) in this document is displayed according to the application settings and may differ from the UoM recorded in the SAP Business One system.</p>
+            <p>*The Unit of Measurement (UoM) in this document is displayed according to the application settings and
+                may differ from the UoM recorded in the SAP Business One system.</p>
         </div>
-        
+
         <!-- Approval Stamp Received by Purchasing Dept-->
         <div class="signature-section">
             <!-- Approval Stamp Received by Purchasing Dept-->
-            
+
             <div class="signature-box">
                 <div class="signature-title">Requested By:</div>
                 <div class="approval-stamp">
@@ -281,7 +290,7 @@
                 <div id="requestedBy"></div>
                 <div id="preparedDate" class="approval-date" style="font-size: 10px;"></div>
             </div>
-            
+
             <div class="signature-box">
                 <div class="signature-title">Checked By:</div>
                 <div class="approval-stamp">
@@ -290,7 +299,7 @@
                 <div id="checkedBy"></div>
                 <div id="checkedDate" class="approval-date" style="font-size: 10px;"></div>
             </div>
-            
+
             <div class="signature-box">
                 <div class="signature-title">Acknowledged By:</div>
                 <div class="approval-stamp">
@@ -299,7 +308,7 @@
                 <div id="acknowledgedBy"></div>
                 <div id="acknowledgedDate" class="approval-date" style="font-size: 10px;"></div>
             </div>
-            
+
             <div class="signature-box">
                 <div class="signature-title">Approved By:</div>
                 <div class="approval-stamp">
@@ -312,19 +321,20 @@
             <div class="signature-box">
                 <div class="signature-title">Received by:</div>
                 <div class="approval-stamp">
-                <!--    <span class="approval-stamp-text">Received</span>
+                    <!--    <span class="approval-stamp-text">Received</span>
                 -->
-            </div>
-            
+                </div>
+
                 <div id="receivedBy"></div>
                 <div id="receivedDate" class="approval-date" style="font-size: 10px; display: none;"></div>
             </div>
         </div>
-        
+
         <div style="margin-top: 20px; font-size: 10px;">
             <p>Copy distribution: (1) & (2) Purchasing dept., (3) The Requester dept.</p>
         </div>
     </div>
-    
+
 </body>
-</html> 
+
+</html>

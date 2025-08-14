@@ -360,6 +360,7 @@ function populateFormData(data) {
     document.getElementById('U_BSI_UDF2').value = data.u_bsi_udf2 || '';
     document.getElementById('account').value = data.account || '';
     document.getElementById('acctName').value = data.acctName || '';
+    document.getElementById('U_BSI_UDF3').value = data.U_BSI_UDF3 || data.u_bsi_udf3 || '';
     document.getElementById('comments').value = data.comments || '';
 
     // Populate status from approval summary
@@ -483,7 +484,7 @@ function populateInvoiceServiceDetails(details, invoiceData) {
         // Add empty row message
         const emptyRow = document.createElement('tr');
         emptyRow.innerHTML = `
-                    <td colspan="11" class="p-4 text-center text-gray-500">
+                    <td colspan="10" class="p-4 text-center text-gray-500">
                         No invoice service details found
                     </td>
                 `;
@@ -498,32 +499,29 @@ function populateInvoiceServiceDetails(details, invoiceData) {
             <td class="p-2 border no-column">
                 <input type="text" class="line-num-input no-input p-2 border rounded bg-gray-100" value="${detail.lineNum || index + 1}" disabled autocomplete="off" />
             </td>
-            <td class="p-2 border service-code-column">
-                <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.itemCode || ''}" disabled autocomplete="off" />
-            </td>
             <td class="p-2 border description-column">
-                <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto" maxlength="100" disabled autocomplete="off">${detail.dscription || ''}</textarea>
+                <textarea class="w-full item-description bg-gray-100 resize-none overflow-auto" maxlength="100" disabled autocomplete="off">${detail.description || detail.dscription || ''}</textarea>
             </td>
             <td class="p-2 border account-code-column">
                 <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.acctCode || ''}" disabled autocomplete="off" />
             </td>
             <td class="p-2 border account-name-column">
-                <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.accName || ''}" disabled autocomplete="off" />
+                <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.freetxt || detail.accName || ''}" disabled autocomplete="off" />
             </td>
             <td class="p-2 border tax-code-column">
                 <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.vatGroup || detail.vatgroup || ''}" disabled autocomplete="off" />
             </td>
             <td class="p-2 border wtax-liable-column">
-                <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.wtLiable || ''}" disabled autocomplete="off" />
+                <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.WTLiable || detail.wtLiable || detail.wtliable || ''}" disabled autocomplete="off" />
             </td>
             <td class="p-2 border uom-column">
                 <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.unitMsr || ''}" disabled autocomplete="off" />
             </td>
             <td class="p-2 border quantity-column">
-                <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.unitMsr || ''}" disabled autocomplete="off" />
+                <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.InvQty || detail.invQty || ''}" disabled autocomplete="off" />
             </td>
             <td class="p-2 border price-column">
-                <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.u_bsi_salprice || ''}" disabled autocomplete="off" />
+                <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.U_BSI_SalPrice || detail.u_bsi_salprice || ''}" disabled autocomplete="off" />
             </td>
             <td class="p-2 border line-total-column">
                 <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.lineTotal || '0.00'}" disabled autocomplete="off" />

@@ -344,6 +344,9 @@ function populatePRDetails(data) {
         requesterId: data.requesterId,
         departmentId: data.departmentId
     };
+
+	// Try to apply department selection immediately (in case options already loaded)
+	applyDepartmentSelection();
     
     // Handle item details (only item type is supported now)
     if (data.itemDetails) {
@@ -1040,6 +1043,8 @@ async function fetchDepartments() {
             throw new Error('Network response was not ok: ' + response.statusText);
         }
         const data = await response.json();
+        // Keep departments list globally for selection helpers
+        window.departmentsList = Array.isArray(data.data) ? data.data : [];
         populateDepartmentSelect(data.data);
     } catch (error) {
         console.error('Error fetching departments:', error);
@@ -1093,6 +1098,52 @@ function populateDepartmentSelect(departments) {
         option.textContent = department.name;
         departmentSelect.appendChild(option);
     });
+
+	// After options are populated, apply selection based on current values
+	applyDepartmentSelection();
+}
+
+// Helper: apply department selection using stored currentValues (id preferred, then name)
+function applyDepartmentSelection() {
+	const departmentSelect = document.getElementById('department');
+	if (!departmentSelect || !window.currentValues) return;
+
+	const { departmentId, department } = window.currentValues;
+	if (departmentId) {
+		departmentSelect.value = departmentId;
+	}
+	// If not found by id, try by name
+	if (!departmentSelect.value && department) {
+		setDepartmentSelectionFromName(department);
+	}
+}
+
+// Helper: select department option by department name, using window.departmentsList when available
+function setDepartmentSelectionFromName(departmentName) {
+	const departmentSelect = document.getElementById('department');
+	if (!departmentSelect || !departmentName) return;
+
+	const list = Array.isArray(window.departmentsList) ? window.departmentsList : [];
+	const match = list.find(d => d && d.name === departmentName);
+	if (match) {
+		departmentSelect.value = match.id;
+		return;
+	}
+
+	// Fallback: match by existing option text
+	for (let i = 0; i < departmentSelect.options.length; i++) {
+		if (departmentSelect.options[i].textContent === departmentName) {
+			departmentSelect.selectedIndex = i;
+			return;
+		}
+	}
+
+	// Last resort: create an ad-hoc option to display the name
+	const newOption = document.createElement('option');
+	newOption.value = departmentName;
+	newOption.textContent = departmentName;
+	newOption.selected = true;
+	departmentSelect.appendChild(newOption);
 }
 
 function populateClassificationSelect(classifications) {
@@ -1160,25 +1211,8 @@ function filterRequesters() {
             console.log("Requester selected:", requester);
             
             // Update department
-            const departmentSelect = document.getElementById('department');
-            if (requester.department && departmentSelect) {
-                // Find the department option and select it
-                const departmentOptions = departmentSelect.options;
-                for (let i = 0; i < departmentOptions.length; i++) {
-                    if (departmentOptions[i].textContent === requester.department) {
-                        console.log("Department matches current text");
-                        departmentSelect.selectedIndex = i;
-                        break;
-                    }
-                }
-                // If no matching option found, create and select a new one
-                if (departmentSelect.value === "" || departmentSelect.selectedIndex === 0) {
-                    const newOption = document.createElement('option');
-                    newOption.value = requester.department;
-                    newOption.textContent = requester.department;
-                    newOption.selected = true;
-                    departmentSelect.appendChild(newOption);
-                }
+            if (requester.department) {
+                setDepartmentSelectionFromName(requester.department);
             }
         };
         requesterDropdown.appendChild(option);
@@ -1355,25 +1389,8 @@ function populateUserSelects(users, prData = null) {
                     console.log("Requester selected:", requester);
                     
                     // Update department
-                    const departmentSelect = document.getElementById('department');
-                    if (requester.department && departmentSelect) {
-                        // Find the department option and select it
-                        const departmentOptions = departmentSelect.options;
-                        for (let i = 0; i < departmentOptions.length; i++) {
-                            if (departmentOptions[i].textContent === requester.department) {
-                                console.log("Department matches current text");
-                                departmentSelect.selectedIndex = i;
-                                break;
-                            }
-                        }
-                        // If no matching option found, create and select a new one
-                        if (departmentSelect.value === "" || departmentSelect.selectedIndex === 0) {
-                            const newOption = document.createElement('option');
-                            newOption.value = requester.department;
-                            newOption.textContent = requester.department;
-                            newOption.selected = true;
-                            departmentSelect.appendChild(newOption);
-                        }
+                    if (requester.department) {
+                        setDepartmentSelectionFromName(requester.department);
                     }
                 };
                 requesterDropdown.appendChild(option);

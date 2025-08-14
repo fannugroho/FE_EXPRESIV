@@ -1403,6 +1403,10 @@
                         <h3 class="text-lg font-semibold mb-2">Account Name</h3>
                         <input type="text" id="acctName" placeholder="Account Name"
                             class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+
+                        <h3 class="text-lg font-semibold mb-2">Control Account</h3>
+                        <input type="text" id="U_BSI_UDF3" placeholder="Control Account"
+                            class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                     </div>
                 </div>
             </div>
@@ -1415,15 +1419,14 @@
                         <thead class="bg-purple-100">
                             <tr>
                                 <th class="p-2 no-column">No.</th>
-                                <th class="p-2 service-code-column">Item Code</th>
                                 <th class="p-2 description-column">Description</th>
                                 <th class="p-2 account-code-column">GL Account</th>
                                 <th class="p-2 account-name-column">Account Name</th>
-                                <th class="p-2 tax-code-column">Tax Code</th>
+                                <th class="p-2 tax-code-column">VAT Code</th>
                                 <th class="p-2 wtax-liable-column">Wtax</th>
-                                <th class="p-2 uom-column">UoM</th>
-                                <th class="p-2 quantity-column">Sales Qty</th>
-                                <th class="p-2 price-column">Price Per UoM</th>
+                                <th class="p-2 uom-column">Unit</th>
+                                <th class="p-2 quantity-column">Qty</th>
+                                <th class="p-2 price-column">Price</th>
                                 <th class="p-2 line-total-column">Amount</th>
                             </tr>
                         </thead>
@@ -1483,6 +1486,16 @@
                     <label class="font-semibold text-gray-700">VAT 12% :</label>
                     <div class="flex items-center">
                         <input type="text" id="vatSum"
+                            class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
+                            readonly autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- Withholding Tax -->
+                <div class="mt-4 flex justify-end space-x-2">
+                    <label class="font-semibold text-gray-700">Withholding Tax :</label>
+                    <div class="flex items-center">
+                        <input type="text" id="WTSum"
                             class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
                             readonly autocomplete="off">
                     </div>
