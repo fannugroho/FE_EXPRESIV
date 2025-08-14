@@ -103,7 +103,7 @@ function populateFromApiData(apiData) {
 }
 
 // Main
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', async function () {
     const urlParams = new URLSearchParams(window.location.search);
     const prId = urlParams.get('id') || urlParams.get('prId');
 
@@ -118,9 +118,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     try {
-        const response = await fetch(`https://expressiv-be-sb.idsdev.site/api/pr/item/${encodeURIComponent(prId)}`, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' }
+        const response = await makeAuthenticatedRequest(`/api/pr/item/${encodeURIComponent(prId)}`, {
+            method: 'GET'
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const json = await response.json();
@@ -142,7 +141,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // Auto print after a short delay if desired
-    setTimeout(function() {
+    setTimeout(function () {
         // window.print();
     }, 1000);
 });

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Auth.js Loading</title>
+</head>
+<body>
+    <h1>Test Auth.js Loading</h1>
+    <div id="status"></div>
+    
+    <!-- Load auth.js first -->
+    <script src="../../../../js/auth.js"></script>
+    
+    <!-- Test script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const statusDiv = document.getElementById('status');
+            
+            // Test if auth.js loaded
+            if (typeof BASE_URL !== 'undefined') {
+                statusDiv.innerHTML += `<p>✅ BASE_URL loaded: ${BASE_URL}</p>`;
+            } else {
+                statusDiv.innerHTML += `<p>❌ BASE_URL not loaded</p>`;
+            }
+            
+            if (typeof makeAuthenticatedRequest !== 'undefined') {
+                statusDiv.innerHTML += `<p>✅ makeAuthenticatedRequest loaded</p>`;
+            } else {
+                statusDiv.innerHTML += `<p>❌ makeAuthenticatedRequest not loaded</p>`;
+            }
+            
+            if (window.BASE_URL) {
+                statusDiv.innerHTML += `<p>✅ window.BASE_URL: ${window.BASE_URL}</p>`;
+            } else {
+                statusDiv.innerHTML += `<p>❌ window.BASE_URL not available</p>`;
+            }
+            
+            // Test path resolution
+            statusDiv.innerHTML += `<p>Current path: ${window.location.pathname}</p>`;
+            statusDiv.innerHTML += `<p>Relative path to auth.js: ../../../../js/auth.js</p>`;
+        });
+    </script>
+</body>
+</html>
