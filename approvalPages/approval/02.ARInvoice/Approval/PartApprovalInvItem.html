@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,501 +9,726 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Authentication is enabled -->
     <script src="../../../../js/auth.js"></script>
-    
+
     <!-- Load JavaScript yang sudah ada -->
     <script src="eSigningFunctions.js"></script>
     <script src="PartApprovalinvItem.js"></script>
 
-<style>
-/* Clean Dashboard Form Styling - Optimized untuk performa */
-* {
-    box-sizing: border-box;
-}
+    <style>
+        /* Clean Dashboard Form Styling - Optimized untuk performa */
+        * {
+            box-sizing: border-box;
+        }
 
-body {
-    background-color: #f8fafc;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 14px;
-    line-height: 1.5;
-    margin: 0;
-    padding: 0;
-}
+        body {
+            background-color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 0;
+            padding: 0;
+        }
 
-/* Container yang simple dan clean */
-.main-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-}
+        /* Container yang simple dan clean */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
 
-.content-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
+        .content-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
 
-/* Section styling - minimal dan clean */
-.section-base {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
+        /* Section styling - minimal dan clean */
+        .section-base {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
 
-/* Header simple */
-.header-section {
-    background: #1e40af;
-    color: white;
-    border-radius: 6px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
+        /* Header simple */
+        .header-section {
+            background: #1e40af;
+            color: white;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
 
-.header-section h2 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 600;
-}
+        .header-section h2 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
 
-/* Status badge simple */
-#statusBadge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 500;
-    margin-top: 8px;
-}
+        /* Status badge simple */
+        #statusBadge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 8px;
+        }
 
-/* Button styling - clean dan simple */
-.btn-base {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    border: 1px solid transparent;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.15s ease;
-}
+        /* Button styling - clean dan simple */
+        .btn-base {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            border: 1px solid transparent;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
 
-.btn-base:hover {
-    transform: translateY(-1px);
-}
+        .btn-base:hover {
+            transform: translateY(-1px);
+        }
 
-.btn-base:active {
-    transform: translateY(0);
-}
+        .btn-base:active {
+            transform: translateY(0);
+        }
 
-/* Button variants - simple colors */
-.bg-yellow-500, .btn-back {
-    background-color: #f59e0b;
-    color: white;
-}
+        /* Button variants - simple colors */
+        .bg-yellow-500,
+        .btn-back {
+            background-color: #f59e0b;
+            color: white;
+        }
 
-.bg-yellow-500:hover, .btn-back:hover {
-    background-color: #d97706;
-}
+        .bg-yellow-500:hover,
+        .btn-back:hover {
+            background-color: #d97706;
+        }
 
-.bg-blue-600, .btn-primary {
-    background-color: #2563eb;
-    color: white;
-}
+        .bg-blue-600,
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
 
-.bg-blue-600:hover, .btn-primary:hover {
-    background-color: #1d4ed8;
-}
+        .bg-blue-600:hover,
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
 
-.bg-purple-600 {
-    background-color: #9333ea;
-    color: white;
-}
+        .bg-purple-600 {
+            background-color: #9333ea;
+            color: white;
+        }
 
-.bg-purple-600:hover {
-    background-color: #7c3aed;
-}
+        .bg-purple-600:hover {
+            background-color: #7c3aed;
+        }
 
-.bg-green-600, .btn-success {
-    background-color: #059669;
-    color: white;
-}
+        .bg-green-600,
+        .btn-success {
+            background-color: #059669;
+            color: white;
+        }
 
-.bg-green-600:hover, .btn-success:hover {
-    background-color: #047857;
-}
+        .bg-green-600:hover,
+        .btn-success:hover {
+            background-color: #047857;
+        }
 
-.btn-danger, .bg-red-600 {
-    background-color: #dc2626;
-    color: white;
-}
+        .btn-danger,
+        .bg-red-600 {
+            background-color: #dc2626;
+            color: white;
+        }
 
-.btn-danger:hover, .bg-red-600:hover {
-    background-color: #b91c1c;
-}
+        .btn-danger:hover,
+        .bg-red-600:hover {
+            background-color: #b91c1c;
+        }
 
-.bg-gray-500 {
-    background-color: #6b7280;
-    color: white;
-}
+        .bg-gray-500 {
+            background-color: #6b7280;
+            color: white;
+        }
 
-.bg-gray-500:hover {
-    background-color: #4b5563;
-}
+        .bg-gray-500:hover {
+            background-color: #4b5563;
+        }
 
-/* Form styling - clean dan functional */
-.form-field {
-    margin-bottom: 16px;
-}
+        /* Form styling - clean dan functional */
+        .form-field {
+            margin-bottom: 16px;
+        }
 
-.form-field h3 {
-    margin: 0 0 6px 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: #374151;
-}
+        .form-field h3 {
+            margin: 0 0 6px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+        }
 
-input[type="text"], input[type="date"], input[type="number"], textarea, select {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    background: white;
-    font-size: 14px;
-    transition: border-color 0.15s ease;
-}
+        input[type="text"],
+        input[type="date"],
+        input[type="number"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            background: white;
+            font-size: 14px;
+            transition: border-color 0.15s ease;
+        }
 
-input:focus, textarea:focus, select:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 1px #2563eb;
-}
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 1px #2563eb;
+        }
 
-input:disabled, textarea:disabled, select:disabled {
-    background-color: #f9fafb;
-    color: #6b7280;
-    cursor: not-allowed;
-}
+        input:disabled,
+        textarea:disabled,
+        select:disabled {
+            background-color: #f9fafb;
+            color: #6b7280;
+            cursor: not-allowed;
+        }
 
-/* Grid layout simple */
-.grid {
-    display: grid;
-}
+        /* Grid layout simple */
+        .grid {
+            display: grid;
+        }
 
-.grid-cols-1 {
-    grid-template-columns: 1fr;
-}
+        .grid-cols-1 {
+            grid-template-columns: 1fr;
+        }
 
-.grid-cols-2 {
-    grid-template-columns: 1fr 1fr;
-}
+        .grid-cols-2 {
+            grid-template-columns: 1fr 1fr;
+        }
 
-.gap-4 {
-    gap: 16px;
-}
+        .gap-4 {
+            gap: 16px;
+        }
 
-.gap-6 {
-    gap: 24px;
-}
+        .gap-6 {
+            gap: 24px;
+        }
 
-.gap-8 {
-    gap: 32px;
-}
+        .gap-8 {
+            gap: 32px;
+        }
 
-/* Table styling - clean dan readable */
-.table-container {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    overflow: hidden;
-    margin-top: 16px;
-}
+        /* Table styling - clean dan readable */
+        .table-container {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
 
-#arInvTable {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-}
+        #arInvTable {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
 
-#arInvTable thead {
-    background-color: #f1f5f9;
-}
+        #arInvTable thead {
+            background-color: #f1f5f9;
+        }
 
-#arInvTable th {
-    padding: 12px 8px;
-    text-align: left;
-    font-weight: 600;
-    font-size: 13px;
-    color: #475569;
-    border-bottom: 1px solid #e2e8f0;
-}
+        #arInvTable th {
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            color: #475569;
+            border-bottom: 1px solid #e2e8f0;
+        }
 
-#arInvTable td {
-    padding: 8px;
-    border-bottom: 1px solid #f1f5f9;
-    font-size: 13px;
-}
+        #arInvTable td {
+            padding: 8px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 13px;
+        }
 
-#arInvTable tbody tr:hover {
-    background-color: #f8fafc;
-}
+        #arInvTable tbody tr:hover {
+            background-color: #f8fafc;
+        }
 
-/* Currency input styling */
-.currency-input-idr {
-    text-align: right;
-    font-family: 'Courier New', monospace;
-}
+        /* Currency input styling */
+        .currency-input-idr {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
 
-/* Progress section - simple */
-.approval-step {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px;
-    border-radius: 4px;
-    background: white;
-    border: 1px solid #e2e8f0;
-}
+        /* Progress section - simple */
+        .approval-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            border-radius: 4px;
+            background: white;
+            border: 1px solid #e2e8f0;
+        }
 
-.approval-step.active {
-    background-color: #dbeafe;
-    border-color: #3b82f6;
-}
+        .approval-step.active {
+            background-color: #dbeafe;
+            border-color: #3b82f6;
+        }
 
-.approval-step.completed {
-    background-color: #dcfce7;
-    border-color: #16a34a;
-}
+        .approval-step.completed {
+            background-color: #dcfce7;
+            border-color: #16a34a;
+        }
 
-/* Attachment styling - simple */
-.attachment-container {
-    max-height: 200px;
-    overflow-y: auto;
-    border: 1px solid #e2e8f0;
-    border-radius: 4px;
-    padding: 12px;
-    background-color: #fafafa;
-}
+        /* Attachment styling - simple */
+        .attachment-container {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 12px;
+            background-color: #fafafa;
+        }
 
-.loading-spinner-container {
-    text-align: center;
-    padding: 20px;
-}
+        .loading-spinner-container {
+            text-align: center;
+            padding: 20px;
+        }
 
-.loading-spinner {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 2px solid #f3f4f6;
-    border-top: 2px solid #3b82f6;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
 
-/* E-signing section - simple */
-.esign-upload-area {
-    border: 2px dashed #d1d5db;
-    border-radius: 6px;
-    padding: 40px 20px;
-    text-align: center;
-    background: #fafafa;
-    cursor: pointer;
-    transition: border-color 0.15s ease;
-}
+            100% {
+                transform: rotate(360deg);
+            }
+        }
 
-.esign-upload-area:hover {
-    border-color: #3b82f6;
-    background-color: #f0f9ff;
-}
+        /* E-signing section - simple */
+        .esign-upload-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 6px;
+            padding: 40px 20px;
+            text-align: center;
+            background: #fafafa;
+            cursor: pointer;
+            transition: border-color 0.15s ease;
+        }
 
-.esign-upload-area.dragover {
-    border-color: #1d4ed8;
-    background-color: #dbeafe;
-}
+        .esign-upload-area:hover {
+            border-color: #3b82f6;
+            background-color: #f0f9ff;
+        }
 
-/* Status classes - simple colors */
-.status-prepared { 
-    background-color: #f59e0b;
-    color: white;
-}
+        .esign-upload-area.dragover {
+            border-color: #1d4ed8;
+            background-color: #dbeafe;
+        }
 
-.status-checked { 
-    background-color: #3b82f6;
-    color: white;
-}
+        /* Status classes - simple colors */
+        .status-prepared {
+            background-color: #f59e0b;
+            color: white;
+        }
 
-.status-acknowledged { 
-    background-color: #8b5cf6;
-    color: white;
-}
+        .status-checked {
+            background-color: #3b82f6;
+            color: white;
+        }
 
-.status-approved { 
-    background-color: #10b981;
-    color: white;
-}
+        .status-acknowledged {
+            background-color: #8b5cf6;
+            color: white;
+        }
 
-.status-received { 
-    background-color: #059669;
-    color: white;
-}
+        .status-approved {
+            background-color: #10b981;
+            color: white;
+        }
 
-.status-rejected { 
-    background-color: #ef4444;
-    color: white;
-}
+        .status-received {
+            background-color: #059669;
+            color: white;
+        }
 
-/* Preserve existing compatibility classes */
-.service-only { display: none; }
-.item-only { display: none; }
-.service-mode .service-only { display: table-cell; }
-.item-mode .item-only { display: table-cell; }
-.service-mode .item-only { display: none !important; }
-.item-mode .service-only { display: none !important; }
+        .status-rejected {
+            background-color: #ef4444;
+            color: white;
+        }
 
-/* Utility classes */
-.hidden { display: none !important; }
-.text-center { text-align: center; }
-.text-right { text-align: right; }
-.font-semibold { font-weight: 600; }
-.font-bold { font-weight: 700; }
-.text-sm { font-size: 12px; }
-.text-lg { font-size: 16px; }
-.text-xl { font-size: 18px; }
-.mb-2 { margin-bottom: 8px; }
-.mb-4 { margin-bottom: 16px; }
-.mb-6 { margin-bottom: 24px; }
-.mt-2 { margin-top: 8px; }
-.mt-4 { margin-top: 16px; }
-.mt-6 { margin-top: 24px; }
-.p-2 { padding: 8px; }
-.p-4 { padding: 16px; }
-.p-6 { padding: 24px; }
-.px-3 { padding-left: 12px; padding-right: 12px; }
-.py-1 { padding-top: 4px; padding-bottom: 4px; }
-.px-4 { padding-left: 16px; padding-right: 16px; }
-.py-2 { padding-top: 8px; padding-bottom: 8px; }
-.px-8 { padding-left: 32px; padding-right: 32px; }
-.py-3 { padding-top: 12px; padding-bottom: 12px; }
-.w-full { width: 100%; }
-.w-8 { width: 32px; }
-.h-8 { height: 32px; }
-.w-3 { width: 12px; }
-.h-3 { height: 12px; }
-.w-48 { width: 192px; }
-.w-80 { width: 320px; }
-.rounded { border-radius: 4px; }
-.rounded-full { border-radius: 50%; }
-.border { border: 1px solid #e2e8f0; }
-.bg-white { background-color: white; }
-.bg-gray-100 { background-color: #f3f4f6; }
-.bg-gray-200 { background-color: #e5e7eb; }
-.bg-gray-300 { background-color: #d1d5db; }
-.text-white { color: white; }
-.text-gray-500 { color: #6b7280; }
-.text-gray-600 { color: #4b5563; }
-.text-gray-700 { color: #374151; }
-.text-gray-800 { color: #1f2937; }
-.text-blue-600 { color: #2563eb; }
-.text-red-600 { color: #dc2626; }
-.text-green-600 { color: #059669; }
-.flex { display: flex; }
-.items-center { align-items: center; }
-.justify-center { justify-content: center; }
-.justify-between { justify-content: space-between; }
-.justify-end { justify-content: flex-end; }
-.space-x-2 > * + * { margin-left: 8px; }
-.space-x-3 > * + * { margin-left: 12px; }
-.space-x-4 > * + * { margin-left: 16px; }
-.space-y-4 > * + * { margin-top: 16px; }
-.space-y-6 > * + * { margin-top: 24px; }
-.flex-1 { flex: 1 1 0%; }
-.h-1 { height: 4px; }
-.mx-4 { margin-left: 16px; margin-right: 16px; }
-.inline-block { display: inline-block; }
-.min-h-60 { min-height: 60px; }
+        /* Preserve existing compatibility classes */
+        .service-only {
+            display: none;
+        }
 
-/* Responsive design - simple */
-@media (max-width: 768px) {
-    .main-container {
-        padding: 16px;
-    }
-    
-    .section-base {
-        padding: 16px;
-    }
-    
-    .header-section {
-        padding: 16px;
-        text-align: center;
-    }
-    
-    .grid-cols-2 {
-        grid-template-columns: 1fr;
-    }
-    
-    .flex {
-        flex-direction: column;
-        gap: 12px;
-    }
-    
-    .justify-between {
-        justify-content: center;
-    }
-    
-    .items-center {
-        align-items: stretch;
-    }
-    
-    .btn-base {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .w-48, .w-80 {
-        width: 100%;
-    }
-    
-    #arInvTable {
-        font-size: 12px;
-    }
-    
-    #arInvTable th,
-    #arInvTable td {
-        padding: 6px 4px;
-    }
-    
-    .approval-step {
-        margin-bottom: 8px;
-    }
-}
+        .item-only {
+            display: none;
+        }
 
-/* Custom scrollbar - simple */
-.custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-}
+        .service-mode .service-only {
+            display: table-cell;
+        }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: #f1f5f9;
-}
+        .item-mode .item-only {
+            display: table-cell;
+        }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 3px;
-}
+        .service-mode .item-only {
+            display: none !important;
+        }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-</style>
+        .item-mode .service-only {
+            display: none !important;
+        }
+
+        /* Utility classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .font-semibold {
+            font-weight: 600;
+        }
+
+        .font-bold {
+            font-weight: 700;
+        }
+
+        .text-sm {
+            font-size: 12px;
+        }
+
+        .text-lg {
+            font-size: 16px;
+        }
+
+        .text-xl {
+            font-size: 18px;
+        }
+
+        .mb-2 {
+            margin-bottom: 8px;
+        }
+
+        .mb-4 {
+            margin-bottom: 16px;
+        }
+
+        .mb-6 {
+            margin-bottom: 24px;
+        }
+
+        .mt-2 {
+            margin-top: 8px;
+        }
+
+        .mt-4 {
+            margin-top: 16px;
+        }
+
+        .mt-6 {
+            margin-top: 24px;
+        }
+
+        .p-2 {
+            padding: 8px;
+        }
+
+        .p-4 {
+            padding: 16px;
+        }
+
+        .p-6 {
+            padding: 24px;
+        }
+
+        .px-3 {
+            padding-left: 12px;
+            padding-right: 12px;
+        }
+
+        .py-1 {
+            padding-top: 4px;
+            padding-bottom: 4px;
+        }
+
+        .px-4 {
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+
+        .py-2 {
+            padding-top: 8px;
+            padding-bottom: 8px;
+        }
+
+        .px-8 {
+            padding-left: 32px;
+            padding-right: 32px;
+        }
+
+        .py-3 {
+            padding-top: 12px;
+            padding-bottom: 12px;
+        }
+
+        .w-full {
+            width: 100%;
+        }
+
+        .w-8 {
+            width: 32px;
+        }
+
+        .h-8 {
+            height: 32px;
+        }
+
+        .w-3 {
+            width: 12px;
+        }
+
+        .h-3 {
+            height: 12px;
+        }
+
+        .w-48 {
+            width: 192px;
+        }
+
+        .w-80 {
+            width: 320px;
+        }
+
+        .rounded {
+            border-radius: 4px;
+        }
+
+        .rounded-full {
+            border-radius: 50%;
+        }
+
+        .border {
+            border: 1px solid #e2e8f0;
+        }
+
+        .bg-white {
+            background-color: white;
+        }
+
+        .bg-gray-100 {
+            background-color: #f3f4f6;
+        }
+
+        .bg-gray-200 {
+            background-color: #e5e7eb;
+        }
+
+        .bg-gray-300 {
+            background-color: #d1d5db;
+        }
+
+        .text-white {
+            color: white;
+        }
+
+        .text-gray-500 {
+            color: #6b7280;
+        }
+
+        .text-gray-600 {
+            color: #4b5563;
+        }
+
+        .text-gray-700 {
+            color: #374151;
+        }
+
+        .text-gray-800 {
+            color: #1f2937;
+        }
+
+        .text-blue-600 {
+            color: #2563eb;
+        }
+
+        .text-red-600 {
+            color: #dc2626;
+        }
+
+        .text-green-600 {
+            color: #059669;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .justify-center {
+            justify-content: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .justify-end {
+            justify-content: flex-end;
+        }
+
+        .space-x-2>*+* {
+            margin-left: 8px;
+        }
+
+        .space-x-3>*+* {
+            margin-left: 12px;
+        }
+
+        .space-x-4>*+* {
+            margin-left: 16px;
+        }
+
+        .space-y-4>*+* {
+            margin-top: 16px;
+        }
+
+        .space-y-6>*+* {
+            margin-top: 24px;
+        }
+
+        .flex-1 {
+            flex: 1 1 0%;
+        }
+
+        .h-1 {
+            height: 4px;
+        }
+
+        .mx-4 {
+            margin-left: 16px;
+            margin-right: 16px;
+        }
+
+        .inline-block {
+            display: inline-block;
+        }
+
+        .min-h-60 {
+            min-height: 60px;
+        }
+
+        /* Responsive design - simple */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 16px;
+            }
+
+            .section-base {
+                padding: 16px;
+            }
+
+            .header-section {
+                padding: 16px;
+                text-align: center;
+            }
+
+            .grid-cols-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .flex {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .justify-between {
+                justify-content: center;
+            }
+
+            .items-center {
+                align-items: stretch;
+            }
+
+            .btn-base {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .w-48,
+            .w-80 {
+                width: 100%;
+            }
+
+            #arInvTable {
+                font-size: 12px;
+            }
+
+            #arInvTable th,
+            #arInvTable td {
+                padding: 6px 4px;
+            }
+
+            .approval-step {
+                margin-bottom: 8px;
+            }
+        }
+
+        /* Custom scrollbar - simple */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
 </head>
 
 <body>
@@ -523,46 +749,56 @@ input:disabled, textarea:disabled, select:disabled {
                     <div></div>
                 </div>
             </div>
-            
+
             <!-- Approval Progress Section - Simplified -->
             <div class="section-base" id="approvalProgressSection">
                 <h3 class="text-lg font-semibold mb-4">Approval Progress</h3>
                 <div class="flex items-center justify-between">
                     <div class="approval-step" id="step-prepared">
-                        <div class="w-8 h-8 bg-yellow-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">1</div>
+                        <div
+                            class="w-8 h-8 bg-yellow-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                            1</div>
                         <span class="text-sm font-medium">Prepared</span>
                     </div>
                     <div class="flex-1 h-1 bg-gray-200 mx-4">
                         <div class="h-1 bg-yellow-500" id="progress-1" style="width: 0%"></div>
                     </div>
                     <div class="approval-step" id="step-checked">
-                        <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">2</div>
+                        <div
+                            class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                            2</div>
                         <span class="text-sm font-medium">Checked</span>
                     </div>
                     <div class="flex-1 h-1 bg-gray-200 mx-4">
                         <div class="h-1 bg-blue-600" id="progress-2" style="width: 0%"></div>
                     </div>
                     <div class="approval-step" id="step-acknowledged">
-                        <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">3</div>
+                        <div
+                            class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                            3</div>
                         <span class="text-sm font-medium">Acknowledged</span>
                     </div>
                     <div class="flex-1 h-1 bg-gray-200 mx-4">
                         <div class="h-1 bg-purple-600" id="progress-3" style="width: 0%"></div>
                     </div>
                     <div class="approval-step" id="step-approved">
-                        <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">4</div>
+                        <div
+                            class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                            4</div>
                         <span class="text-sm font-medium">Approved</span>
                     </div>
                     <div class="flex-1 h-1 bg-gray-200 mx-4">
                         <div class="h-1 bg-green-600" id="progress-4" style="width: 0%"></div>
                     </div>
                     <div class="approval-step" id="step-received">
-                        <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">5</div>
+                        <div
+                            class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                            5</div>
                         <span class="text-sm font-medium">Received</span>
                     </div>
                 </div>
             </div>
-            
+
             <!-- Form Section - Clean layout -->
             <div class="section-base">
                 <div class="grid grid-cols-1 gap-6">
@@ -570,42 +806,44 @@ input:disabled, textarea:disabled, select:disabled {
                     <div class="grid grid-cols-2 gap-4">
                         <!-- Hidden DocEntry -->
                         <input type="text" id="DocEntry" class="hidden" disabled autocomplete="off">
-                        
+
                         <div class="form-field">
                             <h3>Invoice SAP Doc Entry Number</h3>
-                            <input type="text" id="DocNum" placeholder="Invoice SAP Doc Entry Number" disabled autocomplete="off">
+                            <input type="text" id="DocNum" placeholder="Invoice SAP Doc Entry Number" disabled
+                                autocomplete="off">
                         </div>
-                        
+
                         <div class="form-field">
                             <h3>Customer Code</h3>
                             <input type="text" id="CardCode" placeholder="Customer Code" disabled autocomplete="off">
                         </div>
-                        
+
                         <div class="form-field">
                             <h3>Customer Name</h3>
                             <input type="text" id="CardName" placeholder="Customer Name" disabled autocomplete="off">
                         </div>
-                        
+
                         <div class="form-field">
                             <h3>Status</h3>
                             <input type="text" id="Status" placeholder="Status" disabled autocomplete="off">
                         </div>
-                        
+
                         <div class="form-field">
                             <h3>Address</h3>
                             <input type="text" id="address" placeholder="Address" disabled autocomplete="off">
                         </div>
-                        
-                        <div class="form-field">
+
+                        <div class="form-field item-only">
                             <h3>KPIN Invoice Number</h3>
-                            <input type="text" id="NumAtCard" placeholder="KPIN Invoice Number" disabled autocomplete="off">
+                            <input type="text" id="NumAtCard" placeholder="KPIN Invoice Number" disabled
+                                autocomplete="off">
                         </div>
-                        
+
                         <div class="form-field">
                             <h3>Currency</h3>
                             <input type="text" id="DocCur" placeholder="Currency" disabled autocomplete="off">
                         </div>
-                        
+
                         <div class="form-field">
                             <h3>Document Rate</h3>
                             <input type="number" id="docRate" placeholder="Document Rate" disabled autocomplete="off">
@@ -615,44 +853,48 @@ input:disabled, textarea:disabled, select:disabled {
                             <h3>Document Date</h3>
                             <input type="date" id="DocDate" disabled autocomplete="off">
                         </div>
-                        
+
                         <div class="form-field">
                             <h3>Due Date</h3>
                             <input type="date" id="DocDueDate" disabled autocomplete="off">
                         </div>
-                        
+
                         <div class="form-field">
                             <h3>Tax Identification Number (NPWP)</h3>
-                            <input type="text" id="TaxNo" placeholder="Tax Identification Number (NPWP)" disabled autocomplete="off">
+                            <input type="text" id="TaxNo" placeholder="Tax Identification Number (NPWP)" disabled
+                                autocomplete="off">
                         </div>
-                        
+
                         <div class="form-field">
                             <h3>Shipping Type</h3>
-                            <input type="text" id="U_BSI_ShippingType" placeholder="Shipping Type" disabled autocomplete="off">
+                            <input type="text" id="U_BSI_ShippingType" placeholder="Shipping Type" disabled
+                                autocomplete="off">
                         </div>
-                        
+
                         <div class="form-field">
                             <h3>Payment Terms</h3>
-                            <input type="text" id="U_BSI_PaymentGroup" placeholder="Payment Group" disabled autocomplete="off">
+                            <input type="text" id="U_BSI_PaymentGroup" placeholder="Payment Group" disabled
+                                autocomplete="off">
                         </div>
-                        
-                        <input type="text" id="U_BSI_Expressiv_IsTransfered" class="hidden" value="N" disabled autocomplete="off">
-                        
+
+                        <input type="text" id="U_BSI_Expressiv_IsTransfered" class="hidden" value="N" disabled
+                            autocomplete="off">
+
                         <div class="form-field">
                             <h3>No Surat Jalan</h3>
                             <input type="text" id="U_BSI_UDF1" placeholder="UDF1" disabled autocomplete="off">
                         </div>
-                        
+
                         <div class="form-field">
                             <h3>P/O No</h3>
                             <input type="text" id="U_BSI_UDF2" placeholder="UDF2" disabled autocomplete="off">
                         </div>
-                        
+
                         <div class="form-field">
                             <h3>Account</h3>
                             <input type="text" id="account" placeholder="Account" disabled autocomplete="off">
                         </div>
-                        
+
                         <div class="form-field">
                             <h3>Account Name</h3>
                             <input type="text" id="acctName" placeholder="Account Name" disabled autocomplete="off">
@@ -661,20 +903,21 @@ input:disabled, textarea:disabled, select:disabled {
                         <!-- Service Only Fields -->
                         <div class="form-field service-only">
                             <h3>Control Account</h3>
-                            <input type="text" id="U_BSI_UDF3" placeholder="Control Account" disabled autocomplete="off">
+                            <input type="text" id="U_BSI_UDF3" placeholder="Control Account" disabled
+                                autocomplete="off">
                         </div>
 
-                        <div class="form-field service-only">
+                        <div class="form-field item-only">
                             <h3>WT Amount</h3>
                             <input type="text" id="WTSum" placeholder="WT Amount" disabled autocomplete="off">
                         </div>
-                        
-                        <div class="form-field service-only">
+
+                        <div class="form-field item-only">
                             <h3>WT Amount FC</h3>
                             <input type="text" id="WTSumFC" placeholder="WT Amount FC" disabled autocomplete="off">
                         </div>
                     </div>
-                    
+
                     <!-- Attachments Section -->
                     <div class="form-field">
                         <h3>Attachments</h3>
@@ -692,7 +935,7 @@ input:disabled, textarea:disabled, select:disabled {
                     </div>
                 </div>
             </div>
-            
+
             <!-- Table Section -->
             <div class="section-base">
                 <h3 id="tableTitle" class="text-xl font-semibold mb-4">Details</h3>
@@ -746,43 +989,51 @@ input:disabled, textarea:disabled, select:disabled {
             <!-- Summary Section -->
             <div class="section-base">
                 <h3 class="text-xl font-semibold mb-4">Summary</h3>
-                
+
                 <div class="space-y-4">
                     <div class="flex justify-end items-center space-x-2">
                         <label class="font-semibold text-gray-700 w-48 text-right">Total :</label>
-                        <input type="text" id="docTotal" class="w-80 currency-input currency-input-idr" readonly autocomplete="off" value="0.00">
+                        <input type="text" id="docTotal" class="w-80 currency-input currency-input-idr" readonly
+                            autocomplete="off" value="0.00">
                     </div>
-                    
+
                     <div class="flex justify-end items-center space-x-2">
                         <label class="font-semibold text-gray-700 w-48 text-right">Discounted :</label>
-                        <input type="text" id="discSum" class="w-80 currency-input currency-input-idr" readonly autocomplete="off" value="0.00">
+                        <input type="text" id="discSum" class="w-80 currency-input currency-input-idr" readonly
+                            autocomplete="off" value="0.00">
                     </div>
-                    
+
                     <div class="flex justify-end items-center space-x-2">
                         <label class="font-semibold text-gray-700 w-48 text-right">Sales Amount :</label>
-                        <input type="text" id="netPriceAfterDiscount" class="w-80 currency-input currency-input-idr" readonly autocomplete="off" value="0.00">
+                        <input type="text" id="netPriceAfterDiscount" class="w-80 currency-input currency-input-idr"
+                            readonly autocomplete="off" value="0.00">
                     </div>
-                    
+
                     <div class="flex justify-end items-center space-x-2">
                         <label class="font-semibold text-gray-700 w-48 text-right">Tax Base Other Value :</label>
-                        <input type="text" id="dpp1112" class="w-80 currency-input currency-input-idr" readonly autocomplete="off" value="0.00">
+                        <input type="text" id="dpp1112" class="w-80 currency-input currency-input-idr" readonly
+                            autocomplete="off" value="0.00">
                     </div>
-                    
+
                     <div class="flex justify-end items-center space-x-2">
                         <label class="font-semibold text-gray-700 w-48 text-right">VAT 12% :</label>
-                        <input type="text" id="vatSum" class="w-80 currency-input currency-input-idr" readonly autocomplete="off" value="0.00">
+                        <input type="text" id="vatSum" class="w-80 currency-input currency-input-idr" readonly
+                            autocomplete="off" value="0.00">
                     </div>
-                    
+
                     <div class="flex justify-end items-center space-x-2">
                         <label class="font-semibold text-gray-700 text-lg w-48 text-right">GRAND TOTAL :</label>
-                        <input type="text" id="grandTotal" class="w-80 currency-input currency-input-idr font-bold text-lg" readonly autocomplete="off" value="0.00">
+                        <input type="text" id="grandTotal"
+                            class="w-80 currency-input currency-input-idr font-bold text-lg" readonly autocomplete="off"
+                            value="0.00">
                     </div>
                 </div>
 
                 <!-- Remarks section -->
                 <div class="mt-6">
                     <label class="font-semibold text-gray-700">Remarks</label>
-                    <textarea id="comments" class="w-full mt-2 min-h-60" maxlength="254" disabled autocomplete="off"></textarea>
+                    <textarea id="comments" class="w-full mt-2 min-h-60" maxlength="254" disabled
+                        autocomplete="off"></textarea>
                 </div>
             </div>
 
@@ -790,15 +1041,18 @@ input:disabled, textarea:disabled, select:disabled {
             <div class="section-base" id="rejectionRemarksSection" style="display: none;">
                 <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
                 <div class="p-4 border border-red-200 rounded bg-red-50">
-                    <textarea id="rejectionRemarks" class="w-full p-2 border rounded bg-white text-sm min-h-60" readonly autocomplete="off"></textarea>
+                    <textarea id="rejectionRemarks" class="w-full p-2 border rounded bg-white text-sm min-h-60" readonly
+                        autocomplete="off"></textarea>
                     <div class="mt-2 grid grid-cols-2 gap-4 text-sm">
                         <div>
                             <label class="font-medium text-gray-700">Rejected by:</label>
-                            <input type="text" id="rejectedByName" class="w-full mt-1 p-2 border rounded bg-white text-sm" readonly>
+                            <input type="text" id="rejectedByName"
+                                class="w-full mt-1 p-2 border rounded bg-white text-sm" readonly>
                         </div>
                         <div>
                             <label class="font-medium text-gray-700">Rejected date:</label>
-                            <input type="text" id="rejectedDate" class="w-full mt-1 p-2 border rounded bg-white text-sm" readonly>
+                            <input type="text" id="rejectedDate" class="w-full mt-1 p-2 border rounded bg-white text-sm"
+                                readonly>
                         </div>
                     </div>
                 </div>
@@ -808,56 +1062,66 @@ input:disabled, textarea:disabled, select:disabled {
             <div class="section-base">
                 <h3 class="text-xl font-semibold mb-4">Approval Workflow</h3>
                 <div class="grid grid-cols-1 gap-6 text-sm">
-                    <div class="grid grid-cols-2 gap-4"> 
+                    <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="font-semibold text-gray-700">Prepared by:</label>
                             <div class="relative">
-                                <input type="text" id="preparedBySearch" placeholder="Search name..." class="w-full p-2 border rounded" autocomplete="off" readonly>
-                                <div id="preparedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded hidden"></div>
+                                <input type="text" id="preparedBySearch" placeholder="Search name..."
+                                    class="w-full p-2 border rounded" autocomplete="off" readonly>
+                                <div id="preparedBySelectDropdown"
+                                    class="absolute left-0 right-0 mt-1 bg-white border rounded hidden"></div>
                                 <select id="preparedBy" class="hidden" autocomplete="off">
                                     <option value="" disabled selected>Choose Name</option>
                                 </select>
                             </div>
                         </div>
-                        
+
                         <div>
                             <label class="font-semibold text-gray-700">Checked by:</label>
                             <div class="relative">
-                                <input type="text" id="checkedBySearch" placeholder="Search name..." class="w-full p-2 border rounded" autocomplete="off" readonly>
-                                <div id="checkedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded hidden"></div>
+                                <input type="text" id="checkedBySearch" placeholder="Search name..."
+                                    class="w-full p-2 border rounded" autocomplete="off" readonly>
+                                <div id="checkedBySelectDropdown"
+                                    class="absolute left-0 right-0 mt-1 bg-white border rounded hidden"></div>
                                 <select id="checkedBy" class="hidden" autocomplete="off">
                                     <option value="" disabled selected>Choose Name</option>
                                 </select>
                             </div>
                         </div>
-                        
+
                         <div>
                             <label class="font-semibold text-gray-700">Acknowledge by:</label>
                             <div class="relative">
-                                <input type="text" id="acknowledgeBySearch" placeholder="Search name..." class="w-full p-2 border rounded" autocomplete="off" readonly>
-                                <div id="acknowledgeBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded hidden"></div>
+                                <input type="text" id="acknowledgeBySearch" placeholder="Search name..."
+                                    class="w-full p-2 border rounded" autocomplete="off" readonly>
+                                <div id="acknowledgeBySelectDropdown"
+                                    class="absolute left-0 right-0 mt-1 bg-white border rounded hidden"></div>
                                 <select id="acknowledgeBy" class="hidden" autocomplete="off">
                                     <option value="" disabled selected>Choose Name</option>
                                 </select>
                             </div>
                         </div>
-                        
+
                         <div>
                             <label class="font-semibold text-gray-700">Approved by:</label>
                             <div class="relative">
-                                <input type="text" id="approvedBySearch" placeholder="Search name..." class="w-full p-2 border rounded" autocomplete="off" readonly>
-                                <div id="approvedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded hidden"></div>
+                                <input type="text" id="approvedBySearch" placeholder="Search name..."
+                                    class="w-full p-2 border rounded" autocomplete="off" readonly>
+                                <div id="approvedBySelectDropdown"
+                                    class="absolute left-0 right-0 mt-1 bg-white border rounded hidden"></div>
                                 <select id="approvedBy" class="hidden" autocomplete="off">
                                     <option value="" disabled selected>Choose Name</option>
                                 </select>
                             </div>
                         </div>
-                        
+
                         <div>
                             <label class="font-semibold text-gray-700">Received by:</label>
                             <div class="relative">
-                                <input type="text" id="receivedBySearch" placeholder="Search name..." class="w-full p-2 border rounded" autocomplete="off" readonly>
-                                <div id="receivedBySelectDropdown" class="absolute left-0 right-0 mt-1 bg-white border rounded hidden"></div>
+                                <input type="text" id="receivedBySearch" placeholder="Search name..."
+                                    class="w-full p-2 border rounded" autocomplete="off" readonly>
+                                <div id="receivedBySelectDropdown"
+                                    class="absolute left-0 right-0 mt-1 bg-white border rounded hidden"></div>
                                 <select id="receivedBy" class="hidden" autocomplete="off">
                                     <option value="" disabled selected>Choose Name</option>
                                 </select>
@@ -870,7 +1134,7 @@ input:disabled, textarea:disabled, select:disabled {
             <!-- E-Signing Section - Simplified -->
             <div class="section-base" id="eSigningSection" style="display: none;">
                 <h3 class="text-xl font-semibold mb-4">Electronic Signature Process</h3>
-                
+
                 <div class="mb-6">
                     <div class="flex items-center justify-between mb-4">
                         <button onclick="downloadPdfDocument()" class="btn-base btn-primary">
@@ -886,10 +1150,12 @@ input:disabled, textarea:disabled, select:disabled {
                         <div class="space-y-4">
                             <div>
                                 <p class="text-lg font-medium text-gray-700">Upload Signed PDF Document</p>
-                                <p class="text-sm text-gray-500 mt-1">Drag and drop your signed PDF file here, or click to browse</p>
+                                <p class="text-sm text-gray-500 mt-1">Drag and drop your signed PDF file here, or click
+                                    to browse</p>
                             </div>
                             <input type="file" id="eSignFileInput" accept=".pdf" class="hidden">
-                            <button onclick="document.getElementById('eSignFileInput').click()" class="btn-base btn-primary">
+                            <button onclick="document.getElementById('eSignFileInput').click()"
+                                class="btn-base btn-primary">
                                 Choose File
                             </button>
                         </div>
@@ -912,22 +1178,25 @@ input:disabled, textarea:disabled, select:disabled {
 
                     <!-- Action Buttons -->
                     <div class="mt-6 text-center">
-                        <button onclick="startESigningProcess()" id="startESignBtn" disabled class="btn-base btn-primary">
+                        <button onclick="startESigningProcess()" id="startESignBtn" disabled
+                            class="btn-base btn-primary">
                             Start E-Signing Process
                         </button>
                     </div>
                 </div>
-                
+
                 <!-- Document Lists - Simplified -->
                 <div class="mt-8 space-y-6">
                     <div class="border border-gray-200 rounded p-4">
                         <div class="flex items-center justify-between mb-4">
                             <h4 class="font-semibold">E-Stamped Documents</h4>
                             <div class="space-x-2">
-                                <button onclick="startManualEStamping()" class="btn-base bg-purple-600 text-white text-sm">
+                                <button onclick="startManualEStamping()"
+                                    class="btn-base bg-purple-600 text-white text-sm">
                                     Upload for E-Stamp
                                 </button>
-                                <button onclick="refreshStampedDocumentList()" class="btn-base bg-gray-500 text-white text-sm">
+                                <button onclick="refreshStampedDocumentList()"
+                                    class="btn-base bg-gray-500 text-white text-sm">
                                     Refresh
                                 </button>
                             </div>
@@ -936,7 +1205,7 @@ input:disabled, textarea:disabled, select:disabled {
                             <!-- Documents akan di-load secara dinamis -->
                         </div>
                     </div>
-                    
+
                     <div class="border border-gray-200 rounded p-4">
                         <div class="flex items-center justify-between mb-4">
                             <h4 class="font-semibold">Signed Documents</h4>
@@ -954,56 +1223,62 @@ input:disabled, textarea:disabled, select:disabled {
             <!-- Action Buttons Section - Clean -->
             <div class="section-base text-center" id="multiApprovalSection">
                 <h3 class="text-lg font-semibold mb-6">Document Actions</h3>
-                
+
                 <!-- Current Status Display -->
                 <div class="mb-6 p-4 border border-gray-200 rounded" id="currentStatusDisplay">
                     <div class="flex items-center justify-center space-x-3">
                         <div class="w-3 h-3 rounded-full bg-yellow-500" id="statusIndicator"></div>
                         <span class="text-lg font-medium" id="currentStatusText">Loading...</span>
                     </div>
-                    <p class="text-sm text-gray-600 mt-2" id="statusDescription">Please wait while we load the document status...</p>
+                    <p class="text-sm text-gray-600 mt-2" id="statusDescription">Please wait while we load the document
+                        status...</p>
                 </div>
-                
+
                 <!-- Action Buttons -->
                 <div id="actionButtonsContainer" class="flex flex-wrap justify-center gap-4">
                     <!-- Approval Buttons -->
-                    <button onclick="checkDocument()" id="checkButton" class="btn-base bg-blue-600 text-white px-8 py-3 hidden">
+                    <button onclick="checkDocument()" id="checkButton"
+                        class="btn-base bg-blue-600 text-white px-8 py-3 hidden">
                         Check
                     </button>
-                    
-                    <button onclick="acknowledgeDocument()" id="acknowledgeButton" class="btn-base bg-purple-600 text-white px-8 py-3 hidden">
+
+                    <button onclick="acknowledgeDocument()" id="acknowledgeButton"
+                        class="btn-base bg-purple-600 text-white px-8 py-3 hidden">
                         Acknowledge
                     </button>
-                    
-                    <button onclick="approveDocument()" id="approveButton" class="btn-base bg-green-600 text-white px-8 py-3 hidden">
+
+                    <button onclick="approveDocument()" id="approveButton"
+                        class="btn-base bg-green-600 text-white px-8 py-3 hidden">
                         Approve
                     </button>
-                    
+
                     <button onclick="receiveInvItem()" id="receiveButton" class="btn-base btn-success px-8 py-3 hidden">
                         Receive
                     </button>
-                    
+
                     <!-- Reject Button -->
                     <button onclick="rejectInvItem()" id="rejectButton" class="btn-base btn-danger px-8 py-3">
                         Reject
                     </button>
-                    
+
                     <!-- E-Sign Button -->
-                    <button onclick="showESigningSection()" id="eSignButton" class="btn-base bg-purple-600 text-white px-8 py-3 hidden">
+                    <button onclick="showESigningSection()" id="eSignButton"
+                        class="btn-base bg-purple-600 text-white px-8 py-3 hidden">
                         E-Sign Document
                     </button>
                 </div>
-                
+
                 <!-- Environment Switcher - Simple -->
                 <div class="flex items-center justify-center mt-6 space-x-2">
                     <span class="text-sm text-gray-600">Kasbo Environment:</span>
-                    <span id="kasboEnvBadge" class="text-xs px-2 py-1 rounded bg-green-100 text-green-800">Sandbox</span>
+                    <span id="kasboEnvBadge"
+                        class="text-xs px-2 py-1 rounded bg-green-100 text-green-800">Sandbox</span>
                     <select id="kasboEnvSelect" class="border rounded px-2 py-1 text-sm">
                         <option value="sandbox">Sandbox</option>
                         <option value="prod">Production</option>
                     </select>
                 </div>
-                
+
                 <!-- Status Message -->
                 <div id="statusMessage" class="mt-4 p-4 rounded hidden">
                     <div id="statusMessageContent" class="text-center"></div>
@@ -1015,23 +1290,23 @@ input:disabled, textarea:disabled, select:disabled {
     <!-- Simple compatibility script - No animations, no lag -->
     <script>
         // Lightweight integration script
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             console.log('🔄 Loading clean AR Invoice interface...');
-            
+
             // Simple check for main JavaScript
             let attempts = 0;
             const maxAttempts = 50; // 5 seconds max
-            
-            const checkMainJS = setInterval(function() {
+
+            const checkMainJS = setInterval(function () {
                 attempts++;
-                
-                if (typeof window.AppState !== 'undefined' || 
+
+                if (typeof window.AppState !== 'undefined' ||
                     typeof window.initializePage === 'function') {
-                    
+
                     clearInterval(checkMainJS);
                     console.log('✅ Main JavaScript loaded');
                     setupSimpleIntegration();
-                    
+
                 } else if (attempts >= maxAttempts) {
                     clearInterval(checkMainJS);
                     console.log('⚠️ Setting up standalone mode');
@@ -1043,36 +1318,36 @@ input:disabled, textarea:disabled, select:disabled {
         function setupSimpleIntegration() {
             // Just enhance existing without breaking anything
             console.log('🎨 Setting up simple enhancements...');
-            
+
             // Simple responsive handler
             window.addEventListener('resize', simpleResize);
             simpleResize();
-            
+
             // Simple file upload
             const fileInput = document.getElementById('eSignFileInput');
             const uploadArea = document.getElementById('eSignUploadArea');
-            
+
             if (fileInput && uploadArea) {
                 fileInput.addEventListener('change', handleSimpleFileSelect);
                 uploadArea.addEventListener('click', () => fileInput.click());
-                
+
                 // Simple drag and drop
                 uploadArea.addEventListener('dragover', (e) => {
                     e.preventDefault();
                     uploadArea.style.borderColor = '#3b82f6';
                     uploadArea.style.backgroundColor = '#dbeafe';
                 });
-                
+
                 uploadArea.addEventListener('dragleave', () => {
                     uploadArea.style.borderColor = '#d1d5db';
                     uploadArea.style.backgroundColor = '#fafafa';
                 });
-                
+
                 uploadArea.addEventListener('drop', (e) => {
                     e.preventDefault();
                     uploadArea.style.borderColor = '#d1d5db';
                     uploadArea.style.backgroundColor = '#fafafa';
-                    
+
                     const files = e.dataTransfer.files;
                     if (files.length > 0) {
                         const dataTransfer = new DataTransfer();
@@ -1082,24 +1357,24 @@ input:disabled, textarea:disabled, select:disabled {
                     }
                 });
             }
-            
+
             console.log('✅ Simple integration complete');
         }
 
         function setupStandaloneMode() {
             // Set default values
             document.body.classList.add('item-mode');
-            
+
             const defaults = {
                 'DocNum': 'AR-INV-2025-001',
-                'CardCode': 'CUST001', 
+                'CardCode': 'CUST001',
                 'CardName': 'Sample Customer',
                 'Status': 'Prepared',
                 'statusText': 'Prepared',
                 'mainTitle': 'AR Invoice',
                 'tableTitle': 'Invoice Details'
             };
-            
+
             Object.entries(defaults).forEach(([id, value]) => {
                 const el = document.getElementById(id);
                 if (el) {
@@ -1110,17 +1385,17 @@ input:disabled, textarea:disabled, select:disabled {
                     }
                 }
             });
-            
+
             // Setup basic functions
             setupBasicFunctions();
-            
+
             console.log('✅ Standalone mode ready');
         }
 
         function simpleResize() {
             const isMobile = window.innerWidth < 768;
             const gridCols2 = document.querySelectorAll('.grid-cols-2');
-            
+
             gridCols2.forEach(grid => {
                 if (isMobile) {
                     grid.style.gridTemplateColumns = '1fr';
@@ -1128,7 +1403,7 @@ input:disabled, textarea:disabled, select:disabled {
                     grid.style.gridTemplateColumns = '1fr 1fr';
                 }
             });
-            
+
             const flexElements = document.querySelectorAll('.flex');
             flexElements.forEach(flex => {
                 if (isMobile && flex.classList.contains('justify-between')) {
@@ -1151,18 +1426,18 @@ input:disabled, textarea:disabled, select:disabled {
                     alert('Only PDF files are allowed');
                     return;
                 }
-                
+
                 if (file.size > 10 * 1024 * 1024) { // 10MB
                     alert('File size must be less than 10MB');
                     return;
                 }
-                
+
                 // Display selected file
                 const display = document.getElementById('selectedFileDisplay');
                 const fileName = document.getElementById('selectedFileName');
                 const fileSize = document.getElementById('selectedFileSize');
                 const startBtn = document.getElementById('startESignBtn');
-                
+
                 if (display && fileName && fileSize && startBtn) {
                     fileName.textContent = file.name;
                     fileSize.textContent = formatFileSize(file.size);
@@ -1184,7 +1459,7 @@ input:disabled, textarea:disabled, select:disabled {
             const display = document.getElementById('selectedFileDisplay');
             const fileInput = document.getElementById('eSignFileInput');
             const startBtn = document.getElementById('startESignBtn');
-            
+
             if (display) display.classList.add('hidden');
             if (fileInput) fileInput.value = '';
             if (startBtn) startBtn.disabled = true;
@@ -1194,35 +1469,35 @@ input:disabled, textarea:disabled, select:disabled {
             // Basic fallback functions
             const basicFunctions = [
                 'downloadPdfDocument',
-                'refreshDocumentList', 
+                'refreshDocumentList',
                 'startESigningProcess',
                 'goToMenuReceiveInvItem',
                 'checkDocument',
-                'acknowledgeDocument', 
+                'acknowledgeDocument',
                 'approveDocument',
                 'receiveInvItem',
                 'rejectInvItem',
                 'showESigningSection'
             ];
-            
+
             basicFunctions.forEach(funcName => {
                 if (typeof window[funcName] !== 'function') {
-                    window[funcName] = function() {
+                    window[funcName] = function () {
                         console.log(`${funcName} called (basic mode)`);
                         alert(`${funcName} requires main application to be loaded.`);
                     };
                 }
             });
-            
+
             // Environment switcher
             const envSelect = document.getElementById('kasboEnvSelect');
             const envBadge = document.getElementById('kasboEnvBadge');
-            
+
             if (envSelect && envBadge) {
-                envSelect.addEventListener('change', function() {
+                envSelect.addEventListener('change', function () {
                     const env = this.value;
                     envBadge.textContent = env === 'sandbox' ? 'Sandbox' : 'Production';
-                    envBadge.className = env === 'sandbox' 
+                    envBadge.className = env === 'sandbox'
                         ? 'text-xs px-2 py-1 rounded bg-green-100 text-green-800'
                         : 'text-xs px-2 py-1 rounded bg-red-100 text-red-800';
                 });
@@ -1232,9 +1507,10 @@ input:disabled, textarea:disabled, select:disabled {
         // Export functions
         window.removeSelectedFile = removeSelectedFile;
         window.handleSimpleFileSelect = handleSimpleFileSelect;
-        
+
         console.log('✅ Clean AR Invoice interface loaded');
     </script>
-    
+
 </body>
+
 </html>
