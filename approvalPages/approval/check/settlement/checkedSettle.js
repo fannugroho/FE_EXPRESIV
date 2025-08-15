@@ -46,6 +46,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (currentTab === 'checked' || currentTab === 'rejected') {
         hideApprovalButtons();
     }
+    
+    // Only show revision functionality on 'prepared' tab (first tab)
+    if (currentTab !== 'prepared') {
+        hideRevisionButton();
+    }
 });
 
 // Function to fetch and populate settlement details
@@ -77,8 +82,7 @@ function fetchSettleDetails(id) {
         
         if (result.status && result.data) {
             populateSettleDetails(result.data);
-            // Fetch users to populate Employee field properly and approval dropdowns
-            fetchUsers(result.data);
+            // Remove fetchUsers call - get user data from detail response
         } else {
             console.error('API returned error:', result.message);
             alert('Failed to load settlement details: ' + (result.message || 'Unknown error'));
@@ -95,56 +99,65 @@ function populateSettleDetails(data) {
     document.getElementById('invno').value = data.settlementNumber || '';
     document.getElementById('settlementRefNo').value = data.settlementRefNo || '';
     
-    // Store requester ID for user lookup instead of employeeId
-    window.currentEmployeeId = data.requester || '';
-    
     // Use the provided requesterName directly
     document.getElementById('Employee').value = data.requesterName || '';
     document.getElementById('EmployeeName').value = data.requesterName || '';
     document.getElementById('requester').value = data.requesterName || '';
     
-    // Store department data to be set after dropdown is populated
-    window.departmentData = {
-        departmentId: data.departmentId,
-        departmentName: data.departmentName
-    };
+    // Set department - create option directly from backend data
+    const departmentSelect = document.getElementById('department');
+    if (data.departmentName && departmentSelect) {
+        departmentSelect.innerHTML = ''; // Clear existing options
+        const option = document.createElement('option');
+        option.value = data.departmentName; // Use department name as value since backend returns string
+        option.textContent = data.departmentName;
+        option.selected = true;
+        departmentSelect.appendChild(option);
+    }
     
-
-    document.getElementById('cashAdvanceNumber').value = data.cashAdvanceNumber  || '';
+    document.getElementById('cashAdvanceNumber').value = data.cashAdvanceNumber || '';
     
-    // Handle submission date - extract date part directly to avoid timezone issues
+    // Handle submission date - convert from ISO to YYYY-MM-DD format for date input
     if (data.submissionDate) {
         const formattedDate = data.submissionDate.split('T')[0];
         document.getElementById('SubmissionDate').value = formattedDate;
     }
     
     document.getElementById('purpose').value = data.purpose || '';
-    document.getElementById('paidTo').value = data.payToBusinessPartnerName || '';
-    const transactionType = document.getElementById('TransactionType');
-    var option = document.createElement('option');
-    option.value = data.transactionType;
-    option.textContent = data.transactionType;
-    transactionType.appendChild(option);
+    document.getElementById('paidTo').value = data.payToName || '';
     
-    option.selected = true;
-    
-    // Set status
-    if (data.status) {
-        document.getElementById('docStatus').value = data.status;
+    // Set transaction type - create option directly from backend data
+    const transactionTypeSelect = document.getElementById('TransactionType');
+    if (data.transactionType && transactionTypeSelect) {
+        transactionTypeSelect.innerHTML = ''; // Clear existing options
+        const option = document.createElement('option');
+        option.value = data.transactionType;
+        option.textContent = data.transactionType;
+        option.selected = true;
+        transactionTypeSelect.appendChild(option);
     }
     
-    // Store approval IDs for later population when users are fetched
-    window.approvalData = {
-        preparedById: data.preparedById,
-        checkedById: data.checkedById,
-        acknowledgedById: data.acknowledgedById,
-        approvedById: data.approvedById,
-        receivedById: data.receivedById
-    };
+    // Set status - create option directly from backend data
+    const statusSelect = document.getElementById('docStatus');
+    if (data.status && statusSelect) {
+        statusSelect.innerHTML = ''; // Clear existing options
+        const option = document.createElement('option');
+        option.value = data.status;
+        option.textContent = data.status;
+        option.selected = true;
+        statusSelect.appendChild(option);
+    }
     
-    // Populate settlement items in table if available (settlementItems not settlementDetails)
+    // Display revision and rejection remarks
+    displayRevisionRemarks(data);
+    displayRejectionRemarks(data);
+    
+    // Populate approval fields from DTO data
+    populateApprovalFields(data);
+    
+    // Populate settlement items table
     if (data.settlementItems && data.settlementItems.length > 0) {
-        populateSettleDetailsTable(data.settlementItems);
+        populateSettlementItems(data.settlementItems);
     }
     
     // Show remarks if exists
@@ -152,59 +165,77 @@ function populateSettleDetails(data) {
         document.getElementById('remarks').value = data.remarks;
     }
     
-    // Display attachments if they exist
-    console.log('Attachments data:', data.attachments);
-    if (data.attachments) {
-        console.log('Displaying attachments:', data.attachments.length, 'attachments found');
+    // Display attachments if any
+    if (data.attachments && data.attachments.length > 0) {
         displayAttachments(data.attachments);
-    } else {
-        console.log('No attachments found in data');
     }
     
-    // Make all fields read-only since this is an approval page
-    makeAllFieldsReadOnly();
-    
-    console.log('Settlement details populated successfully');
+    // Make all fields readonly
+    setFormReadOnly();
 }
 
-function populateSettleDetailsTable(settlementItems) {
+function populateSettlementItems(items) {
     const tableBody = document.getElementById('tableBody');
+    tableBody.innerHTML = ''; // Clear existing rows
     
-    // Clear existing rows first
-    tableBody.innerHTML = '';
+    if (items.length === 0) {
+        return;
+    }
     
-    settlementItems.forEach((item, index) => {
-        addSettleDetailRow(item, index);
+    let totalAmount = 0;
+    
+    items.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="p-2 border">
+                <input type="text" value="${item.category || ''}" class="w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${item.accountName || ''}" class="w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${item.glAccount || ''}" class="w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${item.description || ''}" class="w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="number" value="${item.amount || 0}" class="w-full bg-gray-100 total" readonly step="0.01" />
+            </td>
+            <td class="p-2 border text-center">
+                <span class="text-gray-400">View Only</span>
+            </td>
+        `;
+        tableBody.appendChild(row);
+        
+        // Calculate total
+        totalAmount += parseFloat(item.amount || 0);
     });
+    
+    // Update total amount display
+    const totalAmountDisplay = document.getElementById('totalAmountDisplay');
+    if (totalAmountDisplay) {
+        totalAmountDisplay.textContent = totalAmount.toFixed(2);
+    }
 }
 
-function addSettleDetailRow(item = null, index = 0) {
-    const tableBody = document.getElementById('tableBody');
-    const newRow = document.createElement('tr');
+// Function to calculate total amount (for any dynamic changes)
+function calculateTotalAmount() {
+    const totalInputs = document.querySelectorAll('.total');
+    let sum = 0;
     
-    newRow.innerHTML = `
-        <td class="p-2 border">
-            <input type="text" class="w-full bg-gray-100" value="${item ? item.category || '' : ''}" readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="text" class="w-full bg-gray-100" value="${item ? item.accountName || '' : ''}" readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="text" class="w-full bg-gray-100" value="${item ? item.glAccount || '' : ''}" readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="text" class="w-full bg-gray-100" value="${item ? item.description || '' : ''}" readonly />
-        </td>
-        <td class="p-2 border">
-            <input type="number" class="w-full bg-gray-100" value="${item ? item.amount || '' : ''}" readonly />
-        </td>
-        <td class="p-2 border text-center">
-            <!-- Action column - disabled in approval view -->
-            <span class="text-gray-400">View Only</span>
-        </td>
-    `;
+    totalInputs.forEach(input => {
+        const value = input.value.trim();
+        if (value && !isNaN(parseFloat(value))) {
+            sum += parseFloat(value);
+        }
+    });
     
-    tableBody.appendChild(newRow);
+    const formattedSum = sum.toFixed(2);
+    const totalAmountDisplay = document.getElementById('totalAmountDisplay');
+    if (totalAmountDisplay) {
+        totalAmountDisplay.textContent = formattedSum;
+    }
 }
 
 // Function to approve settlement
@@ -359,12 +390,86 @@ function updateSettleStatus(status, remarks) {
     });
 }
 
+// Function to update settlement status with remarks (for revision)
+function updateSettleStatusWithRemarks(status, remarks) {
+    if (!settlementId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Settlement ID not found'
+        });
+        return;
+    }
+
+    const userId = getUserId();
+    if (!userId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
+        return;
+    }
+
+    const requestData = {
+        id: settlementId,
+        UserId: userId,
+        StatusAt: "Check",
+        Action: status,
+        Remarks: remarks || ''
+    };
+
+    // Show loading
+    Swal.fire({
+        title: 'Processing Revision...',
+        text: 'Please wait while we process your request.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    fetch(`${BASE_URL}/api/settlements/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        if (response.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: 'Settlement revision submitted successfully',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                // Navigate back to the dashboard
+                window.location.href = '../../../dashboard/dashboardCheck/settlement/menuSettleCheck.html';
+            });
+        } else {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `Failed to submit revision. Status: ${response.status}`);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error submitting revision: ' + error.message
+        });
+    });
+}
+
 // Navigation functions
 function goBack() {
     window.history.back();
 }
 
-function goToMenuSettle() {
+function goToMenuCheckSettle() {
     window.location.href = '../../../dashboard/dashboardCheck/settlement/menuSettleCheck.html';
 }
 
@@ -389,158 +494,126 @@ function displayFileList() {
     // Implementation for displaying uploaded files if needed
 }
 
-// Function to fetch users from API
-function fetchUsers(settlementData = null) {
-    fetch(`${BASE_URL}/api/users`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
+// Function to display revised remarks from API
+function displayRevisionRemarks(data) {
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCountElement = document.getElementById('revisedCount');
+    
+    // Check if there are any revisions
+    const hasRevisions = data.revisions && data.revisions.length > 0;
+    
+    if (hasRevisions) {
+        revisedRemarksSection.style.display = 'block';
+        
+        // Clear existing revision content from the revisedRemarksSection
+        revisedRemarksSection.innerHTML = `
+            <h3 class="text-lg font-semibold mb-2 text-gray-800">Revision History</h3>
+            <div class="bg-gray-50 p-4 rounded-lg border">
+                <div class="mb-2">
+                    <span class="text-sm font-medium text-gray-600">Total Revisions: </span>
+                    <span id="revisedCount" class="text-sm font-bold text-blue-600">${data.revisions.length}</span>
+                </div>
+                <!-- Dynamic revision content will be inserted here by JavaScript -->
+            </div>
+        `;
+        
+        // Group revisions by stage
+        const revisionsByStage = {};
+        data.revisions.forEach(revision => {
+            // Map enum values to display names
+            let stageName = 'Unknown';
+            if (revision.stage === 'Checked' || revision.stage === 1) {
+                stageName = 'Checked';
+            } else if (revision.stage === 'Acknowledged' || revision.stage === 2) {
+                stageName = 'Acknowledged';
+            } else if (revision.stage === 'Approved' || revision.stage === 3) {
+                stageName = 'Approved';
+            } else if (revision.stage === 'Received' || revision.stage === 4) {
+                stageName = 'Received';
             }
-            return response.json();
-        })
-        .then(data => {
-            populateEmployeeField(data.data, settlementData);
-            populateApprovalFields(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching users:', error);
-        });
-}
-
-// Function to populate approval fields (Prepared by, Checked by, etc.)
-function populateApprovalFields(users) {
-    // Store users globally for search functionality
-    window.allUsers = users;
-    
-    const approvalSelects = [
-        { id: 'prepared', dataKey: 'preparedById', searchId: 'preparedBySearch' },
-        { id: 'Checked', dataKey: 'checkedById', searchId: 'checkedBySearch' },
-        { id: 'Approved', dataKey: 'approvedById', searchId: 'approvedBySearch' },
-        { id: 'Acknowledged', dataKey: 'acknowledgedById', searchId: 'acknowledgedBySearch' },
-        { id: 'Received', dataKey: 'receivedById', searchId: 'receivedBySearch' }
-    ];
-    
-    approvalSelects.forEach(selectInfo => {
-        const select = document.getElementById(selectInfo.id);
-        if (select) {
-            console.log(select);
-            // Clear existing options
-            select.innerHTML = '<option value="" disabled>Select User</option>';
             
-            // Add user options
-            users.forEach(user => {
-                const option = document.createElement("option");
-                option.value = user.id;
-                option.textContent = user.fullName || user.username;
-                select.appendChild(option);
+            if (!revisionsByStage[stageName]) {
+                revisionsByStage[stageName] = [];
+            }
+            revisionsByStage[stageName].push(revision);
+        });
+        
+        // Display revisions grouped by stage
+        Object.keys(revisionsByStage).forEach(stage => {
+            const stageRevisions = revisionsByStage[stage];
+            
+            // Create stage header
+            const stageHeader = document.createElement('div');
+            stageHeader.className = 'mb-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded';
+            stageHeader.innerHTML = `
+                <h4 class="text-sm font-bold text-blue-800 mb-2">${stage} Stage Revisions (${stageRevisions.length})</h4>
+            `;
+            revisedRemarksSection.appendChild(stageHeader);
+            
+            // Display each revision in this stage
+            stageRevisions.forEach((revision, index) => {
+                const revisionContainer = document.createElement('div');
+                revisionContainer.className = 'mb-3 ml-4';
+                revisionContainer.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <label class="text-sm font-medium text-gray-700">Revision ${index + 1}:</label>
+                            <div class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap">${revision.remarks || ''}</div>
+                            <div class="text-xs text-gray-500 mt-1">
+                                Date: ${revision.revisionDate ? new Date(revision.revisionDate).toLocaleDateString() : 'N/A'}
+                                ${revision.revisedByName ? ` | By: ${revision.revisedByName}` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                revisedRemarksSection.appendChild(revisionContainer);
             });
-            
-            // Set the value from settlement approval data if available
-            if (window.approvalData && window.approvalData[selectInfo.dataKey]) {
-                console.log(window.approvalData[selectInfo.dataKey]);
-                select.value = window.approvalData[selectInfo.dataKey];
-                console.log(select.value);
-                
-                // Update the search input to display the selected user's name
-                const searchInput = document.getElementById(selectInfo.searchId);
-                if (searchInput) {
-                    const selectedUser = users.find(user => user.id === window.approvalData[selectInfo.dataKey]);
-                    if (selectedUser) {
-                        searchInput.value = selectedUser.name || `${selectedUser.fullName}` || selectedUser.username;
-                    }
-                }
-            }
-        }
-    });
-    
-    // Setup click-outside-to-close behavior for all dropdowns
-    document.addEventListener('click', function(event) {
-        const dropdowns = document.querySelectorAll('.search-dropdown');
-        dropdowns.forEach(dropdown => {
-            const searchInput = document.getElementById(dropdown.id.replace('Dropdown', 'Search'));
-            if (searchInput && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
-                dropdown.classList.add('hidden');
-            }
         });
-    });
-}
-
-// Function to filter users for the search dropdown in approval section
-function filterUsers(fieldId) {
-    const searchInput = document.getElementById(`${fieldId}Search`);
-    const searchText = searchInput.value.toLowerCase();
-    const dropdown = document.getElementById(`${fieldId}Dropdown`);
-    
-    // Clear dropdown
-    dropdown.innerHTML = '';
-    
-    // Use stored users or mock data if not available
-    const usersList = window.allUsers || [];
-    
-    // Filter users based on search text
-    const filteredUsers = usersList.filter(user => {
-        const userName = user.name || `${user.fullName || ''}`;
-        return userName.toLowerCase().includes(searchText);
-    });
-    
-    // Display search results
-    filteredUsers.forEach(user => {
-        const option = document.createElement('div');
-        option.className = 'dropdown-item';
-        const userName = user.name || `${user.fullName || ''}`;
-        option.innerText = userName;
-        option.onclick = function() {
-            searchInput.value = userName;
-            
-            // Get the correct select element based on fieldId
-            let selectId;
-            switch(fieldId) {
-                case 'preparedBy': selectId = 'prepared'; break;
-                case 'checkedBy': selectId = 'Checked'; break;
-                case 'approvedBy': selectId = 'Approved'; break;
-                case 'acknowledgedBy': selectId = 'Acknowledged'; break;
-                case 'receivedBy': selectId = 'Received'; break;
-                default: selectId = fieldId;
-            }
-            
-            document.getElementById(selectId).value = user.id;
-            dropdown.classList.add('hidden');
-        };
-        dropdown.appendChild(option);
-    });
-    
-    // Display message if no results
-    if (filteredUsers.length === 0) {
-        const noResults = document.createElement('div');
-        noResults.className = 'p-2 text-gray-500';
-        noResults.innerText = 'No matching users found';
-        dropdown.appendChild(noResults);
+    } else {
+        revisedRemarksSection.style.display = 'none';
     }
-    
-    // Show dropdown
-    dropdown.classList.remove('hidden');
 }
 
-// Function to populate the Employee field with kansaiEmployeeId
-function populateEmployeeField(users, settlementData = null) {
-    // Find and populate the employee NIK using the stored requester ID
-    if (window.currentEmployeeId) {
-        const employee = users.find(user => user.id === window.currentEmployeeId);
-        if (employee) {
-            // Use kansaiEmployeeId if available, otherwise use username or id
-            const employeeIdentifier = employee.kansaiEmployeeId || employee.username || employee.id;
-            document.getElementById('Employee').value = employeeIdentifier;
-            
-            // Also update employee name if we have better data from users API
-            if (employee.name) {
-                document.getElementById('EmployeeName').value = employee.name;
-            }
+// Function to display rejection remarks
+function displayRejectionRemarks(data) {
+    const rejectionRemarksSection = document.getElementById('rejectionRemarksSection');
+    const rejectionRemarks = document.getElementById('rejectionRemarks');
+    
+    if (data.rejectedRemarks && data.rejectedRemarks.trim() !== '') {
+        if (rejectionRemarksSection) {
+            rejectionRemarksSection.style.display = 'block';
+        }
+        if (rejectionRemarks) {
+            rejectionRemarks.value = data.rejectedRemarks;
+        }
+    } else {
+        if (rejectionRemarksSection) {
+            rejectionRemarksSection.style.display = 'none';
         }
     }
+}
+
+// Function to populate approval fields from DTO data
+function populateApprovalFields(data) {
+    const approvalMap = [
+      { id: 'preparedBySearch', value: data.preparedName },
+      { id: 'checkedBySearch', value: data.checkedName },
+      { id: 'acknowledgedBySearch', value: data.acknowledgedName },
+      { id: 'approvedBySearch', value: data.approvedName },
+      { id: 'receivedBySearch', value: data.receivedName }
+    ];
+    approvalMap.forEach(f => {
+      const el = document.getElementById(f.id);
+      if (el) {
+        el.value = f.value || '';
+        el.readOnly = true;
+        el.classList.add('bg-gray-100');
+      }
+    });
 }
 
 // Function to make all fields read-only for approval view
-function makeAllFieldsReadOnly() {
+function setFormReadOnly() {
     // Make all input fields read-only including search inputs
     const inputFields = document.querySelectorAll('input[type="text"], input[type="date"], input[type="number"], textarea');
     inputFields.forEach(field => {
@@ -619,6 +692,96 @@ function hideApprovalButtons() {
     }
 }
 
+// Function to submit revision
+function submitRevision() {
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    let allRemarks = '';
+    
+    revisionFields.forEach((field, index) => {
+        // Include the entire content including the prefix
+        if (field.value.trim() !== '') {
+            if (allRemarks !== '') allRemarks += '\n\n';
+            allRemarks += field.value.trim();
+        }
+    });
+    
+    const prefixLength = parseInt(revisionFields[0]?.dataset.prefixLength || '0');
+    if (allRemarks.length <= prefixLength) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Silakan berikan alasan revisi sebelum mengirim'
+        });
+        return;
+    }
+    
+    console.log("revisionRemarks");
+    console.log(allRemarks);
+
+    if (!settlementId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Settlement ID not found'
+        });
+        return;
+    }
+
+    const userId = getUserId();
+    if (!userId) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Authentication Error',
+            text: 'Unable to get user ID from token. Please login again.'
+        });
+        return;
+    }
+
+    // Show confirmation dialog
+    Swal.fire({
+        title: 'Submit Revision',
+        text: 'Are you sure you want to submit this revision request?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#f59e0b',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Submit Revision',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Call the existing function with the collected remarks
+            updateSettleStatusWithRemarks('revise', allRemarks);
+        }
+    });
+}
+
+// Function to hide revision button and all revision-related elements
+function hideRevisionButton() {
+    // Hide the revision button
+    const revisionButton = document.querySelector('button[onclick="revisionSettle()"]');
+    if (revisionButton) {
+        revisionButton.style.display = 'none';
+    }
+    
+    // Hide the add revision button
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
+    if (addRevisionBtn) {
+        addRevisionBtn.style.display = 'none';
+    }
+    
+    // Hide the revision container if it exists
+    const revisionContainer = document.getElementById('revisionContainer');
+    if (revisionContainer) {
+        revisionContainer.style.display = 'none';
+    }
+    
+    // Hide the revision section label
+    const revisionLabel = document.querySelector('label[for="addRevisionBtn"]');
+    if (revisionLabel) {
+        revisionLabel.style.display = 'none';
+    }
+}
+
 
 // Function to display attachments (similar to detail pages)
 function displayAttachments(attachments) {
@@ -634,23 +797,107 @@ function displayAttachments(attachments) {
     if (attachments && attachments.length > 0) {
         attachments.forEach(attachment => {
             const attachmentItem = document.createElement('div');
-            attachmentItem.className = 'flex justify-between items-center py-1 border-b last:border-b-0';
-            
+            attachmentItem.className = 'flex items-center justify-between p-2 bg-white border rounded mb-2 hover:bg-gray-50';
             attachmentItem.innerHTML = `
                 <div class="flex items-center">
-                    <svg class="w-4 h-4 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
-                    </svg>
-                    <span class="text-sm text-gray-700">${attachment.fileName}</span>
+                    <span class="text-blue-600 mr-2">📄</span>
+                    <span class="text-sm font-medium">${attachment.fileName}</span>
                 </div>
-                <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm">
+                <a href="${attachment.fileUrl}" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
                     View
                 </a>
             `;
-            
             attachmentsList.appendChild(attachmentItem);
         });
     } else {
-        attachmentsList.innerHTML = '<p class="text-gray-500 text-sm">No attachments available</p>';
+        attachmentsList.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">No attachments found</p>';
+    }
+}
+
+// Function to revision settlement
+function revisionSettle() {
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    let hasContent = false;
+    
+    revisionFields.forEach(field => {
+        const prefixLength = parseInt(field.dataset.prefixLength || '0');
+        const content = field.value.trim();
+        if (content.length > prefixLength) {
+            hasContent = true;
+        }
+    });
+    
+    if (!hasContent) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Silakan berikan alasan revisi sebelum mengirim'
+        });
+        return;
+    }
+    
+    // Enable the revision button
+    const revisionButton = document.getElementById('revisionButton');
+    if (revisionButton) {
+        revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        revisionButton.onclick = submitRevision;
+    }
+    
+    // Show confirmation dialog
+    Swal.fire({
+        title: 'Submit Revision',
+        text: 'Are you sure you want to submit this revision request?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#f59e0b',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, Submit Revision',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            submitRevision();
+        }
+    });
+}
+
+// Function to toggle revision field
+function toggleRevisionField() {
+    const revisionContainer = document.getElementById('revisionContainer');
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
+    
+    if (revisionContainer.classList.contains('hidden')) {
+        revisionContainer.classList.remove('hidden');
+        addRevisionBtn.textContent = '- Remove revision';
+        
+        // Add revision textarea
+        const revisionField = document.createElement('div');
+        revisionField.className = 'mt-2';
+        revisionField.innerHTML = `
+            <textarea 
+                class="w-full p-2 border rounded-md" 
+                placeholder="Enter revision remarks..."
+                rows="3"
+                data-prefix-length="0"
+            ></textarea>
+        `;
+        revisionContainer.appendChild(revisionField);
+        
+        // Enable the revision button
+        const revisionButton = document.getElementById('revisionButton');
+        if (revisionButton) {
+            revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            revisionButton.onclick = revisionSettle;
+        }
+    } else {
+        revisionContainer.classList.add('hidden');
+        addRevisionBtn.textContent = '+ Add revision';
+        revisionContainer.innerHTML = '';
+        
+        // Disable the revision button
+        const revisionButton = document.getElementById('revisionButton');
+        if (revisionButton) {
+            revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
+            revisionButton.onclick = null;
+        }
     }
 }

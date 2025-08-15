@@ -9,8 +9,8 @@
                 return;
             }
             
-            // Fetch data from API
-            const response = await fetch(`${BASE_URL}/api/settlements/dashboard`);
+            // Fetch data from API with requesterId filter
+            const response = await fetch(`${BASE_URL}/api/settlements/dashboard?requesterId=${userId}`);
             const apiResponse = await response.json();
             
             if (!apiResponse.status || !apiResponse.data) {
@@ -20,7 +20,7 @@
             
             const documents = apiResponse.data;
             
-            // Filter documents by logged in user
+            // Documents are already filtered by requesterId on the backend
             const userDocuments = documents
             
             // Store documents globally for tab functionality

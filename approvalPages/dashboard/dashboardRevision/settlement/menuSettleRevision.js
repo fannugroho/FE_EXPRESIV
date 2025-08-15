@@ -60,7 +60,7 @@ async function loadDashboard() {
 async function updateCounters(userId) {
     try {
         // Fetch counts for each status
-        const revisionResponse = await fetch(`${BASE_URL}/api/settlements/dashboard/revision?filterType=revision`, {
+        const revisionResponse = await fetch(`${BASE_URL}/api/settlements/dashboard/revision?filterType=revision&userId=${userId}`, {
             headers: { 'Authorization': `Bearer ${getAccessToken()}` }
         });
         const preparedResponse = await fetch(`${BASE_URL}/api/settlements/dashboard/revision?filterType=prepared&userId=${userId}`, {
@@ -93,7 +93,7 @@ async function filterAndDisplayDocuments(userId) {
         
         // Build URL based on current tab
         if (currentTab === 'revision') {
-            url = `${BASE_URL}/api/settlements/dashboard/revision?filterType=revision`;
+            url = `${BASE_URL}/api/settlements/dashboard/revision?filterType=revision&userId=${userId}`;
         } else if (currentTab === 'prepared') {
             url = `${BASE_URL}/api/settlements/dashboard/revision?filterType=prepared&userId=${userId}`;
         }

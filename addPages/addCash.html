@@ -51,11 +51,6 @@
                     <input type="text" id="requesterSearch" placeholder="Search requester" class="w-full p-2 border rounded" onkeyup="filterRequesters()" autocomplete="off">
                     <select id="RequesterId" class="hidden" autocomplete="off">
                         <option value="">Select a requester</option>
-                        <option value="11097637-5e4c-45ca-b0b5-c1b590807e30">Ahmad Rizki Pratama</option>
-                        <option value="3daf1851-c6f2-4e64-8910-77e69d59e95b">Siti Nurhaliza Dewi</option>
-                        <option value="5872cfb9-6f39-4653-8ace-b195caa844b8">Budi Santoso Wijaya</option>
-                        <option value="cfcc3bc7-e37a-4878-a36d-9885b20fb0d5">Maya Indira Sari</option>
-                        <option value="deda05c6-8688-4d19-8f52-c0856a5752f4">Dimas Aryo Nugroho</option>
                     </select>
                     <div id="requesterDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded max-h-60 overflow-y-auto"></div>
                 </div>
@@ -72,6 +67,10 @@
             <div>
                 <h3 class="text-lg font-semibold mb-2">Department</h3>
                 <select id="department" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
+                </select>
+                <h3 class="text-lg font-semibold mb-2">Currency <span class="text-red-500">*</span></h3>
+                <select id="Currency" class="w-full p-2 border rounded" autocomplete="off">
+                    <option value="" disabled selected>Select Currency</option>
                 </select>
                 <h3 class="text-lg font-semibold mb-2">Submission Date</h3>
                 <input type="date" id="SubmissionDate" class="w-full p-2 border rounded" autocomplete="off">
@@ -117,7 +116,7 @@
                         <input type="text" class="description w-full" maxlength="200" autocomplete="off" />
                     </td>
                     <td class="p-2 border">
-                        <input type="text" value="0.00" class="total w-full currency-input-idr" oninput="formatCurrencyInputIDR(this)" required autocomplete="off" />
+                        <input type="text" value="0.00" class="total w-full" required autocomplete="off" />
                     </td>
                     <td class="p-2 border text-center">
                         <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -221,146 +220,78 @@
         </div>
     </div>
     <script>
-    // Fungsi untuk memformat angka dengan format US (koma sebagai pemisah ribuan, titik sebagai pemisah desimal)
-    function formatCurrencyIDR(number) {
-        // Handle input kosong atau tidak valid
-        if (number === null || number === undefined || number === '') {
-            return '0.00';
+    // Simple number formatting with .00 decimal places
+    function formatNumberWithDecimals(input) {
+        // Get the numeric value
+        let value = input.value.replace(/[^\d.]/g, '');
+        
+        // If empty, set to 0.00
+        if (!value) {
+            input.value = '0.00';
+            return;
         }
         
-        // Parse angka, pastikan dapat menangani nilai yang sangat besar
-        let num;
-        try {
-            // Handle input string yang mungkin sangat besar
-            if (typeof number === 'string') {
-                // Hapus semua karakter non-numerik kecuali titik desimal dan koma
-                const cleanedStr = number.replace(/[^\d,.]/g, '');
-                // Gunakan parseFloat untuk angka kecil, dan untuk angka besar gunakan teknik string
-                if (cleanedStr.length > 15) {
-                    // Untuk angka yang sangat besar, kita perlu menangani dengan hati-hati
-                    // Hapus koma dan parse
-                    num = Number(cleanedStr.replace(/,/g, ''));
-                } else {
-                    num = parseFloat(cleanedStr.replace(/,/g, ''));
-                }
-            } else {
-                num = Number(number); // Gunakan Number untuk menangani angka besar dengan lebih baik
-            }
-            
-            // Jika parsing gagal, kembalikan string kosong
-            if (isNaN(num)) {
-                return '0.00';
-            }
-        } catch (e) {
-            console.error('Error parsing number:', e);
-            return '0.00';
+        // Parse as float
+        let num = parseFloat(value);
+        if (isNaN(num)) {
+            input.value = '0.00';
+            return;
         }
         
-        // Batasi maksimum 100 triliun
-        const maxAmount = 100000000000000; // 100 triliun
-        if (num > maxAmount) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Jumlah Melebihi Batas',
-                text: 'Total amount tidak boleh melebihi 100 triliun rupiah'
-            });
-            num = maxAmount;
-        }
+        // Format with 2 decimal places
+        input.value = num.toFixed(2);
         
-        // Bulatkan angka ke bilangan bulat (tanpa desimal)
-        num = Math.floor(num);
-        
-        // Format dengan format US (koma sebagai pemisah ribuan, titik sebagai pemisah desimal)
-        // Untuk angka yang sangat besar, gunakan metode manual
-        if (num >= 1e12) { // Jika angka >= 1 triliun
-            let strNum = num.toString();
-            let result = '';
-            let count = 0;
-            
-            // Tambahkan koma setiap 3 digit dari belakang
-            for (let i = strNum.length - 1; i >= 0; i--) {
-                result = strNum[i] + result;
-                count++;
-                if (count % 3 === 0 && i > 0) {
-                    result = ',' + result;
-                }
-            }
-            
-            // Tambahkan 2 desimal tetap
-            return result + '.00';
-        } else {
-            // Untuk angka yang lebih kecil, gunakan toLocaleString
-            // Tetap tambahkan .00 di akhir
-            return num.toLocaleString('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
-        }
-    }
-
-    // Fungsi untuk mengurai format angka US kembali ke angka
-    function parseCurrencyIDR(formattedValue) {
-        if (!formattedValue) return 0;
-        
-        try {
-            // Tangani format US (pemisah ribuan: ',', pemisah desimal: '.')
-            // Hapus koma (pemisah ribuan) dan bagian desimal
-            const numericValue = formattedValue.toString().replace(/,/g, '').split('.')[0];
-            
-            return parseInt(numericValue) || 0;
-        } catch (e) {
-            console.error('Error parsing currency:', e);
-            return 0;
-        }
-    }
-
-    // Fungsi untuk memformat input nilai mata uang saat pengguna mengetik
-    function formatCurrencyInputIDR(input) {
-        // Simpan posisi kursor
-        const cursorPos = input.selectionStart;
-        const originalLength = input.value.length;
-        
-        // Ambil nilai dan hapus semua karakter non-digit dan koma (tidak termasuk titik desimal)
-        let value = input.value.replace(/[^\d,]/g, '');
-        
-        // Parse nilai ke angka untuk perhitungan (hanya bilangan bulat)
-        const numValue = parseCurrencyIDR(value);
-        
-        // Format dengan format US, selalu dengan .00 di akhir
-        const formattedValue = formatCurrencyIDR(numValue);
-        
-        // Perbarui nilai input
-        input.value = formattedValue;
-        
-        // Hitung dan perbarui total
+        // Calculate total
         calculateTotalAmount();
+    }
+    
+    // Real-time formatting as user types
+    function formatNumberAsYouType(input) {
+        // Get the numeric value
+        let value = input.value.replace(/[^\d.]/g, '');
         
-        // Sesuaikan posisi kursor, tapi pastikan tidak berada di bagian desimal
-        const newLength = input.value.length;
-        let newCursorPos = cursorPos + (newLength - originalLength);
-        
-        // Jika kursor berada di bagian desimal, pindahkan ke sebelum titik desimal
-        const decimalPointPos = input.value.indexOf('.');
-        if (decimalPointPos >= 0 && newCursorPos > decimalPointPos) {
-            newCursorPos = decimalPointPos;
+        // If empty, set to 0.00
+        if (!value) {
+            input.value = '0.00';
+            return;
         }
         
-        input.setSelectionRange(Math.max(0, newCursorPos), Math.max(0, newCursorPos));
+        // Parse as float
+        let num = parseFloat(value);
+        if (isNaN(num)) {
+            input.value = '0.00';
+            return;
+        }
+        
+        // Check if user has typed a decimal point
+        const hasDecimal = input.value.includes('.');
+        
+        if (hasDecimal) {
+            // User is typing decimals, preserve their input
+            // Just ensure it's a valid number
+            input.value = num.toString();
+        } else {
+            // User typed a whole number, add .00
+            input.value = num.toFixed(2);
+        }
+        
+        // Calculate total
+        calculateTotalAmount();
     }
-
-    // Override fungsi calculateTotalAmount untuk menggunakan format mata uang baru
+    
     function calculateTotalAmount() {
         const totalInputs = document.querySelectorAll('.total');
         let sum = 0;
         
         totalInputs.forEach(input => {
-            // Ekstrak nilai numerik dari input menggunakan fungsi parseCurrencyIDR
-            const numericValue = parseCurrencyIDR(input.value);
-            sum += numericValue;
+            const value = input.value.trim();
+            if (value && !isNaN(parseFloat(value))) {
+                sum += parseFloat(value);
+            }
         });
         
-        // Format total dengan format US dan tampilkan
-        const formattedSum = formatCurrencyIDR(sum);
+        // Format the sum with 2 decimal places
+        const formattedSum = sum.toFixed(2);
         
         // Update the total amount display
         const totalAmountDisplay = document.getElementById('totalAmountDisplay');
@@ -368,54 +299,26 @@
             totalAmountDisplay.textContent = formattedSum;
         }
     }
-
-    // Modifikasi fungsi addRow untuk menggunakan format mata uang baru
-    const originalAddRow = window.addRow;
-    window.addRow = function() {
-        // Panggil fungsi asli
-        originalAddRow();
-        
-        // Ambil baris terakhir yang baru ditambahkan
-        const tableBody = document.getElementById('tableBody');
-        const newRow = tableBody.lastElementChild;
-        
-        // Ubah input untuk format mata uang
-        const amountInput = newRow.querySelector('.total');
-        if (amountInput) {
-            amountInput.type = 'text';
-            amountInput.classList.add('currency-input-idr');
-            amountInput.value = '0.00'; // Set nilai default
-            amountInput.removeAttribute('step');
-            amountInput.removeAttribute('maxlength');
-            amountInput.setAttribute('autocomplete', 'off'); // Tambahkan autocomplete="off"
-            
-            // Ganti event handler
-            amountInput.removeAttribute('onchange');
-            amountInput.setAttribute('oninput', 'formatCurrencyInputIDR(this)');
-        }
-    };
-
-    // Inisialisasi semua input mata uang yang ada
+    
+    // Initialize amount inputs
     document.addEventListener('DOMContentLoaded', function() {
-        // Ubah semua input amount yang sudah ada
-        const existingInputs = document.querySelectorAll('.total');
-        existingInputs.forEach(input => {
-            input.removeAttribute('step');
-            input.removeAttribute('maxlength');
-            input.setAttribute('autocomplete', 'off'); // Tambahkan autocomplete="off"
-            
-            // Pastikan input memiliki nilai default
+        const amountInputs = document.querySelectorAll('.total');
+        amountInputs.forEach(input => {
+            // Set default value
             if (!input.value) {
                 input.value = '0.00';
-            } else {
-                // Format nilai yang sudah ada
-                const numValue = parseFloat(input.value) || 0;
-                input.value = formatCurrencyIDR(numValue);
             }
+            
+            // Add event listeners
+            input.addEventListener('blur', function() {
+                formatNumberWithDecimals(this);
+            });
+            
+            input.addEventListener('input', function() {
+                // Format as user types for consistent display
+                formatNumberAsYouType(this);
+            });
         });
-        
-        // Inisialisasi total amount
-        calculateTotalAmount();
     });
     </script>
 </body>

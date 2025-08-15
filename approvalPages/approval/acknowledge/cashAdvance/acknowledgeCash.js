@@ -54,100 +54,55 @@ async function getCOA(category, accountName, departmentId, transactionType) {
     }
 }
 
-// Function to fetch CA details when the page loads
 window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
     caId = urlParams.get('ca-id');
-    currentTab = urlParams.get('tab'); // Get the tab parameter
-    
-    if (caId) {
-        fetchCADetails(caId);
-    }
-    
-    // Hide approve/reject buttons if viewing from acknowledged or rejected tabs
-    if (currentTab === 'acknowledged' || currentTab === 'rejected') {
-        hideApprovalButtons();
-    }
-    
-    // Hide revision button if viewing from acknowledged or rejected tabs
-    if (currentTab === 'acknowledged' || currentTab === 'rejected') {
-        hideRevisionButton();
-    }
+    currentTab = urlParams.get('tab');
+    if (caId) fetchCADetails(caId);
+    if (currentTab === 'acknowledged' || currentTab === 'rejected') hideApprovalButtons();
+    if (currentTab === 'acknowledged' || currentTab === 'rejected') hideRevisionButton();
 };
 
 function fetchCADetails(caId) {
     fetch(`${BASE_URL}/api/cash-advance/${caId}`)
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(errorData => {
-                    throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
-                });
-            }
-            return response.json();
-        })
-        .then(response => {
-            if (response.data) {
-                console.log(response.data);
-                populateCADetails(response.data);
-                
-                // Always fetch dropdown options
-                fetchDropdownOptions(response.data);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error fetching CA details: ' + error.message);
-        });
+        .then(response => response.ok ? response.json() : response.json().then(e => { throw new Error(e.message || `HTTP error! Status: ${response.status}`); }))
+        .then(response => { if (response.data) populateCADetails(response.data); })
+        .catch(error => { console.error('Error:', error); alert('Error fetching CA details: ' + error.message); });
 }
 
 function populateCADetails(data) {
-    // Populate basic CA information
     document.getElementById('invno').value = data.cashAdvanceNo;
-    // Store employeeId to be populated when users are fetched
-    window.currentEmployeeId = data.employeeId || '';
+    document.getElementById('Employee').value = data.employeeNIK || '';
     document.getElementById('EmployeeName').value = data.employeeName || '';
     document.getElementById('requester').value = data.requesterName;
     document.getElementById('purposed').value = data.purpose;
-    document.getElementById('paidTo').value = data.payToBusinessPartnerName || '';
+    document.getElementById('paidTo').value = data.payToName || data.payToBusinessPartnerName || '';
+    document.getElementById('postingDate').value = data.submissionDate ? data.submissionDate.split('T')[0] : '';
     document.getElementById('remarks').value = data.remarks || '';
-
-    // Format and set dates
-    const submissionDate = data.submissionDate ? data.submissionDate.split('T')[0] : '';
-    document.getElementById('postingDate').value = submissionDate;
-    
-    // Set transaction type - create option directly from backend data
+    document.getElementById('Currency').value = data.currency || '';
     const transactionTypeSelect = document.getElementById('typeTransaction');
     if (data.transactionType && transactionTypeSelect) {
-        transactionTypeSelect.innerHTML = ''; // Clear existing options
+        transactionTypeSelect.innerHTML = '';
         const option = document.createElement('option');
         option.value = data.transactionType;
         option.textContent = data.transactionType;
         option.selected = true;
         transactionTypeSelect.appendChild(option);
-        
-        // Call toggleClosedBy after setting transaction type
-        if (typeof toggleClosedBy === 'function') {
-            toggleClosedBy();
-        }
+        if (typeof toggleClosedBy === 'function') toggleClosedBy();
     }
-
-    // Set department - create option directly from backend data
     const departmentSelect = document.getElementById('department');
     if (data.departmentName && departmentSelect) {
-        departmentSelect.innerHTML = ''; // Clear existing options
+        departmentSelect.innerHTML = '';
         const option = document.createElement('option');
-        option.value = data.departmentName; // Use department name as value since backend returns string
+        option.value = data.departmentName;
         option.textContent = data.departmentName;
         option.selected = true;
         departmentSelect.appendChild(option);
     }
-
-    // Set status
     if (data && data.status) {
-        console.log('Status:', data.status);
         const statusSelect = document.getElementById('docStatus');
         if (statusSelect) {
-            statusSelect.innerHTML = ''; // Clear existing options
+            statusSelect.innerHTML = '';
             const option = document.createElement('option');
             option.value = data.status;
             option.textContent = data.status;
@@ -155,23 +110,27 @@ function populateCADetails(data) {
             statusSelect.appendChild(option);
         }
     }
-    
-    // Handle cash advance details (amount breakdown)
-    if (data.cashAdvanceDetails) {
-        populateCashAdvanceDetails(data.cashAdvanceDetails);
-    }
-    
-    // Display attachments if they exist
-    console.log('Attachments data:', data.attachments);
-    if (data.attachments) {
-        console.log('Displaying attachments:', data.attachments.length, 'attachments found');
-        displayAttachments(data.attachments);
-    } else {
-        console.log('No attachments found in data');
-    }
-    
-    // Make all fields read-only since this is an approval page
+    if (data.cashAdvanceDetails) populateCashAdvanceDetails(data.cashAdvanceDetails);
+    if (data.attachments) displayAttachments(data.attachments);
+    else displayAttachments([]);
+    displayRevisedRemarks(data);
     makeAllFieldsReadOnly();
+    const approvalMap = [
+      { id: 'preparedBySearch', value: data.preparedName },
+      { id: 'checkedBySearch', value: data.checkedName },
+      { id: 'acknowledgedBySearch', value: data.acknowledgedName },
+      { id: 'approvedBySearch', value: data.approvedName },
+      { id: 'receivedBySearch', value: data.receivedName },
+      { id: 'closedBySearch', value: data.closedName }
+    ];
+    approvalMap.forEach(f => {
+      const el = document.getElementById(f.id);
+      if (el) {
+        el.value = f.value || '';
+        el.readOnly = true;
+        el.classList.add('bg-gray-100');
+      }
+    });
 }
 
 function populateCashAdvanceDetails(details) {
@@ -200,7 +159,7 @@ function populateCashAdvanceDetails(details) {
                 <input type="text" value="${detail.description || ''}" class="w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border">
-                <input type="number" value="${detail.amount || ''}" class="w-full bg-gray-100" readonly />
+                <input type="number" value="${detail.amount ? parseFloat(detail.amount).toFixed(2) : '0.00'}" class="total w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border text-center">
                 <!-- Read-only view, no action buttons -->
@@ -208,88 +167,37 @@ function populateCashAdvanceDetails(details) {
         `;
         tableBody.appendChild(row);
     });
+    
+    // Calculate total amount after populating all rows
+    calculateTotalAmount();
+}
+
+// Function to calculate total amount from all rows
+function calculateTotalAmount() {
+    const totalInputs = document.querySelectorAll('.total');
+    let sum = 0;
+    
+    totalInputs.forEach(input => {
+        // Only add to sum if the input has a valid numeric value
+        const value = input.value.trim();
+        if (value && !isNaN(parseFloat(value))) {
+            sum += parseFloat(value);
+        }
+    });
+    
+    // Format the sum with 2 decimal places
+    const formattedSum = sum.toFixed(2);
+    
+    // Update the total amount display
+    const totalAmountDisplay = document.getElementById('totalAmountDisplay');
+    if (totalAmountDisplay) {
+        totalAmountDisplay.textContent = formattedSum;
+    }
 }
 
 // Function to fetch all dropdown options
 function fetchDropdownOptions(caData = null) {
-    fetchUsers(caData);
-}
-
-// Function to fetch users from API
-function fetchUsers(caData = null) {
-    fetch(`${BASE_URL}/api/users`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            populateUserSelects(data.data, caData);
-        })
-        .catch(error => {
-            console.error('Error fetching users:', error);
-        });
-}
-
-function populateUserSelects(users, caData = null) {
-    const selects = [
-        { id: 'prepared', approvalKey: 'preparedById', searchId: 'preparedBySearch' },
-        { id: 'Checked', approvalKey: 'checkedById', searchId: 'checkedBySearch' },
-        { id: 'Acknowledged', approvalKey: 'acknowledgedById', searchId: 'knowledgeBySearch' },
-        { id: 'Approved', approvalKey: 'approvedById', searchId: 'approvedBySearch' },
-        { id: 'Received', approvalKey: 'receivedById', searchId: 'receivedBySearch' },
-        { id: 'Closed', approvalKey: 'closedById', searchId: 'closedBySearch' }
-    ];
-    
-    selects.forEach(selectInfo => {
-        const select = document.getElementById(selectInfo.id);
-        if (select) {
-            select.innerHTML = '<option value="" disabled>Select User</option>';
-            
-            users.forEach(user => {
-                const option = document.createElement("option");
-                option.value = user.id;
-                option.textContent = user.fullName;
-                select.appendChild(option);
-            });
-            
-            // Set the value from CA data if available and update search input
-            if (caData && caData[selectInfo.approvalKey]) {
-                select.value = caData[selectInfo.approvalKey];
-                
-                // Update the search input to display the selected user's name
-                const searchInput = document.getElementById(selectInfo.searchId);
-                if (searchInput) {
-                    const selectedUser = users.find(user => user.id === caData[selectInfo.approvalKey]);
-                    if (selectedUser) {
-                        searchInput.value = selectedUser.fullName;
-                    }
-                }
-            }
-        }
-    });
-    
-    // Find and populate the employee NIK using the stored employeeId
-    if (window.currentEmployeeId) {
-        const employee = users.find(user => user.id === window.currentEmployeeId);
-        if (employee) {
-            // Use NIK if available, otherwise use username or id
-            const employeeIdentifier = employee.kansaiEmployeeId || employee.username || employee.id;
-            document.getElementById('Employee').value = employeeIdentifier;
-        }
-    }
-    
-    // Setup click-outside-to-close behavior for all dropdowns
-    document.addEventListener('click', function(event) {
-        const dropdowns = document.querySelectorAll('.search-dropdown');
-        dropdowns.forEach(dropdown => {
-            const searchInput = document.getElementById(dropdown.id.replace('Dropdown', 'Search'));
-            if (searchInput && !searchInput.contains(event.target) && !dropdown.contains(event.target)) {
-                dropdown.classList.add('hidden');
-            }
-        });
-    });
+    // This function is no longer needed
 }
 
 // Function to approve CA (acknowledge)
@@ -453,7 +361,7 @@ function updateCAStatusWithRemarks(status, remarks) {
 
     // Show loading
     Swal.fire({
-        title: `${status === 'approve' ? 'Acknowledging' : 'Rejecting'}...`,
+        title: status === 'revise' ? 'Submitting Revision...' : (status === 'approve' ? 'Approving...' : 'Rejecting...'),
         text: 'Please wait while we process your request.',
         allowOutsideClick: false,
         didOpen: () => {
@@ -473,7 +381,9 @@ function updateCAStatusWithRemarks(status, remarks) {
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
-                text: `CA ${status === 'approve' ? 'acknowledged' : 'rejected'} successfully`,
+                text: status === 'revise'
+                    ? 'Revision submitted successfully'
+                    : `CA ${status === 'approve' ? 'approved' : 'rejected'} successfully`,
                 timer: 2000,
                 showConfirmButton: false
             }).then(() => {
@@ -488,22 +398,29 @@ function updateCAStatusWithRemarks(status, remarks) {
     })
     .catch(error => {
         console.error('Error:', error);
+        let errorAction = 'processing';
+        if (status === 'approve') errorAction = 'approving';
+        else if (status === 'reject') errorAction = 'rejecting';
+        else if (status === 'revise') errorAction = 'submitting revision for';
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Error ${status === 'approve' ? 'acknowledging' : 'rejecting'} CA: ` + error.message
+            text: `Error ${errorAction} CA: ` + error.message
         });
     });
 }
 
-function goToMenuCash() {
-    window.location.href = "../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html";
-}
 
 // Function for Back button navigation
 function goToMenuAcknowCash() {
     window.location.href = "../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html";
 }
+
+// Initialize total amount calculation when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate initial total
+    calculateTotalAmount();
+});
 
 function previewPDF(event) {
     const files = event.target.files;
@@ -561,56 +478,14 @@ function deleteRow(button) {
     button.closest("tr").remove();
 }
 
-// Function to make all fields read-only for approval view
 function makeAllFieldsReadOnly() {
-    // Make all input fields read-only except revision textarea
-    const inputFields = document.querySelectorAll('input[type="text"]:not([id$="Search"]), input[type="date"], input[type="number"], textarea:not(#revision)');
-    inputFields.forEach(field => {
-        field.readOnly = true;
-        field.classList.add('bg-gray-100', 'cursor-not-allowed');
+    document.querySelectorAll('input, textarea, select').forEach(el => {
+        if (!el.classList.contains('action-btn')) {
+            el.readOnly = true;
+            el.disabled = true;
+            el.classList.add('bg-gray-100');
+        }
     });
-    
-    // Make search inputs read-only but with normal styling
-    const searchInputs = document.querySelectorAll('input[id$="Search"]');
-    searchInputs.forEach(field => {
-        field.readOnly = true;
-        field.classList.add('bg-gray-50');
-        // Remove the onkeyup event to prevent search triggering
-        field.removeAttribute('onkeyup');
-    });
-    
-    // Disable all select fields
-    const selectFields = document.querySelectorAll('select');
-    selectFields.forEach(field => {
-        field.disabled = true;
-        field.classList.add('bg-gray-100', 'cursor-not-allowed');
-    });
-    
-    // Disable all checkboxes
-    const checkboxFields = document.querySelectorAll('input[type="checkbox"]');
-    checkboxFields.forEach(field => {
-        field.disabled = true;
-        field.classList.add('cursor-not-allowed');
-    });
-    
-    // Hide add row button
-    const addRowButton = document.querySelector('button[onclick="addRow()"]');
-    if (addRowButton) {
-        addRowButton.style.display = 'none';
-    }
-    
-    // Hide all delete row buttons
-    const deleteButtons = document.querySelectorAll('button[onclick="deleteRow(this)"]');
-    deleteButtons.forEach(button => {
-        button.style.display = 'none';
-    });
-    
-    // Disable file upload
-    const fileInput = document.getElementById('Reference');
-    if (fileInput) {
-        fileInput.disabled = true;
-        fileInput.classList.add('bg-gray-100', 'cursor-not-allowed');
-    }
 }
 
 // Function to hide approval buttons
@@ -744,97 +619,7 @@ function submitRevision() {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Prepare revision data
-            const revisionData = {
-                id: caId,
-                UserId: userId,
-                Status: 'revise',
-                RevisionRemarks: allRemarks.trim()
-            };
-
-            // Show loading
-            Swal.fire({
-                title: 'Submitting Revision...',
-                text: 'Please wait while we process your revision request.',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            // TODO: Replace with actual revision API endpoint when available
-            // For now, this is a dummy implementation
-            console.log('Revision data to be sent:', revisionData);
-            
-            // Simulate API call delay
-            setTimeout(() => {
-                // TODO: Replace this simulation with actual API call
-                /*
-                fetch(`${BASE_URL}/api/cash-advance/revision`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(revisionData)
-                })
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    } else {
-                        return response.json().then(errorData => {
-                            throw new Error(errorData.message || `Failed to submit revision. Status: ${response.status}`);
-                        });
-                    }
-                })
-                .then(data => {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Revision Submitted!',
-                        text: 'Your revision request has been submitted successfully.',
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(() => {
-                        // Navigate back to the dashboard
-                        window.location.href = '../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html';
-                    });
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Error submitting revision: ' + error.message
-                    });
-                });
-                */
-                
-                // Dummy success response
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Revision Submitted!',
-                    text: 'Your revision request has been submitted successfully. (This is a dummy response - integrate with actual API)',
-                    timer: 3000,
-                    showConfirmButton: true
-                }).then(() => {
-                    // Clear the revision fields
-                    const revisionContainer = document.getElementById('revisionContainer');
-                    revisionContainer.innerHTML = '';
-                    revisionContainer.classList.add('hidden');
-                    
-                    // Reset add button
-                    const addBtn = document.getElementById('addRevisionBtn');
-                    addBtn.textContent = '+ Add revision';
-                    addBtn.style.display = 'block';
-                    
-                    // Disable revision button again
-                    const revisionBtn = document.getElementById('revisionBtn');
-                    revisionBtn.disabled = true;
-                    revisionBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                    
-                    // Optionally navigate back to dashboard
-                    // window.location.href = '../../../dashboard/dashboardAcknowledge/cashAdvance/menuCashAcknow.html';
-                });
-            }, 1500); // Simulate API delay
+            updateCAStatusWithRemarks('revise', allRemarks);
         }
     });
 }
@@ -1074,6 +859,86 @@ function checkRevisionButton() {
     } else {
         revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
         revisionButton.disabled = true;
+    }
+}
+
+// Function to display revised remarks from API
+function displayRevisedRemarks(data) {
+    const revisedRemarksSection = document.getElementById('revisedRemarksSection');
+    const revisedCountElement = document.getElementById('revisedCount');
+    
+    // Check if there are any revisions
+    const hasRevisions = data.revisions && data.revisions.length > 0;
+    
+    if (hasRevisions) {
+        revisedRemarksSection.style.display = 'block';
+        
+        // Clear existing revision content from the revisedRemarksSection
+        revisedRemarksSection.innerHTML = `
+            <h3 class="text-lg font-semibold mb-2 text-gray-800">Revision History</h3>
+            <div class="bg-gray-50 p-4 rounded-lg border">
+                <div class="mb-2">
+                    <span class="text-sm font-medium text-gray-600">Total Revisions: </span>
+                    <span id="revisedCount" class="text-sm font-bold text-blue-600">${data.revisions.length}</span>
+                </div>
+                <!-- Dynamic revision content will be inserted here by JavaScript -->
+            </div>
+        `;
+        
+        // Group revisions by stage
+        const revisionsByStage = {};
+        data.revisions.forEach(revision => {
+            // Map enum values to display names
+            let stageName = 'Unknown';
+            if (revision.stage === 'Checked' || revision.stage === 1) {
+                stageName = 'Checked';
+            } else if (revision.stage === 'Acknowledged' || revision.stage === 2) {
+                stageName = 'Acknowledged';
+            } else if (revision.stage === 'Approved' || revision.stage === 3) {
+                stageName = 'Approved';
+            } else if (revision.stage === 'Received' || revision.stage === 4) {
+                stageName = 'Received';
+            }
+            
+            if (!revisionsByStage[stageName]) {
+                revisionsByStage[stageName] = [];
+            }
+            revisionsByStage[stageName].push(revision);
+        });
+        
+        // Display revisions grouped by stage
+        Object.keys(revisionsByStage).forEach(stage => {
+            const stageRevisions = revisionsByStage[stage];
+            
+            // Create stage header
+            const stageHeader = document.createElement('div');
+            stageHeader.className = 'mb-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded';
+            stageHeader.innerHTML = `
+                <h4 class="text-sm font-bold text-blue-800 mb-2">${stage} Stage Revisions (${stageRevisions.length})</h4>
+            `;
+            revisedRemarksSection.appendChild(stageHeader);
+            
+            // Display each revision in this stage
+            stageRevisions.forEach((revision, index) => {
+                const revisionContainer = document.createElement('div');
+                revisionContainer.className = 'mb-3 ml-4';
+                revisionContainer.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <label class="text-sm font-medium text-gray-700">Revision ${index + 1}:</label>
+                            <div class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap">${revision.remarks || ''}</div>
+                            <div class="text-xs text-gray-500 mt-1">
+                                Date: ${revision.revisionDate ? new Date(revision.revisionDate).toLocaleDateString() : 'N/A'}
+                                ${revision.revisedByName ? ` | By: ${revision.revisedByName}` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                revisedRemarksSection.appendChild(revisionContainer);
+            });
+        });
+    } else {
+        revisedRemarksSection.style.display = 'none';
     }
 }
 
