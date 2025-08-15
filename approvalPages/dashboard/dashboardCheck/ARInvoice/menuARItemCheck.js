@@ -623,26 +623,31 @@ function goToTotalDocs() {
     console.log('Navigate to total documents');
 }
 
-window.viewInvoiceDetails = function (id) {
-    // Find the invoice data to get docType
-    const invoice = allInvoices.find(inv => inv.id === id);
+// window.viewInvoiceDetails = function (id) {
+//     // Find the invoice data to get docType
+//     const invoice = allInvoices.find(inv => inv.id === id);
 
-    if (invoice) {
-        // Route based on docType
-        if (invoice.docType === 'I') {
-            // Navigate to invoice item check page
-            window.location.href = `../../../approval/check/invoiceItem/checkInvItem.html?stagingId=${id}`;
-        } else if (invoice.docType === 'S') {
-            // Navigate to invoice service check page
-            window.location.href = `../../../approval/check/invoiceServices/checkInvService.html?stagingId=${id}`;
-        } else {
-            // Default fallback to invoice item page
-            window.location.href = `../../../approval/check/invoiceItem/checkInvItem.html?stagingId=${id}`;
-        }
-    } else {
-        // Fallback if invoice not found
-        window.location.href = `../../../approval/check/invoiceItem/checkInvItem.html?stagingId=${id}`;
-    }
+//     if (invoice) {
+//         // Route based on docType
+//         if (invoice.docType === 'I') {
+//             // Navigate to invoice item check page
+//             window.location.href = `../../../approval/check/invoiceItem/checkInvItem.html?stagingId=${id}`;
+//         } else if (invoice.docType === 'S') {
+//             // Navigate to invoice service check page
+//             window.location.href = `../../../approval/check/invoiceServices/checkInvService.html?stagingId=${id}`;
+//         } else {
+//             // Default fallback to invoice item page
+//             window.location.href = `../../../approval/check/invoiceItem/checkInvItem.html?stagingId=${id}`;
+//         }
+//     } else {
+//         // Fallback if invoice not found
+//         window.location.href = `../../../approval/check/invoiceItem/checkInvItem.html?stagingId=${id}`;
+//     }
+// };
+
+window.viewInvoiceDetails = function (id) {
+    // Selalu redirect ke halaman PartApprovalInvItem.html tanpa cek docType
+    window.location.href = `../../../approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${id}`;
 };
 
 window.editInvoice = function (id) {

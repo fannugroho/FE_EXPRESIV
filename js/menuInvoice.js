@@ -216,6 +216,13 @@ function getLocalUserId() {
 // Function to get user's Kansai Employee ID from API
 async function getUserKansaiEmployeeId(userId) {
     try {
+        // Check if we have cached data first
+        const cachedKansaiEmployeeId = localStorage.getItem('kansaiEmployeeId');
+        if (cachedKansaiEmployeeId) {
+            console.log('Using cached Kansai Employee ID:', cachedKansaiEmployeeId);
+            return cachedKansaiEmployeeId;
+        }
+
         console.log('Fetching user details for ID:', userId);
 
         const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
@@ -233,7 +240,9 @@ async function getUserKansaiEmployeeId(userId) {
         console.log('User API response:', result);
 
         if (result.status && result.data && result.data.kansaiEmployeeId) {
-            console.log('Kansai Employee ID found:', result.data.kansaiEmployeeId);
+            // Store in localStorage for future use
+            localStorage.setItem('kansaiEmployeeId', result.data.kansaiEmployeeId);
+            console.log('Kansai Employee ID found and stored:', result.data.kansaiEmployeeId);
             return result.data.kansaiEmployeeId;
         } else {
             console.warn('No valid Kansai Employee ID found in user data');

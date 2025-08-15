@@ -683,24 +683,24 @@ function goToTotalDocs() {
 }
 
 window.viewInvoiceDetails = function(stagingId) {
-    // Find the invoice data to get docType
+    // Cari data invoice untuk dapatkan docType
     const invoice = allInvoices.find(inv => inv.id === stagingId);
     
     if (invoice) {
-        // Route based on docType
+        // Routing berdasarkan docType
         if (invoice.docType === 'I') {
-            // Navigate to acknowledge invoice item page
-            window.location.href = `../../../approval/acknowledge/InvoiceItem/acknowInvItem.html?stagingId=${stagingId}`;
+            // AR Invoice Item Approval
+            window.location.href = `../../../approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${stagingId}`;
         } else if (invoice.docType === 'S') {
-            // Navigate to acknowledge invoice service page
-            window.location.href = `../../../approval/acknowledge/InvoiceService/acknowInvService.html?stagingId=${stagingId}`;
+            // AR Invoice Service Approval
+            window.location.href = `../../../approval/02.ARInvoice/Approval/PartApprovalInvService.html?stagingID=${stagingId}`;
         } else {
-            // Default fallback to invoice item page
-            window.location.href = `../../../approval/acknowledge/InvoiceItem/acknowInvItem.html?stagingId=${stagingId}`;
+            // Default ke Invoice Item Approval
+            window.location.href = `../../../approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${stagingId}`;
         }
     } else {
-        // If invoice not found, default to invoice item page
-        window.location.href = `../../../approval/acknowledge/InvoiceItem/acknowInvItem.html?stagingId=${stagingId}`;
+        // Kalau invoice tidak ditemukan
+        window.location.href = `../../../approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${stagingId}`;
     }
 };
 

@@ -8,10 +8,10 @@ window.BYPASS_AUTH_FOR_DEVELOPMENT = BYPASS_AUTH_FOR_DEVELOPMENT;
 // API Configuration - Environment-specific
 if (typeof BASE_URL === 'undefined') {
   // Production environment
-  var BASE_URL = "https://expressiv-be-sb.idsdev.site";
+  // var BASE_URL = "https://expressiv-be-sb.idsdev.site";
 
   // Development environment (uncomment for local development)
-  // var BASE_URL = "http://localhost:5249";
+  var BASE_URL = "http://localhost:5249";
 
   // Staging environment (uncomment for staging)
   // var BASE_URL = "https://expressiv.idsdev.site";
@@ -75,6 +75,8 @@ function logoutAuth() {
   localStorage.removeItem("userPermissions");
   localStorage.removeItem("initialPasswordHash");
   localStorage.removeItem("hasOutgoingPaymentAccess");
+  localStorage.removeItem("kansaiEmployeeId");
+  localStorage.removeItem("userData");
   userPermissions = [];
 
   // Redirect to login page with correct relative path
@@ -670,4 +672,47 @@ window.BASE_URL = BASE_URL;
 
 // Make Outgoing Payment access functions available globally
 window.hasOutgoingPaymentAccess = hasOutgoingPaymentAccess;
-window.checkOutgoingPaymentAccessAndRedirect = checkOutgoingPaymentAccessAndRedirect; 
+window.checkOutgoingPaymentAccessAndRedirect = checkOutgoingPaymentAccessAndRedirect;
+
+// Make user data functions available globally
+window.storeUserData = storeUserData;
+window.getStoredKansaiEmployeeId = getStoredKansaiEmployeeId;
+
+// Function to store user data including kansaiEmployeeId
+async function storeUserData(userId) {
+  try {
+    console.log('Storing user data for ID:', userId);
+
+    const response = await fetch(`${BASE_URL}/api/users/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${getAccessToken()}`
+      }
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result.status && result.data) {
+        // Store complete user data
+        localStorage.setItem('userData', JSON.stringify(result.data));
+
+        // Store kansaiEmployeeId separately for easy access
+        if (result.data.kansaiEmployeeId) {
+          localStorage.setItem('kansaiEmployeeId', result.data.kansaiEmployeeId);
+          console.log('Kansai Employee ID stored in localStorage:', result.data.kansaiEmployeeId);
+        }
+
+        return result.data;
+      }
+    }
+  } catch (error) {
+    console.error('Error storing user data:', error);
+  }
+  return null;
+}
+
+// Function to get stored kansaiEmployeeId
+function getStoredKansaiEmployeeId() {
+  return localStorage.getItem('kansaiEmployeeId');
+} 
