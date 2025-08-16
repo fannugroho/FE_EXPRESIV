@@ -56,6 +56,56 @@ function wrapText(text, maxLength) {
     return lines.join('<br>');
 }
 
+// Function to create DO Numbers table structure
+function createDONumbersTable(doValues) {
+    if (!doValues || doValues.length === 0) {
+        return `
+            <table class="do-table">
+                <tbody>
+                    <tr>
+                        <td>-</td>
+                    </tr>
+                </tbody>
+            </table>
+        `;
+    }
+
+    let tableHTML = `
+        <table class="do-table">
+            <tbody>
+    `;
+
+    // Group DO numbers into pairs for two columns per row
+    for (let i = 0; i < doValues.length; i += 2) {
+        const firstDO = doValues[i];
+        const secondDO = doValues[i + 1];
+        
+        if (secondDO) {
+            // Two DO numbers in this row
+            tableHTML += `
+                <tr>
+                    <td>${firstDO}</td>
+                    <td>${secondDO}</td>
+                </tr>
+            `;
+        } else {
+            // Only one DO number in this row (last row with odd count)
+            tableHTML += `
+                <tr>
+                    <td>${firstDO}</td>
+                </tr>
+            `;
+        }
+    }
+
+    tableHTML += `
+            </tbody>
+        </table>
+    `;
+
+    return tableHTML;
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     console.log('=== PRINT AR ITEM PAGE LOADED ===');
     console.log('⏰ Load Time:', new Date().toISOString());
@@ -724,25 +774,19 @@ function populateInvoiceData(invoice) {
                 console.log('📋 DO Numbers (normalized):', doValues);
 
                 if (doValues.length > 1) {
-                    doNumbersElement.className = 'field-value multiple';
-                    // Group values into rows of 3; show label only on the first row
-                    const rows = [];
-                    for (let i = 0; i < doValues.length; i += 3) {
-                        const row = doValues.slice(i, i + 3);
-                        const isLastRow = i + 3 >= doValues.length;
-                        const separator = isLastRow ? '.' : ';';
-                        const prefix = i === 0 ? '<strong>DO No.</strong> : ' : '';
-                        rows.push(`<div class="data-item">${prefix}${row.join('; ')}${separator}</div>`);
-                    }
-                    doNumbersElement.innerHTML = rows.join('');
+                    // Create table structure for multiple DO numbers
+                    const tableHTML = createDONumbersTable(doValues);
+                    doNumbersElement.innerHTML = tableHTML;
                 } else {
-                    doNumbersElement.className = 'field-value';
-                    doNumbersElement.innerHTML = `<strong>DO No.</strong> : ${doValues[0]}`;
+                    // Single DO number - still use table for consistency
+                    const tableHTML = createDONumbersTable([doValues[0]]);
+                    doNumbersElement.innerHTML = tableHTML;
                 }
-                console.log('✅ DO Numbers populated');
+                console.log('✅ DO Numbers populated with table structure');
             } else {
-                doNumbersElement.className = 'field-value';
-                doNumbersElement.innerHTML = '<strong>DO No.</strong> : ';
+                // No DO numbers - show empty table
+                const tableHTML = createDONumbersTable([]);
+                doNumbersElement.innerHTML = tableHTML;
                 console.log('❌ No DO Numbers available');
             }
         } else {
