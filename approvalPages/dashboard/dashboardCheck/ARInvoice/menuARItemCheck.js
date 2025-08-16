@@ -646,8 +646,8 @@ function goToTotalDocs() {
 // };
 
 window.viewInvoiceDetails = function (id) {
-    // Selalu redirect ke halaman PartApprovalInvItem.html tanpa cek docType
-    window.location.href = `../../../approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${id}`;
+    // Selalu redirect ke halaman PartApprovalInvItem.html dengan status Checked
+    window.location.href = `../../../approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${id}&status=Checked&source=check`;
 };
 
 window.editInvoice = function (id) {

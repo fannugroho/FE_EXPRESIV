@@ -8,8 +8,129 @@ const AppState = {
     allUsers: [],
     initialized: false,
     docType: 'I', // Default to Item, will be set from URL parameter
-    currentStatus: 'Draft'
+    currentStatus: 'Draft',
+    // New properties for URL parameters
+    urlStatus: null,
+    urlSource: null
 };
+
+// Function to get URL parameters
+function getUrlParameter(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
+}
+
+// Function to update page title based on URL parameters
+function updatePageTitleFromURL() {
+    const status = getUrlParameter('status');
+    const source = getUrlParameter('source');
+
+    if (status && source) {
+        AppState.urlStatus = status;
+        AppState.urlSource = source;
+
+        // Map source to readable text
+        const sourceMap = {
+            'check': 'Check',
+            'acknowledge': 'Acknowledge',
+            'approve': 'Approve',
+            'receive': 'Receive'
+        };
+
+        // Map status to readable text
+        const statusMap = {
+            'Checked': 'Checked',
+            'Acknowledged': 'Acknowledged',
+            'Approved': 'Approved',
+            'Received': 'Received',
+            'Prepared': 'Prepared',
+            'Draft': 'Draft'
+        };
+
+        const sourceText = sourceMap[source] || source;
+        const statusText = statusMap[status] || status;
+
+        // Update main title with status and preserve document type info
+        const mainTitle = document.getElementById('mainTitle');
+        if (mainTitle) {
+            // Title will be updated after document type is determined
+            AppState.pendingTitle = `${statusText} AR Invoice`;
+        }
+
+        // Update page title
+        document.title = `${statusText} AR Invoice - ${sourceText}`;
+
+        // Update status badge
+        const statusBadge = document.getElementById('statusBadge');
+        if (statusBadge) {
+            statusBadge.textContent = statusText;
+            // Update status badge class based on status
+            updateStatusBadgeClass(statusText);
+        }
+
+        // Update current status display
+        const currentStatusText = document.getElementById('currentStatusText');
+        if (currentStatusText) {
+            currentStatusText.textContent = statusText;
+        }
+
+        // Update status description
+        const statusDescription = document.getElementById('statusDescription');
+        if (statusDescription) {
+            statusDescription.textContent = `This document is currently in ${statusText} status and requires your ${sourceText.toLowerCase()} action.`;
+        }
+
+        console.log(`Page title updated: ${statusText} AR Invoice from ${sourceText} menu`);
+    }
+}
+
+// Function to update status badge class
+function updateStatusBadgeClass(status) {
+    const statusBadge = document.getElementById('statusBadge');
+    if (!statusBadge) return;
+
+    // Remove all existing status classes
+    statusBadge.classList.remove('status-prepared', 'status-checked', 'status-acknowledged', 'status-approved', 'status-received', 'status-rejected', 'status-draft');
+
+    // Add appropriate class based on status
+    switch (status.toLowerCase()) {
+        case 'prepared':
+            statusBadge.classList.add('status-prepared');
+            break;
+        case 'checked':
+            statusBadge.classList.add('status-checked');
+            break;
+        case 'acknowledged':
+            statusBadge.classList.add('status-acknowledged');
+            break;
+        case 'approved':
+            statusBadge.classList.add('status-approved');
+            break;
+        case 'received':
+            statusBadge.classList.add('status-received');
+            break;
+        case 'rejected':
+            statusBadge.classList.add('status-rejected');
+            break;
+        case 'draft':
+            statusBadge.classList.add('status-draft');
+            break;
+        default:
+            statusBadge.classList.add('status-prepared');
+    }
+}
+
+// Function to update final title with document type
+function updateFinalTitleWithDocType() {
+    if (AppState.pendingTitle && AppState.docType) {
+        const mainTitle = document.getElementById('mainTitle');
+        if (mainTitle) {
+            const docTypeName = AppState.docType === 'S' ? 'Service' : 'Item';
+            mainTitle.textContent = `${AppState.pendingTitle} (${docTypeName})`;
+            console.log(`Final title updated: ${AppState.pendingTitle} (${docTypeName})`);
+        }
+    }
+}
 
 // API Configuration
 const API_CONFIG = {
@@ -178,6 +299,9 @@ const OptimizedUtils = {
 async function initializePage() {
     if (AppState.initialized) return;
     try {
+        // Update page title from URL parameters first
+        updatePageTitleFromURL();
+
         // Get URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const stagingId = urlParams.get('stagingID');
@@ -232,7 +356,10 @@ async function initializePage() {
         }
         AppState.docType = docTypeFromApi === 'S' ? 'S' : 'I';
 
-        // 3. Setup page sesuai docType
+        // 3. Update final title with document type
+        updateFinalTitleWithDocType();
+
+        // 4. Setup page sesuai docType
         setupPageForDocType();
 
         // 4. Get current user
@@ -312,13 +439,15 @@ function setupPageForDocType() {
         return;
     }
 
-    // Update page title and elements
-    document.title = `AR Invoice ${config.name}`;
-    OptimizedUtils.safeSetValue('pageTitle', `AR Invoice ${config.name}`);
+    // Only update page title if not already set from URL parameters
+    if (!AppState.pendingTitle) {
+        document.title = `AR Invoice ${config.name}`;
+        OptimizedUtils.safeSetValue('pageTitle', `AR Invoice ${config.name}`);
 
-    const mainTitle = OptimizedUtils.safeGetElement('mainTitle');
-    if (mainTitle) {
-        mainTitle.textContent = `AR Invoice ${config.name}`;
+        const mainTitle = OptimizedUtils.safeGetElement('mainTitle');
+        if (mainTitle) {
+            mainTitle.textContent = `AR Invoice ${config.name}`;
+        }
     }
 
     const tableTitle = OptimizedUtils.safeGetElement('tableTitle');
@@ -329,6 +458,11 @@ function setupPageForDocType() {
     // Apply CSS class for showing/hiding columns
     document.body.classList.remove('item-mode', 'service-mode');
     document.body.classList.add(config.className);
+
+    // Update final title with document type if we have pending title
+    if (AppState.pendingTitle) {
+        updateFinalTitleWithDocType();
+    }
 
     console.log(`✅ Page configured for ${config.name} mode`);
 }
@@ -1313,8 +1447,26 @@ function makeAllFieldsReadOnly() {
 
 // Navigation function
 function goToMenuReceiveInvItem() {
-    const docTypeParam = AppState.docType === 'S' ? '?docType=service' : '';
-    window.location.href = `../../../dashboard/dashboardReceive/ARInvoice/menuARItemReceive.html${docTypeParam}`;
+    const source = AppState.urlSource;
+
+    switch (source) {
+        case 'check':
+            window.location.href = '../../../dashboard/dashboardCheck/ARInvoice/menuARItemCheck.html';
+            break;
+        case 'acknowledge':
+            window.location.href = '../../../dashboard/dashboardAcknowledge/ARInvoice/menuARItemAcknow.html';
+            break;
+        case 'approve':
+            window.location.href = '../../../../approvalPages/dashboard/dashboardApprove/ARInvoice/menuARItemApprove.html';
+            break;
+        case 'receive':
+            window.location.href = '../../../dashboard/dashboardReceive/ARInvoice/menuARItemReceive.html';
+            break;
+        default:
+            // Default fallback to receive menu
+            const docTypeParam = AppState.docType === 'S' ? '?docType=service' : '';
+            window.location.href = `../../../dashboard/dashboardReceive/ARInvoice/menuARItemReceive.html${docTypeParam}`;
+    }
 }
 
 // Storage functions
