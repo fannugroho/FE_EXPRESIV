@@ -25,6 +25,8 @@ function updatePageTitleFromURL() {
     const status = getUrlParameter('status');
     const source = getUrlParameter('source');
 
+    console.log('🔍 URL Parameters:', { status, source });
+
     if (status && source) {
         AppState.urlStatus = status;
         AppState.urlSource = source;
@@ -37,24 +39,33 @@ function updatePageTitleFromURL() {
             'receive': 'Receive'
         };
 
-        // Map status to readable text
+        // Map status to readable text - case insensitive
         const statusMap = {
-            'Checked': 'Checked',
-            'Acknowledged': 'Acknowledged',
-            'Approved': 'Approved',
-            'Received': 'Received',
-            'Prepared': 'Prepared',
-            'Draft': 'Draft'
+            'checked': 'Checked',
+            'acknowledged': 'Acknowledged',
+            'approved': 'Approved',
+            'received': 'Received',
+            'prepared': 'Prepared',
+            'draft': 'Draft'
         };
 
         const sourceText = sourceMap[source] || source;
-        const statusText = statusMap[status] || status;
+        // Use case-insensitive matching for status
+        const statusText = statusMap[status.toLowerCase()] || status;
+
+        console.log('📝 Mapped values:', {
+            originalStatus: status,
+            mappedStatus: statusText,
+            originalSource: source,
+            mappedSource: sourceText
+        });
 
         // Update main title with status and preserve document type info
         const mainTitle = document.getElementById('mainTitle');
         if (mainTitle) {
             // Title will be updated after document type is determined
             AppState.pendingTitle = `${statusText} AR Invoice`;
+            console.log('📋 Pending title set:', AppState.pendingTitle);
         }
 
         // Update page title
@@ -66,21 +77,26 @@ function updatePageTitleFromURL() {
             statusBadge.textContent = statusText;
             // Update status badge class based on status
             updateStatusBadgeClass(statusText);
+            console.log('🏷️ Status badge updated:', statusText);
         }
 
         // Update current status display
         const currentStatusText = document.getElementById('currentStatusText');
         if (currentStatusText) {
             currentStatusText.textContent = statusText;
+            console.log('📊 Current status text updated:', statusText);
         }
 
         // Update status description
         const statusDescription = document.getElementById('statusDescription');
         if (statusDescription) {
             statusDescription.textContent = `This document is currently in ${statusText} status and requires your ${sourceText.toLowerCase()} action.`;
+            console.log('📖 Status description updated');
         }
 
-        console.log(`Page title updated: ${statusText} AR Invoice from ${sourceText} menu`);
+        console.log(`✅ Page title updated: ${statusText} AR Invoice from ${sourceText} menu`);
+    } else {
+        console.log('⚠️ Missing URL parameters:', { status, source });
     }
 }
 
@@ -122,13 +138,26 @@ function updateStatusBadgeClass(status) {
 
 // Function to update final title with document type
 function updateFinalTitleWithDocType() {
+    console.log('🔧 updateFinalTitleWithDocType called with:', {
+        pendingTitle: AppState.pendingTitle,
+        docType: AppState.docType
+    });
+
     if (AppState.pendingTitle && AppState.docType) {
         const mainTitle = document.getElementById('mainTitle');
         if (mainTitle) {
             const docTypeName = AppState.docType === 'S' ? 'Service' : 'Item';
-            mainTitle.textContent = `${AppState.pendingTitle} (${docTypeName})`;
-            console.log(`Final title updated: ${AppState.pendingTitle} (${docTypeName})`);
+            const finalTitle = `${AppState.pendingTitle} (${docTypeName})`;
+            mainTitle.textContent = finalTitle;
+            console.log('✅ Final title updated:', finalTitle);
+        } else {
+            console.log('❌ mainTitle element not found');
         }
+    } else {
+        console.log('⚠️ Missing data for final title:', {
+            pendingTitle: AppState.pendingTitle,
+            docType: AppState.docType
+        });
     }
 }
 
@@ -355,11 +384,9 @@ async function initializePage() {
             docTypeFromApi = urlParams.get('docType') === 'service' ? 'S' : 'I';
         }
         AppState.docType = docTypeFromApi === 'S' ? 'S' : 'I';
+        console.log('📋 Document type set:', AppState.docType);
 
-        // 3. Update final title with document type
-        updateFinalTitleWithDocType();
-
-        // 4. Setup page sesuai docType
+        // 3. Setup page sesuai docType (this will handle title updates)
         setupPageForDocType();
 
         // 4. Get current user
@@ -433,35 +460,48 @@ async function initializePage() {
 
 // Setup page based on document type
 function setupPageForDocType() {
+    console.log('🔧 setupPageForDocType called with docType:', AppState.docType);
+
     const config = DOC_TYPE_CONFIG[AppState.docType];
     if (!config) {
-        console.error('Invalid document type:', AppState.docType);
+        console.error('❌ Invalid document type:', AppState.docType);
         return;
     }
 
+    console.log('📋 Config found:', config);
+
     // Only update page title if not already set from URL parameters
     if (!AppState.pendingTitle) {
+        console.log('📝 No pending title, setting default title');
         document.title = `AR Invoice ${config.name}`;
         OptimizedUtils.safeSetValue('pageTitle', `AR Invoice ${config.name}`);
 
         const mainTitle = OptimizedUtils.safeGetElement('mainTitle');
         if (mainTitle) {
             mainTitle.textContent = `AR Invoice ${config.name}`;
+            console.log('✅ Default title set:', mainTitle.textContent);
         }
+    } else {
+        console.log('📝 Pending title exists:', AppState.pendingTitle);
     }
 
     const tableTitle = OptimizedUtils.safeGetElement('tableTitle');
     if (tableTitle) {
         tableTitle.textContent = config.tableTitle;
+        console.log('📊 Table title set:', config.tableTitle);
     }
 
     // Apply CSS class for showing/hiding columns
     document.body.classList.remove('item-mode', 'service-mode');
     document.body.classList.add(config.className);
+    console.log('🎨 CSS classes applied:', config.className);
 
     // Update final title with document type if we have pending title
     if (AppState.pendingTitle) {
+        console.log('🔄 Calling updateFinalTitleWithDocType');
         updateFinalTitleWithDocType();
+    } else {
+        console.log('⚠️ No pending title to update');
     }
 
     console.log(`✅ Page configured for ${config.name} mode`);
