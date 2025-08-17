@@ -17,88 +17,100 @@ const AppState = {
 // Function to get URL parameters
 function getUrlParameter(name) {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get(name);
+    const paramValue = urlParams.get(name);
+    console.log(`🔍 URL Parameter '${name}':`, paramValue);
+    return paramValue;
 }
 
-// Function to update page title based on URL parameters
-function updatePageTitleFromURL() {
-    const status = getUrlParameter('status');
-    const source = getUrlParameter('source');
+// =========================
+// === JUDUL SETUP BLOCK ===
+// =========================
 
-    console.log('🔍 URL Parameters:', { status, source });
+// Fungsi utama untuk setup judul halaman AR Invoice
+function setupARInvoiceTitle({ status, source, docType } = {}) {
+    // Ambil status/source dari URL jika tidak diberikan
+    if (!status) status = getUrlParameter('status');
+    if (!source) source = getUrlParameter('source');
+    if (!docType) docType = AppState.docType;
 
-    if (status && source) {
-        AppState.urlStatus = status;
-        AppState.urlSource = source;
+    // Mapping status/source ke teks user-friendly
+    const sourceMap = {
+        'check': 'Check',
+        'acknowledge': 'Acknowledge',
+        'approve': 'Approve',
+        'receive': 'Receive'
+    };
+    const statusMap = {
+        'checked': 'Checked',
+        'acknowledged': 'Acknowledged',
+        'approved': 'Approved',
+        'received': 'Received',
+        'prepared': 'Prepared',
+        'draft': 'Draft',
+        'rejected': 'Rejected'
+    };
+    const sourceText = sourceMap[source] || source || '';
+    const statusText = statusMap[(status || '').toLowerCase()] || status || '';
+    const docTypeName = docType === 'S' ? 'Service' : 'Item';
 
-        // Map source to readable text
-        const sourceMap = {
-            'check': 'Check',
-            'acknowledge': 'Acknowledge',
-            'approve': 'Approve',
-            'receive': 'Receive'
-        };
+    // Simpan pendingTitle untuk update judul utama setelah docType diketahui
+    AppState.pendingTitle = statusText ? `${statusText} AR Invoice` : `AR Invoice`;
 
-        // Map status to readable text - case insensitive
-        const statusMap = {
-            'checked': 'Checked',
-            'acknowledged': 'Acknowledged',
-            'approved': 'Approved',
-            'received': 'Received',
-            'prepared': 'Prepared',
-            'draft': 'Draft'
-        };
+    // Update <title> browser
+    document.title = statusText ? `${statusText} AR Invoice - ${sourceText}` : `AR Invoice`;
 
-        const sourceText = sourceMap[source] || source;
-        // Use case-insensitive matching for status
-        const statusText = statusMap[status.toLowerCase()] || status;
+    // Update judul utama (mainTitle)
+    const mainTitle = document.getElementById('mainTitle');
+    if (mainTitle) {
+        mainTitle.textContent = `${AppState.pendingTitle} (${docTypeName})`;
+    }
 
-        console.log('📝 Mapped values:', {
-            originalStatus: status,
-            mappedStatus: statusText,
-            originalSource: source,
-            mappedSource: sourceText
-        });
+    // Update status badge
+    const statusBadge = document.getElementById('statusBadge');
+    if (statusBadge) {
+        statusBadge.textContent = statusText;
+        updateStatusBadgeClass(statusText);
+    }
 
-        // Update main title with status and preserve document type info
-        const mainTitle = document.getElementById('mainTitle');
-        if (mainTitle) {
-            // Title will be updated after document type is determined
-            AppState.pendingTitle = `${statusText} AR Invoice`;
-            console.log('📋 Pending title set:', AppState.pendingTitle);
-        }
+    // Update current status text
+    const currentStatusText = document.getElementById('currentStatusText');
+    if (currentStatusText) {
+        currentStatusText.textContent = statusText;
+    }
 
-        // Update page title
-        document.title = `${statusText} AR Invoice - ${sourceText}`;
-
-        // Update status badge
-        const statusBadge = document.getElementById('statusBadge');
-        if (statusBadge) {
-            statusBadge.textContent = statusText;
-            // Update status badge class based on status
-            updateStatusBadgeClass(statusText);
-            console.log('🏷️ Status badge updated:', statusText);
-        }
-
-        // Update current status display
-        const currentStatusText = document.getElementById('currentStatusText');
-        if (currentStatusText) {
-            currentStatusText.textContent = statusText;
-            console.log('📊 Current status text updated:', statusText);
-        }
-
-        // Update status description
-        const statusDescription = document.getElementById('statusDescription');
-        if (statusDescription) {
-            statusDescription.textContent = `This document is currently in ${statusText} status and requires your ${sourceText.toLowerCase()} action.`;
-            console.log('📖 Status description updated');
-        }
-
-        console.log(`✅ Page title updated: ${statusText} AR Invoice from ${sourceText} menu`);
-    } else {
-        console.log('⚠️ Missing URL parameters:', { status, source });
+    // Update status description
+    const statusDescription = document.getElementById('statusDescription');
+    if (statusDescription) {
+        statusDescription.textContent = statusText ? `This document is currently in ${statusText} status and requires your ${sourceText?.toLowerCase() || ''} action.` : '';
     }
 }
+
+// Fungsi lama tetap dipanggil, tapi hanya untuk backward compatibility
+function updatePageTitleFromURL() {
+    setupARInvoiceTitle();
+}
+
+// Fungsi update judul utama setelah docType diketahui
+function updateFinalTitleWithDocType() {
+    // Gunakan pendingTitle dan docType terbaru
+    const docTypeName = AppState.docType === 'S' ? 'Service' : 'Item';
+    const mainTitle = document.getElementById('mainTitle');
+    if (mainTitle) {
+        mainTitle.textContent = `${AppState.pendingTitle} (${docTypeName})`;
+    }
+}
+
+// Fungsi update judul dinamis saat status berubah
+function updateMainTitleWithStatus(status) {
+    const config = DOC_TYPE_CONFIG[AppState.docType];
+    const mainTitle = OptimizedUtils.safeGetElement('mainTitle');
+    if (mainTitle) {
+        mainTitle.textContent = `${status} AR Invoice ${config.name}`;
+    }
+}
+// =========================
+// === END JUDUL BLOCK  ===
+// =========================
 
 // Function to update status badge class
 function updateStatusBadgeClass(status) {
@@ -470,21 +482,10 @@ function setupPageForDocType() {
 
     console.log('📋 Config found:', config);
 
-    // Only update page title if not already set from URL parameters
-    if (!AppState.pendingTitle) {
-        console.log('📝 No pending title, setting default title');
-        document.title = `AR Invoice ${config.name}`;
-        OptimizedUtils.safeSetValue('pageTitle', `AR Invoice ${config.name}`);
+    // Setup judul utama (khusus judul)
+    updateFinalTitleWithDocType();
 
-        const mainTitle = OptimizedUtils.safeGetElement('mainTitle');
-        if (mainTitle) {
-            mainTitle.textContent = `AR Invoice ${config.name}`;
-            console.log('✅ Default title set:', mainTitle.textContent);
-        }
-    } else {
-        console.log('📝 Pending title exists:', AppState.pendingTitle);
-    }
-
+    // Setup judul tabel
     const tableTitle = OptimizedUtils.safeGetElement('tableTitle');
     if (tableTitle) {
         tableTitle.textContent = config.tableTitle;
@@ -496,27 +497,15 @@ function setupPageForDocType() {
     document.body.classList.add(config.className);
     console.log('🎨 CSS classes applied:', config.className);
 
-    // Update final title with document type if we have pending title
-    if (AppState.pendingTitle) {
-        console.log('🔄 Calling updateFinalTitleWithDocType');
-        updateFinalTitleWithDocType();
-    } else {
-        console.log('⚠️ No pending title to update');
-    }
-
     console.log(`✅ Page configured for ${config.name} mode`);
 }
 
 // Update page title and status based on current status
 function updatePageTitleAndStatus(status) {
+    // Jangan update judul utama di sini, biarkan tetap dari URL param
+
     const config = DOC_TYPE_CONFIG[AppState.docType];
     const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG['Draft'];
-
-    // Update main title
-    const mainTitle = OptimizedUtils.safeGetElement('mainTitle');
-    if (mainTitle) {
-        mainTitle.textContent = `${status} AR Invoice ${config.name}`;
-    }
 
     // Update status badge
     const statusBadge = OptimizedUtils.safeGetElement('statusBadge');
@@ -535,6 +524,9 @@ function updatePageTitleAndStatus(status) {
 
     AppState.currentStatus = status;
 }
+// =========================
+// === END KHUSUS JUDUL ===
+// =========================
 
 // Update approval progress visualization
 function updateApprovalProgress(status) {
@@ -572,7 +564,12 @@ function updateApprovalProgress(status) {
 
 // Update current status display in the action section
 function updateCurrentStatusDisplay(status) {
-    const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG['Draft'];
+    // Always use API status for current status display
+    let apiStatus = 'Draft';
+    if (AppState.currentInvItemData) {
+        apiStatus = getStatusFromInvoice(AppState.currentInvItemData);
+    }
+    const statusConfig = STATUS_CONFIG[apiStatus] || STATUS_CONFIG['Draft'];
 
     const statusIndicator = OptimizedUtils.safeGetElement('statusIndicator');
     const currentStatusText = OptimizedUtils.safeGetElement('currentStatusText');
@@ -581,7 +578,7 @@ function updateCurrentStatusDisplay(status) {
 
     if (statusIndicator && currentStatusText && statusDescription && currentStatusDisplay) {
         statusIndicator.className = `w-3 h-3 rounded-full ${statusConfig.color}`;
-        currentStatusText.textContent = `Current Status: ${status}`;
+        currentStatusText.textContent = `Current Status: ${apiStatus}`;
         statusDescription.textContent = statusConfig.description;
         currentStatusDisplay.className = `mb-6 p-4 rounded-lg ${statusConfig.className}`;
     }
@@ -756,10 +753,11 @@ function populateInvItemData(data) {
             OptimizedUtils.safeSetValue(id, value);
         });
 
-        // Populate status and handle visibility
-        const status = getStatusFromInvoice(data);
-        console.log('📊 Document Status:', status);
+        // Populate status field in form: ALWAYS use API status, never URL
+        let status = getStatusFromInvoice(data);
+        console.log('📊 Document Status (API for form):', status);
         OptimizedUtils.safeSetValue('Status', status);
+        // For page title, still allow URL param (handled in updatePageTitleAndStatus)
         updatePageTitleAndStatus(status);
 
         // Debug: log summary data
@@ -1487,25 +1485,11 @@ function makeAllFieldsReadOnly() {
 
 // Navigation function
 function goToMenuReceiveInvItem() {
-    const source = AppState.urlSource;
-
-    switch (source) {
-        case 'check':
-            window.location.href = '../../../dashboard/dashboardCheck/ARInvoice/menuARItemCheck.html';
-            break;
-        case 'acknowledge':
-            window.location.href = '../../../dashboard/dashboardAcknowledge/ARInvoice/menuARItemAcknow.html';
-            break;
-        case 'approve':
-            window.location.href = '../../../../approvalPages/dashboard/dashboardApprove/ARInvoice/menuARItemApprove.html';
-            break;
-        case 'receive':
-            window.location.href = '../../../dashboard/dashboardReceive/ARInvoice/menuARItemReceive.html';
-            break;
-        default:
-            // Default fallback to receive menu
-            const docTypeParam = AppState.docType === 'S' ? '?docType=service' : '';
-            window.location.href = `../../../dashboard/dashboardReceive/ARInvoice/menuARItemReceive.html${docTypeParam}`;
+    // Prefer back if possible, else go to menuARItemCheck.html
+    if (window.history.length > 1) {
+        window.history.back();
+    } else {
+        window.location.href = '/approvalPages/dashboard/dashboardCheck/ARInvoice/menuARItemCheck.html';
     }
 }
 
@@ -2713,25 +2697,32 @@ function updateActionButtons(status) {
     console.log('Approval Summary:', approval);
     console.log('========================');
 
+    // Always get API status for button logic
+    let apiStatus = 'Draft';
+    if (AppState.currentInvItemData) {
+        apiStatus = getStatusFromInvoice(AppState.currentInvItemData);
+    }
+    const urlStatus = getUrlParameter('status');
+
     // Special cases first
-    if (status === 'Received') {
-        // Show E-Sign and Print buttons only
+    // E-Sign button: ONLY if BOTH API status and URL param are 'Received'
+    if (apiStatus === 'Received' && (urlStatus && urlStatus.toLowerCase() === 'received')) {
         const eSignBtn = OptimizedUtils.safeGetElement('eSignButton');
         if (eSignBtn) {
             eSignBtn.classList.remove('hidden');
             eSignBtn.disabled = false;
         }
+    }
+    // Print button: ONLY if API status is 'Approved' or 'Received'
+    if (apiStatus === 'Approved' || apiStatus === 'Received') {
         const printBtn = OptimizedUtils.safeGetElement('printButton');
         if (printBtn) {
             printBtn.classList.remove('hidden');
             printBtn.disabled = false;
         }
-        updateCurrentStatusDisplay(status);
-        return;
     }
-
-    if (status === 'Rejected') {
-        // Hide all buttons for rejected status
+    // Hide all buttons for rejected status
+    if (apiStatus === 'Rejected') {
         updateCurrentStatusDisplay(status);
         return;
     }
@@ -2820,70 +2811,71 @@ function updateActionButtons(status) {
         }
     }
 
-    // Smart reject button logic based on current status and filled dates
-    if (status !== 'Received' && status !== 'Rejected') {
-        const rejectBtn = OptimizedUtils.safeGetElement('rejectButton');
-        if (rejectBtn) {
-            // Determine who can reject based on current status
-            let canReject = false;
-            let rejectReason = '';
+    // Improved reject button logic: only show if API status is not 'Received'/'Rejected' AND user is authorized for current step and step belum selesai
+    const rejectBtn = OptimizedUtils.safeGetElement('rejectButton');
+    if (rejectBtn) {
+        // Always hide by default
+        rejectBtn.classList.add('hidden');
+        rejectBtn.disabled = true;
+        rejectBtn.title = '';
 
-            switch (status) {
-                case 'Prepared':
-                    // Only checker can reject prepared documents
-                    if (approval.checkedByKansaiId === currentKansaiId || approval.checkedBy === currentKansaiId) {
-                        canReject = true;
-                        rejectReason = 'Checker can reject prepared documents';
-                    } else {
-                        rejectReason = 'Only assigned checker can reject prepared documents';
-                    }
-                    break;
-
-                case 'Checked':
-                    // Only acknowledger can reject checked documents
-                    if (approval.acknowledgedByKansaiId === currentKansaiId || approval.acknowledgedBy === currentKansaiId) {
-                        canReject = true;
-                        rejectReason = 'Acknowledger can reject checked documents';
-                    } else {
-                        rejectReason = 'Only assigned acknowledger can reject checked documents';
-                    }
-                    break;
-
-                case 'Acknowledged':
-                    // Only approver can reject acknowledged documents
-                    if (approval.approvedByKansaiId === currentKansaiId || approval.approvedBy === currentKansaiId) {
-                        canReject = true;
-                        rejectReason = 'Approver can reject acknowledged documents';
-                    } else {
-                        rejectReason = 'Only assigned approver can reject acknowledged documents';
-                    }
-                    break;
-
-                case 'Approved':
-                    // Only receiver can reject approved documents
-                    if (approval.receivedByKansaiId === currentKansaiId || approval.receivedBy === currentKansaiId) {
-                        canReject = true;
-                        rejectReason = 'Receiver can reject approved documents';
-                    } else {
-                        rejectReason = 'Only assigned receiver can reject approved documents';
-                    }
-                    break;
-
-                default:
-                    rejectReason = 'Unknown status for rejection';
-                    break;
-            }
-
-            if (canReject) {
-                rejectBtn.classList.remove('hidden');
-                rejectBtn.disabled = false;
-                rejectBtn.title = rejectReason;
-                console.log('✅ Showing reject button:', rejectReason);
+        // Only show if API status is not 'Received' or 'Rejected'
+        if (status !== 'Received' && status !== 'Rejected') {
+            // Find current approval step
+            const approvalSteps = [
+                {
+                    currentStatus: 'Prepared',
+                    requiredKansaiIdField: 'checkedByKansaiId',
+                    fallbackIdField: 'checkedBy',
+                    dateField: 'checkedDate'
+                },
+                {
+                    currentStatus: 'Checked',
+                    requiredKansaiIdField: 'acknowledgedByKansaiId',
+                    fallbackIdField: 'acknowledgedBy',
+                    dateField: 'acknowledgedDate'
+                },
+                {
+                    currentStatus: 'Acknowledged',
+                    requiredKansaiIdField: 'approvedByKansaiId',
+                    fallbackIdField: 'approvedBy',
+                    dateField: 'approvedDate'
+                },
+                {
+                    currentStatus: 'Approved',
+                    requiredKansaiIdField: 'receivedByKansaiId',
+                    fallbackIdField: 'receivedBy',
+                    dateField: 'receivedDate'
+                }
+            ];
+            const currentStep = approvalSteps.find(step => step.currentStatus === status);
+            if (currentStep) {
+                let requiredKansaiId = approval[currentStep.requiredKansaiIdField] || approval[currentStep.fallbackIdField];
+                requiredKansaiId = normalizeKansaiId(requiredKansaiId);
+                const currentDateNotFilled = !approval[currentStep.dateField];
+                const userAuthorized = requiredKansaiId && requiredKansaiId === currentKansaiId;
+                if (userAuthorized && currentDateNotFilled) {
+                    rejectBtn.classList.remove('hidden');
+                    rejectBtn.disabled = false;
+                    rejectBtn.title = 'Reject this document';
+                    console.log('✅ Showing reject button (authorized & step belum selesai)');
+                } else {
+                    rejectBtn.classList.add('hidden');
+                    rejectBtn.disabled = true;
+                    rejectBtn.title = '';
+                    console.log('❌ Hiding reject button (not authorized or step sudah selesai)');
+                }
             } else {
+                // Not a valid approval step, always hide
                 rejectBtn.classList.add('hidden');
                 rejectBtn.disabled = true;
-                console.log('❌ Hiding reject button:', rejectReason);
+                rejectBtn.title = '';
             }
+        } else {
+            // Status is Received/Rejected, always hide
+            rejectBtn.classList.add('hidden');
+            rejectBtn.disabled = true;
+            rejectBtn.title = '';
         }
     }
 
@@ -2896,11 +2888,11 @@ function updateActionButtons(status) {
         }
     }
 
-    // Update current status display
-    updateCurrentStatusDisplay(status);
+    // Update current status display (always by API status)
+    updateCurrentStatusDisplay(apiStatus);
 
     // Display approval workflow information
-    displayApprovalWorkflowInfo();
+    // displayApprovalWorkflowInfo();
 }
 
 // Fixed build approval request data function

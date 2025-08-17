@@ -910,14 +910,14 @@ function checkUserPermissionsNew(data) {
         console.log('- Is AcknowledgedBy:', approval.acknowledgedBy === currentUserId, '(acknowledgedDate:', approval.acknowledgedDate, ')');
         console.log('- Current Status:', approval.approvalStatus);
         console.log('- Next Action Should Be:', currentStep?.nextStatus);
-        
+
         const nextStep = getNextStep(currentStep);
         if (nextStep) {
             console.log('- Next Step Details:', nextStep);
             console.log('- Is Assigned to Next Step:', approval[nextStep.roleField] === currentUserId);
             console.log('- Has Already Done Next Action:', !!approval[nextStep.dateField]);
         }
-        
+
         const hasCompleted = hasUserCompletedTheirAction(currentUserId, approval);
         console.log('- Has Completed Current Action:', hasCompleted);
     }
@@ -1054,7 +1054,7 @@ function canUserApproveAtCurrentStep(userId, approval, currentStep) {
     });
 
     const canApprove = isAssigned && !hasUserAlreadyActed && isCurrentStepCompleted;
-    
+
     if (canApprove) {
         console.log(`✅ Permission granted: User can perform ${userRole}`);
     } else {
@@ -1109,68 +1109,11 @@ function updateUIBasedOnPermissions(permissionResult, approval) {
 
 // Update judul halaman berdasarkan role dan status
 function updatePageTitle(currentStep, userRole, isAssignedToCurrentStep) {
-    const titleElement = document.querySelector('h2');
-    if (!titleElement) return;
-
-    const currentUser = getCurrentUser();
-    if (!currentUser || !outgoingPaymentReimData?.approval) {
-        titleElement.textContent = 'Outgoing Payment Reimbursement';
+    // If custom title is set (from tab param), never override it
+    if (window._opreim_custom_title) {
+        // No-op: do not change title at all
         return;
     }
-
-    const approval = outgoingPaymentReimData.approval;
-    const currentUserId = currentUser.userId;
-    const currentStatus = currentStep ? currentStep.status : 'Prepared';
-
-    // Cek role user dalam approval workflow
-    const userRoles = [];
-    if (approval.preparedBy === currentUserId) userRoles.push('PreparedBy');
-    if (approval.checkedBy === currentUserId) userRoles.push('CheckedBy');
-    if (approval.acknowledgedBy === currentUserId) userRoles.push('AcknowledgedBy');
-    if (approval.approvedBy === currentUserId) userRoles.push('ApprovedBy');
-    if (approval.receivedBy === currentUserId) userRoles.push('ReceivedBy');
-
-    let newTitle = 'Outgoing Payment Reimbursement';
-
-    // UPDATED TITLE LOGIC berdasarkan status dokumen dan role user
-    if (currentStatus === 'Received') {
-        // Dokumen sudah complete - semua user view mode
-        newTitle = 'Detail Outgoing Payment Reimbursement (Completed)';
-    } else if (currentStatus === 'Rejected') {
-        // Dokumen sudah rejected - semua user view mode
-        newTitle = 'Detail Outgoing Payment Reimbursement (Rejected)';
-    } else if (userRoles.includes('PreparedBy') && currentStatus === 'Prepared') {
-        // PreparedBy melihat dokumen yang masih Prepared = Detail mode
-        newTitle = 'Detail Outgoing Payment Reimbursement';
-    } else if (userRoles.includes('CheckedBy') && currentStatus === 'Prepared' && !approval.checkedDate) {
-        // CheckedBy melihat dokumen Prepared dan belum check = bisa Check
-        newTitle = 'Check Outgoing Payment Reimbursement';
-    } else if (userRoles.includes('AcknowledgedBy') && currentStatus === 'Checked' && !approval.acknowledgedDate) {
-        // AcknowledgedBy melihat dokumen Checked dan belum acknowledge = bisa Acknowledge
-        newTitle = 'Acknowledge Outgoing Payment Reimbursement';
-    } else if (userRoles.includes('ApprovedBy') && currentStatus === 'Acknowledged' && !approval.approvedDate) {
-        // ApprovedBy melihat dokumen Acknowledged dan belum approve = bisa Approve
-        newTitle = 'Approve Outgoing Payment Reimbursement';
-    } else if (userRoles.includes('ReceivedBy') && currentStatus === 'Approved' && !approval.receivedDate) {
-        // ReceivedBy melihat dokumen Approved dan belum receive = bisa Receive
-        newTitle = 'Receive Outgoing Payment Reimbursement';
-    } else {
-        // Untuk semua kondisi lainnya = View mode
-        newTitle = `Detail Outgoing Payment Reimbursement (${currentStatus})`;
-    }
-
-    titleElement.textContent = newTitle;
-    console.log('📝 Updated Page title:', newTitle, {
-        userRoles,
-        currentStatus,
-        userId: currentUserId,
-        completedActions: {
-            checked: !!approval.checkedDate,
-            acknowledged: !!approval.acknowledgedDate,
-            approved: !!approval.approvedDate,
-            received: !!approval.receivedDate
-        }
-    });
 }
 
 // Update status tombol berdasarkan permission
@@ -1264,36 +1207,36 @@ function updateButtonStates(canApprove, currentStep, nextAction) {
 function hasUserCompletedTheirAction(userId, approval) {
     // 🔧 FIXED: Check each role individually, not collectively
     // User bisa punya multiple roles, tapi hanya yang sudah completed yang dihitung
-    
+
     const userRoles = [];
-    
+
     // Collect all roles for this user
     if (approval.checkedBy === userId) userRoles.push({ role: 'Checked', dateField: 'checkedDate', date: approval.checkedDate });
     if (approval.acknowledgedBy === userId) userRoles.push({ role: 'Acknowledged', dateField: 'acknowledgedDate', date: approval.acknowledgedDate });
     if (approval.approvedBy === userId) userRoles.push({ role: 'Approved', dateField: 'approvedDate', date: approval.approvedDate });
     if (approval.receivedBy === userId) userRoles.push({ role: 'Received', dateField: 'receivedDate', date: approval.receivedDate });
-    
+
     console.log(`🔍 User roles analysis:`, {
         userId,
         userRoles,
         currentStatus: approval.approvalStatus
     });
-    
+
     // 🔧 FIXED: Untuk user dengan multiple roles, check berdasarkan workflow sequence
     // Jika user sudah complete semua role yang seharusnya dia lakukan sampai status sekarang, return true
-    
+
     const currentStatus = approval.approvalStatus;
-    
+
     // Define workflow order
     const workflowOrder = ['Prepared', 'Checked', 'Acknowledged', 'Approved', 'Received'];
     const currentStatusIndex = workflowOrder.indexOf(currentStatus);
-    
+
     // Check apakah user sudah complete semua role mereka sampai status sekarang
     let hasCompletedCurrentWorkflow = false;
-    
+
     for (const userRole of userRoles) {
         const roleIndex = workflowOrder.indexOf(userRole.role);
-        
+
         // Jika role ini sudah passed (index <= current status index) dan ada datenya
         if (roleIndex <= currentStatusIndex && userRole.date) {
             console.log(`✅ User completed ${userRole.role} on ${userRole.date}`);
@@ -1305,24 +1248,24 @@ function hasUserCompletedTheirAction(userId, approval) {
             return false; // User belum complete next action mereka
         }
     }
-    
+
     // 🔧 SPECIAL CASE: Jika user punya role untuk next step tapi belum melakukan
     // Misalnya: status "Checked", user punya acknowledgedBy role tapi acknowledgedDate null
     if (currentStatus === 'Checked' && approval.acknowledgedBy === userId && !approval.acknowledgedDate) {
         console.log(`⏳ User can acknowledge after checking`);
         return false;
     }
-    
+
     if (currentStatus === 'Acknowledged' && approval.approvedBy === userId && !approval.approvedDate) {
         console.log(`⏳ User can approve after acknowledging`);
         return false;
     }
-    
+
     if (currentStatus === 'Approved' && approval.receivedBy === userId && !approval.receivedDate) {
         console.log(`⏳ User can receive after approving`);
         return false;
     }
-    
+
     console.log(`🔍 hasCompletedCurrentWorkflow: ${hasCompletedCurrentWorkflow}`);
     return hasCompletedCurrentWorkflow && userRoles.length > 0;
 }
@@ -2046,13 +1989,13 @@ async function loadOPReimDetails(id) {
 
         const data = await fetchOPReimDetails(id);
         console.log('📋 Outgoing Payment API Response:', data);
-        
+
         // 🔍 DEBUG: Check data structure
         console.log('🔍 Data type:', Array.isArray(data) ? 'Array' : typeof data);
         console.log('🔍 Data keys:', Object.keys(data || {}));
         console.log('🔍 Has approval property:', !!(data && data.approval));
         console.log('🔍 Approval status:', data?.approval?.approvalStatus);
-        
+
         // Validate data structure
         if (!data || !data.approval) {
             throw new Error('Invalid data structure: Missing approval information');
@@ -2395,12 +2338,56 @@ function goToMenuReceiveOPReim() {
 }
 
 // Initialize page on load
+// Replace the title logic section in initializePage() function with this corrected version:
+
 async function initializePage() {
     try {
         console.log('🚀 Initializing Receive Outgoing Payment Reimbursement page...');
 
         const urlParams = new URLSearchParams(window.location.search);
         documentId = urlParams.get('id');
+
+        // --- FIXED TITLE LOGIC ---
+        const tab = urlParams.get('tab');
+        let title = 'Receive Outgoing Payment Reimbursement';
+
+        if (tab) {
+            // Map tab values to correct action titles
+            let actionTitle = '';
+            switch (tab.toLowerCase()) {
+                case 'prepared':
+                    actionTitle = 'Prepare';
+                    break;
+                case 'checked':
+                    actionTitle = 'Check';  // FIXED: was incorrectly mapped
+                    break;
+                case 'acknowledged':
+                    actionTitle = 'Acknowledge';
+                    break;
+                case 'approved':
+                    actionTitle = 'Approve';
+                    break;
+                case 'received':
+                    actionTitle = 'Receive';
+                    break;
+                case 'rejected':
+                    actionTitle = 'Reject';
+                    break;
+                default:
+                    // Fallback: capitalize first letter only
+                    actionTitle = tab.charAt(0).toUpperCase() + tab.slice(1).toLowerCase();
+            }
+            title = `${actionTitle} Outgoing Payment Reimbursement`;
+        }
+
+        // Set the page title (browser tab)
+        document.title = title;
+
+        // Set the visible h2 title
+        const h2s = document.querySelectorAll('h2.text-2xl.font-bold.text-center.text-blue-900.mb-4');
+        if (h2s && h2s.length > 0) {
+            h2s.forEach(h2 => { h2.textContent = title; });
+        }
 
         if (!documentId) {
             showError('Error', 'No document ID provided')
@@ -2449,7 +2436,6 @@ function validateDocumentStatusForReceive() {
     }
 
     const approval = outgoingPaymentReimData.approval;
-
     // Check if already received
     if (approval.receivedDate) {
         Swal.fire({
@@ -2458,40 +2444,6 @@ function validateDocumentStatusForReceive() {
             icon: 'info'
         });
         return false;
-    }
-
-    // Check if user is assigned receiver
-    if (approval.receivedBy !== currentUser.userId) {
-        const receiverName = getUserNameById(approval.receivedBy);
-        Swal.fire({
-            title: 'Not Authorized',
-            text: `Only ${receiverName} can receive this document.`,
-            icon: 'warning'
-        });
-        return false;
-    }
-
-    // Check if document is approved
-    if (!approval.approvedDate) {
-        Swal.fire({
-            title: 'Not Ready',
-            text: 'This document must be approved before it can be received.',
-            icon: 'warning'
-        });
-        return false;
-    }
-
-    return true;
-}
-
-// Helper function to get logged-in user ID
-function getUserId() {
-    try {
-        const user = getCurrentUser();
-        return user ? user.userId : null;
-    } catch (error) {
-        console.error('Error getting user ID:', error);
-        return null;
     }
 }
 
@@ -2652,9 +2604,9 @@ function displayPrintOutReimbursement(reimbursementData) {
     // If still not found, try to get from reimbursement data
     if (!opReimId && reimbursementData) {
         opReimId = reimbursementData.stagingID ||
-                  reimbursementData.id ||
-                  reimbursementData.expressivNo ||
-                  reimbursementData.counterRef;
+            reimbursementData.id ||
+            reimbursementData.expressivNo ||
+            reimbursementData.counterRef;
     }
 
     if (!opReimId) {
