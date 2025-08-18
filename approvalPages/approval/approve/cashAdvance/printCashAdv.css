@@ -539,3 +539,13 @@ body {
         gap: 0 !important;
     }
 }
+
+/* Hidden approval stamp styles */
+.approval-stamp.hidden {
+    display: none !important;
+}
+
+/* Adjust layout when stamp is hidden */
+.approval-box .approval-stamp.hidden + .approval-content {
+    margin-top: 0;
+}

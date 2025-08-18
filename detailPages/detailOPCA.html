@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Outgoing Payment Cash Advance - Expressiv System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        /**
+         * Detail view for Outgoing Payment Cash Advance
+         * This page displays the same information as addOPCA.html but in read-only format
+         */
+    </script>
+    <script src="../js/auth.js"></script>
+    <!-- Reuse the same feature-rich implementation as Reimbursement -->
+    <script src="../js/addOPReim.js"></script>
+    <!-- Page-specific overrides for detail view -->
+    <script src="../js/detailOPCA.js"></script>
+    
+    <style>
+        /* Dropdown styling */
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        
+        /* Currency dropdown styling */
+        .currency-dropdown {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            border: 1px solid #e5e7eb;
+            background: white;
+        }
+        .currency-search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        .currency-search-input {
+            transition: all 0.2s ease;
+        }
+
+        /* Enhanced scrollbar styling for all dropdowns */
+        .search-dropdown::-webkit-scrollbar,
+        .currency-dropdown::-webkit-scrollbar {
+            width: 8px;
+        }
+        .search-dropdown::-webkit-scrollbar-track,
+        .currency-dropdown::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .search-dropdown::-webkit-scrollbar-thumb,
+        .currency-dropdown::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .search-dropdown::-webkit-scrollbar-thumb:hover,
+        .currency-dropdown::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Enhanced dropdown item styling */
+        .dropdown-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .dropdown-item:hover {
+            background-color: #f8fafc;
+            border-left: 3px solid #3b82f6;
+        }
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
+        /* Division dropdown specific styling */
+        .division-search-input {
+            transition: all 0.2s ease;
+        }
+        .division-search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        
+        /* Ensure division dropdown stays visible */
+        [id*="Division"][id*="Dropdown"] {
+            position: absolute !important;
+            z-index: 1000 !important;
+            background: white !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 4px !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+            max-height: 200px !important;
+            overflow-y: auto !important;
+            min-width: 200px !important;
+        }
+        
+        /* Division dropdown items */
+        [id*="Division"][id*="Dropdown"] > div {
+            padding: 10px 12px !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+        }
+        
+        [id*="Division"][id*="Dropdown"] > div:hover {
+            background-color: #f8fafc !important;
+            border-left: 3px solid #3b82f6 !important;
+        }
+        
+        [id*="Division"][id*="Dropdown"] > div:last-child {
+            border-bottom: none !important;
+        }
+        
+        /* Hidden class for dropdowns */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Detail view specific styling */
+        .detail-field {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 4px;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .detail-field.readonly {
+            background-color: #f1f5f9;
+            color: #475569;
+            cursor: not-allowed;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-draft { background-color: #fef3c7; color: #92400e; }
+        .status-pending { background-color: #dbeafe; color: #1e40af; }
+        .status-approved { background-color: #d1fae5; color: #065f46; }
+        .status-rejected { background-color: #fee2e2; color: #991b1b; }
+        .status-completed { background-color: #e0e7ff; color: #3730a3; }
+
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-red-500">
+    <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
+        <div class="flex justify-between items-center mb-4">
+            <button onclick="goToMenuOP()" type="button" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Back</button>
+            <div class="flex space-x-2">
+                <button onclick="printDocument()" type="button" class="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600">Print</button>
+                <button onclick="exportToPDF()" type="button" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Export PDF</button>
+            </div>
+        </div>
+        
+        <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Detail Outgoing Payment Cash Advance</h2>
+        
+        <!-- Status Badge -->
+        <div class="text-center mb-4">
+            <span id="statusBadge" class="status-badge status-draft">Draft</span>
+        </div>
+        
+        <br>
+        <div id="OVPM" class="grid grid-cols-2 gap-4">
+            <div class="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-400 mb-4 col-span-2">
+                <p class="text-sm text-blue-800">
+                    <strong>Note:</strong> This is the detail view of the Cash Advance request. All fields are read-only.
+                </p>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold mb-2">Cash Advance No.</h3>
+                <div id="CounterRef" class="detail-field readonly"></div>
+                
+                <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
+                <div id="RequesterName" class="detail-field readonly"></div>
+                
+                <h3 class="text-lg font-semibold mb-2">Pay To</h3>
+                <div id="CardName" class="detail-field readonly"></div>
+                
+                <h3 class="text-lg font-semibold mb-2">Receive Date Cash Advance</h3>
+                <div id="DocDate" class="detail-field readonly"></div>
+                
+                <h3 class="text-lg font-semibold mb-2">Plan Payment Date</h3>
+                <div id="DocDueDate" class="detail-field readonly"></div>
+                
+                <h3 class="text-lg font-semibold mb-2">Existing Attachment Cash Advance</h3>
+                <div class="mt-4" id="attachmentsSection">
+                    <!-- Existing Attachments Section -->
+                    <div class="mb-4">
+                        <h4 class="text-md font-medium mb-2 text-gray-700">Existing Attachment</h4>
+                        <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
+                            <!-- Existing attachments will be displayed here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Reference Cash Advance Section -->
+                    <div class="mb-4" id="printOutCashAdvanceSection">
+                        <h4 class="text-md font-medium mb-2 text-gray-700">Reference Cash Advance</h4>
+                        <div id="printOutCashAdvanceList" class="border rounded p-2 bg-gray-50 min-h-16">
+                            <!-- Reference Cash Advance document will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <input type="hidden" id="Doctype" value="A" autocomplete="off">
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-semibold mb-2">DocNum</h3>
+                <div id="DocNum" class="detail-field readonly"></div>
+                
+                <h3 class="text-lg font-semibold mb-2">Transaction</h3>
+                <div id="Transaction" class="detail-field readonly"></div>
+                
+                <h3 class="text-lg font-semibold mb-2">Remittance Request Currency</h3>
+                <div id="DocCurr" class="detail-field readonly">IDR</div>
+                
+                <h3 class="text-lg font-semibold mb-2">Remittance Request Amount</h3>
+                <div id="RemittanceRequestAmount" class="detail-field readonly">0.00</div>
+                
+                <h3 class="text-lg font-semibold mb-2">Account Bank Transfer</h3>
+                <div id="TrsfrAcct" class="detail-field readonly"></div>
+                
+                <h3 class="text-lg font-semibold mb-2">Control Account</h3>
+                <div id="ControlAccount" class="detail-field readonly"></div>
+                
+                <h3 class="text-lg font-semibold mb-2">Payment Currency</h3>
+                <div id="PaymentCurrency" class="detail-field readonly">IDR</div>
+                
+                <!-- Hidden TrsfrSum field to prevent JavaScript errors -->
+                <input type="text" id="TrsfrSum" placeholder="Total Transfer" class="w-full p-2 border rounded currency-input" style="display: none;" readonly autocomplete="off">
+            </div>
+        </div>
+        
+        <table id="VPM2" class="w-full text-left border mt-2">
+            <thead class="bg-purple-100">
+                <br>
+                <tr>
+                    <th id="Division" class="p-2">Category</th>
+                    <th id="AcctName" class="p-2">Account Name</th>
+                    <th id="AcctCode" class="p-2">GL Account (CoA)</th>
+                    <th id="Descrip" class="p-2">Description</th>
+                    <th id="DocTotal" class="p-2">Amount</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr>
+                    <td id="tdDivision" class="p-2 border">
+                        <div id="Division_0" class="detail-field readonly"></div>
+                        <input type="hidden" id="DivisionCode_0" />
+                    </td>
+                    <td id="tdAcctName" class="p-2 border">
+                        <div id="AcctName_0" class="detail-field readonly"></div>
+                    </td>
+                    <td id="tdAcctCode" class="p-2 border">
+                        <div id="AcctCode_0" class="detail-field readonly"></div>
+                    </td>
+                    <td id="tdDescription" class="p-2 border">
+                        <div id="description_0" class="detail-field readonly"></div>
+                    </td>
+                    <td id="tdDocTotal" class="p-2 border">
+                        <div id="DocTotal_0" class="detail-field readonly">0.00</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!--Net Total-->
+        <div class="mt-4 flex justify-end space-x-2" style="display: none;">
+            <label>Net Total :</label>
+            <div id="netTotal" class="w-80 p-2 border rounded bg-gray-50">0.00</div>
+        </div>
+
+        <!--WTax Total-->
+        <div class="mt-4 flex justify-end space-x-2" style="display: none;">
+            <label>Total Tax:</label>
+            <div id="totalTax" class="w-80 p-2 border rounded bg-gray-50">0.00</div>
+        </div>
+        
+        <!--Total Amount Due-->
+        <div class="mt-4 flex justify-end space-x-2 items-start">
+            <label class="font-semibold">Total Amount Due :</label>
+            <div id="currencySummaryTable" class="w-96 p-2 border rounded bg-gray-50 min-h-[60px] text-sm block whitespace-nowrap overflow-x-auto"></div>
+        </div>
+        
+        <div class="mt-4 flex justify-end space-x-2">
+            <label class="font-semibold">Amount in Words :</label>
+            <span id="totalOutstandingTransfers" class="w-96 p-2 border rounded bg-gray-50 min-h-[60px] block whitespace-nowrap overflow-x-auto"></span>
+        </div>
+        
+        <div class="mt-4">
+            <label class="font-semibold">Remarks</label>
+            <div id="remarks" class="w-full p-2 border rounded-md bg-gray-50 min-h-[60px]"></div>
+        </div>
+        
+        <div class="mt-4">
+            <label class="font-semibold">Journal Remarks</label>
+            <div id="journalRemarks" class="w-full p-2 border rounded-md bg-gray-50 min-h-[60px]"></div>
+        </div>
+
+        <!-- Rejection Remarks section - only visible when status is Rejected -->
+        <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
+            <label class="font-semibold text-red-600">Rejection Reason</label>
+            <div id="rejectionRemarks" class="w-full p-2 border border-red-300 rounded-md bg-red-50 min-h-[60px]"></div>
+        </div>
+
+        <!-- APPROVAL _ WORKFLOW -->
+        <div class="grid grid-cols-2 gap-4 text-sm mt-4">
+            <div> 
+                <label><strong>Proposed by:</strong></label>
+                <div id="Approval.PreparedByIdSearch" class="detail-field readonly"></div>
+            </div>
+            <div>
+                <label id="checked" class="mr-1"><strong>Checked by :</strong></label>
+                <div id="Approval.CheckedByIdSearch" class="detail-field readonly"></div>
+            </div>
+            <div>
+                <label id="acknowledged" class="mr-1"><strong>Acknowledged by :</strong></label>
+                <div id="Approval.AcknowledgedByIdSearch" class="detail-field readonly"></div>
+            </div>
+            <div>
+                <label id="approved" class="mr-1"><strong>Approved by :</strong></label>
+                <div id="Approval.ApprovedByIdSearch" class="detail-field readonly"></div>
+            </div>
+            <div>
+                <label id="received" class="mr-1"><strong>Received by :</strong></label>
+                <div id="Approval.ReceivedByIdSearch" class="detail-field readonly"></div>
+            </div>
+        </div>
+        <br>
+
+        <!-- Action buttons -->
+        <div class="flex justify-between space-x-4 mt-6">
+            <div class="flex space-x-4">
+                <button onclick="editDocument()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow transition transform hover:scale-105 duration-200">
+                    Edit Document
+                </button>
+                <button onclick="approveDocument()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow transition transform hover:scale-105 duration-200">
+                    Approve
+                </button>
+                <button onclick="rejectDocument()" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg shadow transition transform hover:scale-105 duration-200">
+                    Reject
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Format currency with dot as decimal separator (format: 2,000,000.00)
+        function formatCurrency(input, decimalSeparator) {
+            // Get input value and remove all non-digits and non-decimal separator
+            let value = input.value.replace(/[^\d.]/g, '');
+            
+            // Ensure only one decimal separator
+            let parts = value.split(decimalSeparator);
+            if (parts.length > 1) {
+                value = parts[0] + decimalSeparator + parts.slice(1).join('');
+            }
+            
+            // Format the whole number part with thousand separators (comma)
+            if (parts.length > 0) {
+                let wholePart = parts[0];
+                let formattedWhole = '';
+                
+                for (let i = 0; i < wholePart.length; i++) {
+                    if (i > 0 && (wholePart.length - i) % 3 === 0) {
+                        formattedWhole += ',';
+                    }
+                    formattedWhole += wholePart[i];
+                }
+                
+                // Reconstruct the value with the decimal part if it exists
+                if (parts.length > 1) {
+                    input.value = formattedWhole + decimalSeparator + parts[1];
+                } else {
+                    input.value = formattedWhole;
+                }
+            }
+        }
+
+        // Function to format number to currency string (for JS file compatibility)
+        function formatNumberToCurrencyString(number) {
+            // Handle empty or invalid input
+            if (number === null || number === undefined || number === '') {
+                return '';
+            }
+            
+            // Parse the number
+            let num;
+            try {
+                if (typeof number === 'string') {
+                    const cleanedStr = number.replace(/[^\d.-]/g, '');
+                    num = parseFloat(cleanedStr);
+                } else {
+                    num = parseFloat(number);
+                }
+                
+                if (isNaN(num)) {
+                    return '';
+                }
+            } catch (e) {
+                console.error('Error parsing number:', e);
+                return '';
+            }
+            
+            // Get the string representation to check if it has decimal places
+            const numStr = num.toString();
+            const hasDecimal = numStr.includes('.');
+            
+            try {
+                // Format with Indonesian locale (thousand separator: '.', decimal separator: ',')
+                if (hasDecimal) {
+                    const decimalPlaces = numStr.split('.')[1].length;
+                    return num.toLocaleString('id-ID', {
+                        minimumFractionDigits: decimalPlaces,
+                        maximumFractionDigits: decimalPlaces
+                    });
+                } else {
+                    return num.toLocaleString('id-ID', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    });
+                }
+            } catch (e) {
+                // Fallback for very large numbers
+                console.error('Error formatting number:', e);
+                
+                let strNum = num.toString();
+                let sign = '';
+                
+                if (strNum.startsWith('-')) {
+                    sign = '-';
+                    strNum = strNum.substring(1);
+                }
+                
+                const parts = strNum.split('.');
+                const integerPart = parts[0];
+                const decimalPart = parts.length > 1 ? ',' + parts[1] : '';
+                
+                let formattedInteger = '';
+                for (let i = 0; i < integerPart.length; i++) {
+                    if (i > 0 && (integerPart.length - i) % 3 === 0) {
+                        formattedInteger += '.';
+                    }
+                    formattedInteger += integerPart.charAt(i);
+                }
+                
+                return sign + formattedInteger + decimalPart;
+            }
+        }
+
+        // Make function available globally for JS file compatibility
+        window.formatNumberToCurrencyString = formatNumberToCurrencyString;
+        window.parseCurrencyValue = parseCurrencyValue;
+
+        // Function to parse currency string back to number
+        function parseCurrencyValue(value) {
+            if (!value) return 0;
+            // Handle US format (thousand separator: ',', decimal separator: '.')
+            // Remove commas (thousand separators) and keep dots as decimal separators
+            const numericValue = value.toString()
+                .replace(/,/g, ''); // Remove thousand separators (commas)
+            
+            return parseFloat(numericValue) || 0;
+        }
+
+        // Fungsi untuk memformat angka dengan format Indonesia (titik sebagai pemisah ribuan, koma sebagai pemisah desimal)
+        function formatCurrencyIDR(number) {
+            // Handle input kosong atau tidak valid
+            if (number === null || number === undefined || number === '') {
+                return '0.00';
+            }
+            
+            // Parse angka, pastikan dapat menangani nilai yang sangat besar
+            let num;
+            try {
+                // Handle input string yang mungkin sangat besar
+                if (typeof number === 'string') {
+                    // Hapus semua karakter non-numerik kecuali titik desimal dan koma
+                    const cleanedStr = number.replace(/[^\d,.]/g, '');
+                    // Gunakan parseFloat untuk angka kecil, dan untuk angka besar gunakan teknik string
+                    if (cleanedStr.length > 15) {
+                        // Untuk angka yang sangat besar, kita perlu menangani dengan hati-hati
+                        // Hapus koma dan parse
+                        num = Number(cleanedStr.replace(/,/g, ''));
+                    } else {
+                        num = parseFloat(cleanedStr.replace(/,/g, ''));
+                    }
+                } else {
+                    num = Number(number); // Gunakan Number untuk menangani angka besar dengan lebih baik
+                }
+                
+                // Jika parsing gagal, kembalikan string kosong
+                if (isNaN(num)) {
+                    return '0.00';
+                }
+            } catch (e) {
+                console.error('Error parsing number:', e);
+                return '0.00';
+            }
+            
+            // Batasi maksimum 100 triliun
+            const maxAmount = 100000000000000; // 100 triliun
+            if (num > maxAmount) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Amount Exceeds Limit',
+                    text: 'Total amount must not exceed 100 trillion rupiah'
+                });
+                num = maxAmount;
+            }
+            
+            // Format dengan format US (koma sebagai pemisah ribuan, titik sebagai pemisah desimal)
+            // Untuk angka yang sangat besar, gunakan metode manual
+            if (num >= 1e12) { // Jika angka >= 1 triliun
+                let strNum = num.toString();
+                let result = '';
+                let count = 0;
+                
+                // Tambahkan koma setiap 3 digit dari belakang
+                for (let i = strNum.length - 1; i >= 0; i--) {
+                    result = strNum[i] + result;
+                    count++;
+                    if (count % 3 === 0 && i > 0) {
+                        result = ',' + result;
+                    }
+                }
+                
+                // Tambahkan 2 desimal
+                return result + '.00';
+            } else {
+                // Untuk angka yang lebih kecil, gunakan toLocaleString
+                return num.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+        }
+
+        // Fungsi untuk mengurai format angka US kembali ke angka
+        function parseCurrencyIDR(formattedValue) {
+            if (!formattedValue) return 0;
+            
+            try {
+                // Tangani format US (pemisah ribuan: ',', pemisah desimal: '.')
+                // Hapus koma (pemisah ribuan)
+                const numericValue = formattedValue.toString().replace(/,/g, '');
+                
+                return parseFloat(numericValue) || 0;
+            } catch (e) {
+                console.error('Error parsing currency:', e);
+                return 0;
+            }
+        }
+
+        // Function to update Net Total and Total Amount Due
+        function updateTotals() {
+            // Get all DocTotal inputs from the table
+            const docTotalInputs = document.querySelectorAll('#tableBody div[id^="DocTotal_"]');
+            let total = 0;
+            
+            // Sum all values using IDR format
+            docTotalInputs.forEach(input => {
+                total += parseCurrencyIDR(input.textContent);
+            });
+            
+            // Format the total with IDR format
+            const formattedTotal = formatCurrencyIDR(total);
+            
+            // Update Net Total and Total Amount Due fields
+            const netTotalField = document.getElementById('netTotal');
+            const totalTaxField = document.getElementById('totalTax');
+            const totalAmountDueField = document.getElementById('totalAmountDue');
+            
+            if (netTotalField) netTotalField.textContent = formattedTotal;
+            if (totalTaxField) totalTaxField.textContent = formattedTotal;
+            if (totalAmountDueField) totalAmountDueField.textContent = formattedTotal;
+            
+            // Update Remittance Request Amount
+            const remittanceRequestAmountField = document.getElementById('RemittanceRequestAmount');
+            if (remittanceRequestAmountField) {
+                remittanceRequestAmountField.textContent = formattedTotal;
+            }
+        }
+
+        // Initialize currency inputs
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize totals
+            updateTotals();
+            
+            // Load data from API if document ID is provided in URL
+            loadDocumentData();
+        });
+
+        // Function to load document data from API
+        async function loadDocumentData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const docId = urlParams.get('id');
+            
+            if (docId) {
+                // Store document ID globally for attachment functions
+                window.currentDocumentId = docId;
+                
+                try {
+                    // Show loading indicator
+                    Swal.fire({
+                        title: 'Loading...',
+                        text: 'Loading document data, please wait...',
+                        icon: 'info',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        allowEnterKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Fetch document data from API
+                    const response = await makeAuthenticatedRequest(`/api/staging-outgoing-payments/headers/${docId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Failed to load document: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.data) {
+                        // Map response data to form
+                        mapResponseToForm(result.data);
+                        
+                        // Load attachments from API
+                        await loadAttachmentsFromAPI(docId);
+                        
+                        // Show success message
+                        Swal.fire({
+                            title: 'Success',
+                            text: 'Document data loaded successfully',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                    
+                } catch (error) {
+                    console.error("Error loading document:", error);
+                    
+                    Swal.fire({
+                        title: 'Error',
+                        text: `Failed to load document: ${error.message}`,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            }
+        }
+
+        // Function to load attachments from API
+        async function loadAttachmentsFromAPI(docId) {
+            try {
+                // Fetch attachments from API
+                const response = await makeAuthenticatedRequest(`/api/reimbursements/${docId}/attachments`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    console.warn(`Failed to load attachments: ${response.status}`);
+                    return;
+                }
+
+                const result = await response.json();
+                
+                if (result.data && result.data.length > 0) {
+                    // Display attachments from API response
+                    displayExistingAttachments(result.data);
+                } else {
+                    // Show no attachments message
+                    const container = document.getElementById('existingAttachments');
+                    if (container) {
+                        container.innerHTML = '<p class="text-gray-500 text-sm">No attachments found</p>';
+                    }
+                }
+                
+            } catch (error) {
+                console.error("Error loading attachments:", error);
+                // Don't show error to user as this is not critical
+            }
+        }
+
+        // Function to refresh attachments
+        async function refreshAttachments() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const docId = urlParams.get('id');
+            
+            if (!docId) {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Document ID not found. Please ensure you are viewing an existing document.',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            try {
+                // Show loading indicator
+                Swal.fire({
+                    title: 'Refreshing...',
+                    text: 'Loading attachments, please wait...',
+                    icon: 'info',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    allowEnterKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                await loadAttachmentsFromAPI(docId);
+
+                // Close loading indicator
+                Swal.close();
+
+                Swal.fire({
+                    title: 'Success',
+                    text: 'Attachments refreshed successfully',
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                });
+
+            } catch (error) {
+                console.error("Error refreshing attachments:", error);
+                Swal.fire({
+                    title: 'Error',
+                    text: `Failed to refresh attachments: ${error.message}`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+
+        // Action functions
+        function editDocument() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const docId = urlParams.get('id');
+            if (docId) {
+                window.location.href = `../addPages/addOPCA.html?id=${docId}`;
+            } else {
+                window.location.href = '../addPages/addOPCA.html';
+            }
+        }
+
+        function approveDocument() {
+            Swal.fire({
+                title: 'Approve Document',
+                text: 'Are you sure you want to approve this document?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Approve',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Here you would implement the approval logic
+                    Swal.fire('Approved!', 'Document has been approved successfully.', 'success');
+                }
+            });
+        }
+
+        function rejectDocument() {
+            Swal.fire({
+                title: 'Reject Document',
+                text: 'Please provide a reason for rejection:',
+                input: 'textarea',
+                inputPlaceholder: 'Enter rejection reason...',
+                showCancelButton: true,
+                confirmButtonText: 'Reject',
+                cancelButtonText: 'Cancel',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'You need to provide a rejection reason!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Here you would implement the rejection logic
+                    Swal.fire('Rejected!', 'Document has been rejected.', 'success');
+                }
+            });
+        }
+
+        function printDocument() {
+            window.print();
+        }
+
+        function exportToPDF() {
+            const element = document.body;
+            const opt = {
+                margin: 1,
+                filename: 'OPCA_Document.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save();
+        }
+
+        function goToMenuOP() {
+            window.location.href = '../approvalPages/dashboard/dashboardApprove/outgoingPayment/menuOP.html';
+        }
+
+        // Utility functions and submit handling are implemented in detailOPCA.js
+    </script>
+</body>
+</html>
