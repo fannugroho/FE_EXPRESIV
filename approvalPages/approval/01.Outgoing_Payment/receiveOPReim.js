@@ -36,7 +36,7 @@
 // ===== API CONFIGURATION - CENTRALIZED =====
 const API_CONFIG = {
     // Base Configuration
-    BASE_URL: window.location.origin,
+    BASE_URL: window.BASE_URL || window.location.origin,
 
     // API Endpoints - DAFTAR LENGKAP API YANG DIGUNAKAN
     ENDPOINTS: {
