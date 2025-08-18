@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Outgoing Payment Cash Advance</title>
+    <title>Add Outgoing Payment Cash Advance - Expressiv System</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -148,45 +148,42 @@
         <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Add Detail Outgoing Payment Cash Advance</h2>
         <br>
         <div id="OVPM" class="grid grid-cols-2 gap-4">
+            <div class="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-400 mb-4 col-span-2">
+                <p class="text-sm text-blue-800">
+                    <strong>Note:</strong> Fill in the basic information for the Cash Advance request. Required fields are marked with <span class="text-red-500">*</span>.
+                </p>
+            </div>
             <div>
-                <h3 class="text-lg font-semibold mb-2">Reimburse No</h3>
-                <input type="text" id="CounterRef" placeholder="Reimburse No" class="w-full p-2 border rounded" autocomplete="off">
+                <h3 class="text-lg font-semibold mb-2">Cash Advance No.</h3>
+                <input type="text" id="CounterRef" placeholder="Cash Advance No." class="w-full p-2 border rounded" autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2">Requester Payment</h3>
-                <input type="text" id="RequesterName" placeholder="Requester Reimbursement" class="w-full p-2 border rounded bg-gray-100 cursor-not-allowed" autocomplete="off" readonly>
+                <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
+                <input type="text" id="RequesterName" placeholder="Requester Name" class="w-full p-2 border rounded bg-gray-100 cursor-not-allowed" autocomplete="off" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Pay To</h3>
                 <input type="text" id="CardName" placeholder="Pay To" class="w-full p-2 border rounded bg-gray-100 cursor-not-allowed" autocomplete="off" readonly>
                 
-                <div style="display: none;">
-                    <h3 class="text-lg font-semibold mb-2">Pay To Address</h3>
-                    <input type="text" id="Address" placeholder="Pay To Address" class="w-full p-2 border rounded" autocomplete="off">
-                </div>
-                
-                <h3 class="text-lg font-semibold mb-2">Document Date</h3>
+                <h3 class="text-lg font-semibold mb-2">Receive Date Cash Advance</h3>
                 <input type="date" id="DocDate" class="w-full p-2 border rounded" autocomplete="off" readonly>
                 
-                <h3 class="text-lg font-semibold mb-2">Due Date</h3>
+                <h3 class="text-lg font-semibold mb-2">Plan Payment Date</h3>
                 <input type="date" id="DocDueDate" class="w-full p-2 border rounded" autocomplete="off">
                 
-                
-                
-                <!-- Attachments Display Section -->
+                <h3 class="text-lg font-semibold mb-2">Existing Attachment Cash Advance</h3>
                 <div class="mt-4" id="attachmentsSection">
-                    
                     <!-- Existing Attachments Section -->
                     <div class="mb-4">
-                        <h4 class="text-md font-medium mb-2 text-gray-700">Existing Attachments</h4>
+                        <h4 class="text-md font-medium mb-2 text-gray-700">Existing Attachment</h4>
                         <div id="attachmentsList" class="border rounded p-2 bg-gray-50 min-h-16">
                             <!-- Existing attachments will be displayed here -->
                         </div>
                     </div>
                     
-                    <!-- Print Out Reimbursement Section -->
-                    <div class="mb-4" id="printOutReimbursementSection">
-                        <h4 class="text-md font-medium mb-2 text-gray-700">Print Out Reimbursement</h4>
-                        <div id="printOutReimbursementList" class="border rounded p-2 bg-gray-50 min-h-16">
-                            <!-- Print Receive Reimbursement document will be displayed here -->
+                    <!-- Reference Cash Advance Section -->
+                    <div class="mb-4" id="printOutCashAdvanceSection">
+                        <h4 class="text-md font-medium mb-2 text-gray-700">Reference Cash Advance</h4>
+                        <div id="printOutCashAdvanceList" class="border rounded p-2 bg-gray-50 min-h-16">
+                            <!-- Reference Cash Advance document will be displayed here -->
                         </div>
                     </div>
                 </div>
@@ -199,16 +196,13 @@
                 <input type="text" id="DocNum" placeholder="DocNum" class="w-full p-2 border rounded" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Transaction</h3>
-                <input type="text" id="jrnlMemo" placeholder="Journal Memo" class="w-full p-2 border rounded" autocomplete="off" readonly>
+                <input type="text" id="Transaction" placeholder="Transaction" class="w-full p-2 border rounded" autocomplete="off">
                 
-                <h3 class="text-lg font-semibold mb-2"> Remittance Request Currency</h3>
+                <h3 class="text-lg font-semibold mb-2">Remittance Request Currency</h3>
                 <input type="text" id="DocCurr" placeholder="Document Currency" class="w-full p-2 border rounded" value="IDR" readonly>
                 
                 <h3 class="text-lg font-semibold mb-2">Remittance Request Amount</h3>
                 <input type="text" id="RemittanceRequestAmount" placeholder="Remittance Request Amount" class="w-full p-2 border rounded currency-input-idr" value="0.00" readonly>
-                
-                <h3 class="text-lg font-semibold mb-2">Transfer Date</h3>
-                <input type="date" id="TrsfrDate" class="w-full p-2 border rounded" autocomplete="off">
                 
                 <h3 class="text-lg font-semibold mb-2">Account Bank Transfer</h3>
                 <select id="TrsfrAcct" class="w-full p-2 border rounded" autocomplete="off">
@@ -226,6 +220,12 @@
                     <option value="1316">1316 - Saving Account (IDR, CIMB NIAGA)</option>
                 </select>
                 
+                <h3 class="text-lg font-semibold mb-2">Control Account</h3>
+                <input type="text" id="ControlAccount" placeholder="Control Account" class="w-full p-2 border rounded" autocomplete="off">
+                
+                <h3 class="text-lg font-semibold mb-2">Payment Currency</h3>
+                <input type="text" id="PaymentCurrency" placeholder="Payment Currency" class="w-full p-2 border rounded" value="IDR" readonly>
+                
                 <!-- Hidden TrsfrSum field to prevent JavaScript errors -->
                 <input type="text" id="TrsfrSum" placeholder="Total Transfer" class="w-full p-2 border rounded currency-input" style="display: none;" readonly>
             </div>
@@ -235,20 +235,22 @@
             <thead class="bg-purple-100">
                 <br>
                 <tr>
-                    <th id="AcctCode" class="p-2">G/L Account <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
+                    <th id="Division" class="p-2">Category <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
                     <th id="AcctName" class="p-2">Account Name <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
+                    <th id="AcctCode" class="p-2">GL Account (CoA) <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
                     <th id="Descrip" class="p-2">Description <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
-                    <th id="CurrencyItem" class="p-2">Currency <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
-                    <th id="Division" class="p-2">Division <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
-                    <th id="DocTotal" class="p-2">Net Amount <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
+                    <th id="DocTotal" class="p-2">Amount <span title="Editable" class="text-blue-500 text-xs align-middle">✏️</span></th>
                 </tr>
             </thead>
             <tbody id="tableBody">
                 <tr>
-                    <td id="tdAcctCode" class="p-2 border">
+                    <td id="tdDivision" class="p-2 border">
                         <div class="relative">
-                            <input type="text" id="AcctCode_0" maxlength="255" class="w-full search-input" autocomplete="off" onkeyup="searchGLAccount(this)" onfocus="showGLAccountDropdown(this)" placeholder="Type or search G/L Account..." />
-                            <div id="AcctCode_0Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
+                            <input type="text" id="Division_0" maxlength="255" class="w-full division-search-input" autocomplete="off" 
+                                   onkeyup="searchDivisions(this)" onfocus="showDivisionDropdown(this)" 
+                                   placeholder="Enter Category" />
+                            <input type="hidden" id="DivisionCode_0" />
+                            <div id="Division_0Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto currency-dropdown"></div>
                         </div>
                     </td>
                     <td id="tdAcctName" class="p-2 border">
@@ -257,23 +259,14 @@
                             <div id="AcctName_0Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
                         </div>
                     </td>
+                    <td id="tdAcctCode" class="p-2 border">
+                        <div class="relative">
+                            <input type="text" id="AcctCode_0" maxlength="255" class="w-full search-input" autocomplete="off" onkeyup="searchGLAccount(this)" onfocus="showGLAccountDropdown(this)" placeholder="Type or search G/L Account..." />
+                            <div id="AcctCode_0Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
+                        </div>
+                    </td>
                     <td id="tdDescription" class="p-2 border">
                         <input type="text" id="description_0" maxlength="255" class="w-full" autocomplete="off" />
-                    </td>
-                    <td id="tdCurrencyItem" class="p-2 border">
-                        <div class="relative">
-                            <input type="text" id="CurrencyItem_0" maxlength="10" class="w-full currency-search-input" autocomplete="off" onkeyup="console.log('🔤 onkeyup triggered'); searchCurrencies(this)" onfocus="console.log('👆 onfocus triggered'); showCurrencyDropdown(this)" onclick="console.log('👆 onclick triggered'); showCurrencyDropdown(this)" placeholder="IDR" value="IDR" />
-                            <div id="CurrencyItem_0Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto currency-dropdown"></div>
-                        </div>
-                    </td>
-                    <td id="tdDivision" class="p-2 border">
-                        <div class="relative">
-                            <input type="text" id="Division_0" maxlength="255" class="w-full division-search-input" autocomplete="off" 
-                                   onkeyup="searchDivisions(this)" onfocus="showDivisionDropdown(this)" 
-                                   placeholder="Enter Division" />
-                            <input type="hidden" id="DivisionCode_0" />
-                            <div id="Division_0Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto currency-dropdown"></div>
-                        </div>
                     </td>
                     <td id="tdDocTotal" class="p-2 border">
                         <input type="text" id="DocTotal_0" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" autocomplete="off" />
@@ -281,6 +274,14 @@
                 </tr>
             </tbody>
         </table>
+        
+        <!-- Add Row Button -->
+        <div class="mt-4 flex justify-start" style="display: none;">
+            <button onclick="addRow()" class="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow transition transform hover:scale-105 duration-200">
+                + Add Row
+            </button>
+        </div>
+        
         <!--Net Total-->
         <div class="mt-4 flex justify-end space-x-2" style="display: none;">
             <label>Net Total :</label>
@@ -292,24 +293,26 @@
             <label>Total Tax:</label>
             <input type="number" id="totalTax" class="w-80 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 currency-input" readonly autocomplete="off">
         </div>
-         <!--Total Amount Due-->
+        <!-- HEADER _ FINANCE -->
+        <!--Total Amount Due-->
         <div class="mt-4 flex justify-end space-x-2 items-start">
-            <div id="currencySummaryTable" class="ml-4 min-w-[180px] text-sm"></div>
+            <label class="font-semibold">Total Amount Due :</label>
+            <div id="currencySummaryTable" class="w-96 p-2 border rounded bg-gray-50 min-h-[60px] text-sm block whitespace-nowrap overflow-x-auto"></div>
         </div>
         
         
         <div class="mt-4 flex justify-end space-x-2">
-            <label class="font-semibold">Total Outstanding Transfers :</label>
+            <label class="font-semibold">Total Outstanding :</label>
             <span id="totalOutstandingTransfers" class="w-96 p-2 border rounded bg-gray-50 min-h-[60px] block whitespace-nowrap overflow-x-auto"></span>
         </div>
         
         
             <div class="mt-4">
-              <label>Remarks</label>
+              <label class="font-semibold">Remarks</label>
               <textarea id="remarks" class="w-full p-2 border rounded-md" autocomplete="off" placeholder="Enter remarks here..."></textarea>
             </div>
             <div class="mt-4">
-                <label>Journal Remarks</label>
+                <label class="font-semibold">Journal Remarks</label>
                 <textarea id="journalRemarks" class="w-full p-2 border rounded-md" autocomplete="off" placeholder="Enter journal remarks here..."></textarea>
             </div>
 
@@ -319,7 +322,7 @@
                 <textarea id="rejectionRemarks" class="w-full p-2 border border-red-300 rounded-md bg-red-50" readonly autocomplete="off"></textarea>
             </div>
 
-        <!-- Approval section -->
+        <!-- APPROVAL _ WORKFLOW -->
         <div class="grid grid-cols-2 gap-4 text-sm mt-4">
             <!-- Note: Proposed by field is automatically filled with the current logged-in user -->
             <div> 
@@ -629,7 +632,7 @@
         // Function to update Net Total and Total Amount Due
         function updateTotals() {
             // Get all DocTotal inputs from the table
-            const docTotalInputs = document.querySelectorAll('#tableBody input[id="DocTotal"]');
+            const docTotalInputs = document.querySelectorAll('#tableBody input[id^="DocTotal_"]');
             let total = 0;
             
             // Sum all values using IDR format
@@ -641,12 +644,22 @@
             const formattedTotal = formatCurrencyIDR(total);
             
             // Update Net Total and Total Amount Due fields
-            document.getElementById('netTotal').value = formattedTotal;
-            document.getElementById('totalTax').value = formattedTotal;
-            document.getElementById('totalAmountDue').value = formattedTotal;
+            const netTotalField = document.getElementById('netTotal');
+            const totalTaxField = document.getElementById('totalTax');
+            const totalAmountDueField = document.getElementById('totalAmountDue');
+            
+            if (netTotalField) netTotalField.value = formattedTotal;
+            if (totalTaxField) totalTaxField.value = formattedTotal;
+            if (totalAmountDueField) totalAmountDueField.value = formattedTotal;
+            
+            // Update Remittance Request Amount
+            const remittanceRequestAmountField = document.getElementById('RemittanceRequestAmount');
+            if (remittanceRequestAmountField) {
+                remittanceRequestAmountField.value = formattedTotal;
+            }
         }
 
-        // Function to add a new row to the table
+        // Function to add a new row to the table (matches new column order)
         function addRow() {
             const tableBody = document.getElementById('tableBody');
             const newRow = document.createElement('tr');
@@ -655,8 +668,11 @@
             newRow.innerHTML = `
                 <td class="p-2 border">
                     <div class="relative">
-                        <input type="text" id="AcctCode_${uniqueId}" maxlength="255" class="w-full search-input" autocomplete="off" onkeyup="searchGLAccount(this)" onfocus="showGLAccountDropdown(this)" placeholder="Type or search G/L Account..." />
-                        <div id="AcctCode_${uniqueId}Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
+                        <input type="text" id="Division_${uniqueId}" maxlength="255" class="w-full division-search-input" autocomplete="off" 
+                               onkeyup="searchDivisions(this)" onfocus="showDivisionDropdown(this)" 
+                               placeholder="Enter Category" />
+                        <input type="hidden" id="DivisionCode_${uniqueId}" />
+                        <div id="Division_${uniqueId}Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto currency-dropdown"></div>
                     </div>
                 </td>
                 <td class="p-2 border">
@@ -666,22 +682,13 @@
                     </div>
                 </td>
                 <td class="p-2 border">
+                    <div class="relative">
+                        <input type="text" id="AcctCode_${uniqueId}" maxlength="255" class="w-full search-input" autocomplete="off" onkeyup="searchGLAccount(this)" onfocus="showGLAccountDropdown(this)" placeholder="Type or search G/L Account..." />
+                        <div id="AcctCode_${uniqueId}Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto search-dropdown"></div>
+                    </div>
+                </td>
+                <td class="p-2 border">
                     <input type="text" id="description_${uniqueId}" maxlength="255" class="w-full" autocomplete="off" />
-                </td>
-                <td class="p-2 border">
-                    <div class="relative">
-                        <input type="text" id="CurrencyItem_${uniqueId}" maxlength="10" class="w-full currency-search-input" autocomplete="off" onkeyup="searchCurrencies(this)" onfocus="showCurrencyDropdown(this)" placeholder="IDR" value="IDR" />
-                        <div id="CurrencyItem_${uniqueId}Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto currency-dropdown"></div>
-                    </div>
-                </td>
-                <td class="p-2 border">
-                    <div class="relative">
-                        <input type="text" id="Division_${uniqueId}" maxlength="255" class="w-full division-search-input" autocomplete="off" 
-                               onkeyup="searchDivisions(this)" onfocus="showDivisionDropdown(this)" 
-                               placeholder="Enter Division" />
-                        <input type="hidden" id="DivisionCode_${uniqueId}" />
-                        <div id="Division_${uniqueId}Dropdown" class="absolute z-20 hidden w-full mt-1 bg-white border rounded shadow-lg max-h-40 overflow-y-auto currency-dropdown"></div>
-                    </div>
                 </td>
                 <td class="p-2 border">
                     <input type="text" id="DocTotal_${uniqueId}" class="w-full currency-input-idr" value="0.00" oninput="formatCurrencyInputIDR(this); updateTotalAmountDue();" autocomplete="off" />
@@ -694,12 +701,6 @@
             `;
             
             tableBody.appendChild(newRow);
-            
-            // Ensure the new currency item field has default value
-            const newCurrencyItemInput = newRow.querySelector(`input[id="CurrencyItem_${uniqueId}"]`);
-            if (newCurrencyItemInput && (!newCurrencyItemInput.value || newCurrencyItemInput.value.trim() === '')) {
-                newCurrencyItemInput.value = 'IDR';
-            }
         }
 
         // Function to delete a row from the table
@@ -906,6 +907,83 @@
                 });
             }
         }
+
+        // Function to validate form before submission
+        function validateForm() {
+            const requiredFields = [
+                { id: 'CounterRef', name: 'Cash Advance No.' },
+                { id: 'RequesterName', name: 'Requester Name' },
+                { id: 'CardName', name: 'Pay To' },
+                { id: 'DocDate', name: 'Receive Date Cash Advance' },
+                { id: 'DocDueDate', name: 'Plan Payment Date' },
+                { id: 'Transaction', name: 'Transaction' },
+                { id: 'TrsfrAcct', name: 'Account Bank Transfer' },
+                { id: 'ControlAccount', name: 'Control Account' }
+            ];
+
+            for (const field of requiredFields) {
+                const element = document.getElementById(field.id);
+                if (!element || !element.value.trim()) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Required Field Missing',
+                        text: `${field.name} is required. Please fill in all required fields.`
+                    });
+                    if (element) element.focus();
+                    return false;
+                }
+            }
+
+            // Validate that at least one row exists in the table
+            const tableRows = document.querySelectorAll('#tableBody tr');
+            if (tableRows.length === 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'No Data Rows',
+                    text: 'Please add at least one row to the table with Category, Account Name, GL Account, Description, and Amount.'
+                });
+                return false;
+            }
+
+            // Validate that all rows have required data
+            let hasValidData = false;
+            tableRows.forEach(row => {
+                const division = row.querySelector('input[id^="Division_"]')?.value.trim();
+                const accountName = row.querySelector('input[id^="AcctName_"]')?.value.trim();
+                const glAccount = row.querySelector('input[id^="AcctCode_"]')?.value.trim();
+                const amount = row.querySelector('input[id^="DocTotal_"]')?.value.trim();
+                
+                if (division && accountName && glAccount && amount && parseCurrencyIDR(amount) > 0) {
+                    hasValidData = true;
+                }
+            });
+
+            if (!hasValidData) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Table Data',
+                    text: 'Please ensure all rows have valid Category, Account Name, GL Account, Description, and Amount values.'
+                });
+                return false;
+            }
+
+            return true;
+        }
+
+        // Override submit function to use our validation
+        window.submitDocument = function(isDraft = false) {
+            if (!validateForm()) {
+                return;
+            }
+
+            // Show success message for demo purposes
+            Swal.fire({
+                icon: 'success',
+                title: 'Form Validated Successfully',
+                text: 'All required fields are filled and data is valid. In a real implementation, this would submit to the server.',
+                confirmButtonText: 'OK'
+            });
+        };
 
         // Utility functions and submit handling are implemented in addOPReim.js
     </script>

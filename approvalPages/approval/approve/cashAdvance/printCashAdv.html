@@ -3,678 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cash Advance Voucher</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="../../../../js/auth.js"></script>
-    <script src="printCashAdv.js"></script>
-    <style>
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f5f7fa;
-            color: #2d3748;
-            line-height: 1.5;
-        }
-        
-        .container {
-            width: 21cm;
-            min-height: 29.7cm;
-            padding: 1.5cm;
-            margin: 20px auto;
-            background: white;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            box-sizing: border-box;
-            border-radius: 8px;
-        }
-        
-        .header {
-            text-align: left;
-            margin-bottom: 25px;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            width: 100%;
-        }
-        
-        .company-info {
-            flex: 1;
-        }
-        
-        .document-info {
-            text-align: right;
-            min-width: 220px;
-        }
-        
-        .document-info p {
-            margin: 5px 0;
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        .document-info span {
-            font-weight: 500;
-            word-break: break-word;
-            max-width: 150px;
-            text-align: right;
-        }
-        
-        .title {
-            text-align: center;
-            font-weight: bold;
-            font-size: 20px;
-            margin: 25px 0;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        
-        .section {
-            margin-bottom: 25px;
-        }
-        
-        .checkbox-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            margin: 15px 0;
-            justify-content: center;
-        }
-        
-        .checkbox {
-            border: 1px solid #000;
-            width: 16px;
-            height: 16px;
-            display: inline-block;
-            margin-right: 6px;
-            vertical-align: middle;
-            position: relative;
-        }
-        
-        .checkbox.checked {
-            background-color: black;
-        }
-        
-        .form-row {
-            display: flex;
-            flex-wrap: wrap;
-            margin-bottom: 15px;
-            align-items: flex-start;
-        }
-        
-        .form-label {
-            width: 180px;
-            padding-right: 15px;
-            font-weight: 500;
-            flex-shrink: 0;
-        }
-        
-        .form-field {
-            flex: 1;
-            min-width: 250px;
-            border-bottom: 1px solid #cbd5e0;
-            padding-bottom: 3px;
-            word-break: break-word;
-            overflow-wrap: break-word;
-            min-height: 24px;
-        }
-        
-        .signature-section {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            margin-top: 30px;
-            gap: 20px;
-            padding: 10px 0;
-        }
-        
-        .signature-box {
-            width: 19%;
-            min-width: 150px;
-            border: none;
-            border-bottom: 2px solid #2c5282;
-            height: 140px;
-            text-align: center;
-            position: relative;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-            overflow: hidden;
-            transition: all 0.3s ease;
-            background: linear-gradient(to bottom, #ffffff, #f9fafb);
-        }
-        
-        .signature-box:hover {
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            transform: translateY(-2px);
-        }
-        
-        .signature-box > div:first-child {
-            padding: 10px 5px;
-            font-weight: 600;
-            border-bottom: 1px solid #e2e8f0;
-            background-color: #f0f4f8;
-            border-radius: 4px 4px 0 0;
-            color: #2d3748;
-            letter-spacing: 0.5px;
-        }
-        
-        .signature-title {
-            font-weight: bold;
-            margin-bottom: 10px;
-            font-size: 0.95rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .approval-date {
-            font-size: 11px;
-            color: #4a5568;
-            margin-top: 5px;
-            font-style: italic;
-            position: absolute;
-            bottom: 5px;
-            left: 0;
-            right: 0;
-        }
-        
-        .signature-name {
-            position: absolute;
-            bottom: 25px;
-            left: 0;
-            right: 0;
-            padding: 5px;
-            font-size: 0.9em;
-            word-break: break-word;
-            font-weight: 500;
-            color: #2d3748;
-            z-index: 2;
-            background-color: rgba(255, 255, 255, 0.7);
-            border-radius: 3px;
-        }
-        
-        /* Approval stamp styling */
-        .approval-stamp {
-            position: absolute;
-            width: 100%;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            top: 35px;
-            left: 0;
-            z-index: 1;
-            pointer-events: none;
-        }
-        
-        .approval-stamp-text {
-            color: rgba(44, 82, 130, 0.4);
-            font-weight: bold;
-            font-size: 15px;
-            transform: rotate(-15deg);
-            border: 2px solid rgba(44, 82, 130, 0.4);
-            border-radius: 5px;
-            padding: 3px 12px;
-            display: inline-block;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-15deg);
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.05);
-        }
-        
-        .footer-note {
-            font-size: 0.85em;
-            margin-top: 30px;
-            font-style: italic;
-            color: #4a5568;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 15px;
-        }
-        
-        /* Responsiveness */
-        @media screen and (max-width: 992px) {
-            .container {
-                width: 95%;
-                padding: 1cm;
-            }
-            
-            .signature-section {
-                justify-content: center;
-            }
-            
-            .signature-box {
-                width: 30%;
-            }
-        }
-        
-        @media screen and (max-width: 768px) {
-            .container {
-                width: 100%;
-                padding: 0.8cm;
-                margin: 10px auto;
-                border-radius: 0;
-            }
-            
-            .header-content {
-                flex-direction: column;
-            }
-            
-            .document-info {
-                text-align: left;
-                margin-top: 15px;
-                width: 100%;
-            }
-            
-            .document-info p {
-                justify-content: flex-start;
-            }
-            
-            .document-info span {
-                text-align: left;
-                margin-left: 10px;
-            }
-            
-            .form-row {
-                flex-direction: column;
-            }
-            
-            .form-label {
-                width: 100%;
-                margin-bottom: 5px;
-            }
-            
-            .form-field {
-                width: 100%;
-            }
-            
-            .signature-box {
-                width: 48%;
-            }
-            
-            .checkbox-group {
-                justify-content: flex-start;
-            }
-        }
-        
-        @media screen and (max-width: 576px) {
-            .signature-box {
-                width: 100%;
-            }
-        }
-        
-        @media print {
-            body {
-                background: none;
-                font-size: 12pt;
-            }
-            
-            .no-print {
-                display: none;
-            }
-            
-            .container {
-                width: 100%;
-                padding: 0.5cm;
-                box-shadow: none;
-                min-height: auto;
-                margin: 0;
-                border-radius: 0;
-            }
-            
-            @page {
-                size: A4 portrait;
-                margin: 0.5cm;
-            }
-            
-            .signature-box {
-                break-inside: avoid;
-            }
-            
-            .form-row, .footer-note {
-                break-inside: avoid;
-            }
-        }
-    </style>
+    <title>Cash Advance Voucher - Print</title>
+    <link rel="stylesheet" href="printCashAdv.css">
 </head>
 <body>
-    <div class="container">
-        <!-- Print controls - only visible on screen -->
-        <div class="no-print mb-4 flex justify-between">
-            <button onclick="window.print();" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow transition duration-200">
-                Print Document
-            </button>
-            <button onclick="goBack()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded shadow transition duration-200">
-                Back
-            </button>
-        </div>
-        
+    <div class="print-container">
+        <!-- Header -->
         <div class="header">
-            <div style="text-align: center; margin-bottom: 15px;">
-                <img src="../../../../image/Seiho.png" alt="Seiho Logo" style="height: 70px;">
+            <div class="company-info">
+                <h2>PT KANSAI PAINT INDONESIA</h2>
+                <p>Blok DD-7 & DD-6 Kawasan Industri MM2100 Danau indah Cikarang Barat<br>
+                Kab. Bekasi Jawa Barat 17530</p>
+            </div>
+            <div class="voucher-details">
+                <div class="detail-row">
+                    <label>Batch No:</label>
+                    <span id="batchNo">-</span>
+                </div>
+                <div class="detail-row">
+                    <label>Voucher No:</label>
+                    <span id="voucherNo">-</span>
+                </div>
+                <div class="detail-row">
+                    <label>Submission date:</label>
+                    <span id="submissionDate">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Title -->
+        <div class="main-title">
+            <h1>CASH ADVANCE VOUCHER</h1>
+        </div>
+        
+        <!-- Department Selection -->
+        <div class="department-section">
+            <div class="department-title">Department/Category:</div>
+            <div class="department-checkboxes">
+                <label class="checkbox-item">
+                    <input type="checkbox" id="deptProduction" disabled>
+                    <span class="checkmark"></span>
+                    Production
+                </label>
+                <label class="checkbox-item">
+                    <input type="checkbox" id="deptMarketing" disabled>
+                    <span class="checkmark"></span>
+                    Marketing
+                </label>
+                <label class="checkbox-item">
+                    <input type="checkbox" id="deptTechnical" disabled>
+                    <span class="checkmark"></span>
+                    Technical
+                </label>
+                <label class="checkbox-item">
+                    <input type="checkbox" id="deptAdministration" disabled>
+                    <span class="checkmark"></span>
+                    Administration
+                </label>
+            </div>
+        </div>
+        
+        <!-- Recipient Section -->
+        <div class="recipient-section">
+            <label>Cash advance is paid to:</label>
+            <div class="recipient-name" id="recipientName">-</div>
+        </div>
+        
+        <!-- Approval Boxes -->
+        <div class="approval-section">
+            <div class="approval-box">
+                <div class="box-title">Proposed by:</div>
+                <div class="approval-content">
+                    <div class="approval-name" id="proposedByName">-</div>
+                    <div class="approval-date" id="proposedDate">-</div>
+                </div>
+            </div>
+            <div class="approval-box">
+                <div class="box-title">Checked by:</div>
+                <div class="approval-content">
+                    <div class="approval-name" id="checkedByName">-</div>
+                    <div class="approval-date" id="checkedDate">-</div>
+                </div>
+            </div>
+            <div class="approval-box">
+                <div class="box-title">Acknowledged by:</div>
+                <div class="approval-content">
+                    <div class="approval-name" id="acknowledgedByName">-</div>
+                    <div class="approval-date" id="acknowledgedDate">-</div>
+                </div>
+            </div>
+            <div class="approval-box">
+                <div class="box-title">Approved by:</div>
+                <div class="approval-content">
+                    <div class="approval-name" id="approvedByName">-</div>
+                    <div class="approval-date" id="approvedDate">-</div>
+                </div>
+            </div>
+            <div class="approval-box">
+                <div class="box-title">Received by:</div>
+                <div class="approval-content">
+                    <div class="approval-name" id="receivedByName">-</div>
+                    <div class="approval-date" id="receivedDate">-</div>
+                </div>
+            </div>
+        </div>
+        
+        
+        
+        <!-- Cost and Purpose -->
+        <div class="cost-purpose-section">
+            <div class="cost-row">
+                <label>Estimated cost:</label>
+                <div class="cost-amount">
+                    <span class="currency">Rp</span>
+                    <span class="amount" id="totalAmount">-</span>
+            </div>
+            </div>
+            <div class="cost-words">
+                <label>in words:</label>
+                <div class="words-content" id="amountInWords">-</div>
+            </div>
+            <div class="purpose-row">
+                <label>Purpose of Advance:</label>
+                <div class="purpose-content" id="purpose">-</div>
+            </div>
+        </div>
+        
+        <!-- Settlement Table -->
+        <div class="settlement-section">
+            <div class="table-title">Settlement of advance:</div>
+            <table class="settlement-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Debit</th>
+                        <th>Credit</th>
+                    </tr>
+                </thead>
+                <tbody id="settlementTableBody">
+                    <!-- Rows will be populated by JavaScript -->
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td><strong>Total</strong></td>
+                        <td id="totalDebit">-</td>
+                        <td id="totalCredit">-</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        
+        <!-- Return and Final Approval -->
+        <div class="return-section">
+            <div class="return-row">
+                <label>Total cash must be returned to the Company (paid to the Employee):</label>
+                <div class="return-amount">
+                    <span class="currency">Rp</span>
+                    <span class="amount" id="returnAmount">-</span>
+                </div>
+            </div>
+            <div class="return-words">
+                <label>in words:</label>
+                <div class="words-content" id="returnAmountInWords">-</div>
+            </div>
+            <div class="return-date">
+                <label>Return Date:</label>
+                <span id="returnDate">-</span>
+            </div>
             </div>
             
-            <div class="header-content">
-                <div class="company-info">
-                    <p>Blok DD-7 & DD-6 Kawasan Industri MM2100 Danau indah</p>
-                    <p>Cikarang Barat Kab. Bekasi Jawa Barat 17530</p>
-                    <br>
-                    <p><strong>Transaction Type:</strong> <span id="transactionType"></span></p>
-                    <p><strong>Batch No:</strong> <span id="batchNo"></span></p>
-                    <p><strong>Voucher No:</strong> <span id="voucherNo"></span></p>
-                    <p><strong>Submission date:</strong> <span id="submissionDate"></span></p>
-                </div>
-            </div>
+                <!-- Final Approval Boxes -->
+        <div class="final-approval-section">
         </div>
-        
-        <div class="title">
-            CASH ADVANCE VOUCHER
-        </div>
-        
-        <div class="checkbox-group">
-            <div>
-                <span class="checkbox" id="productionCheck"></span> Production
-            </div>
-            <div>
-                <span class="checkbox" id="marketingCheck"></span> Marketing
-            </div>
-            <div>
-                <span class="checkbox" id="technicalCheck"></span> Technical
-            </div>
-            <div>
-                <span class="checkbox" id="administrationCheck"></span> Administration
-            </div>
-        </div>
-        
-        <div class="form-row">
-            <div class="form-label">Cash advance is paid to</div>
-            <div class="form-field" id="paidTo">:</div>
-        </div>
-        
-        <!-- First signature - Proposed by -->
-        <div class="signature-section">
-            <div class="signature-box">
-                <div class="signature-title">Proposed by:</div>
-                <div class="approval-stamp">
-                    <span class="approval-stamp-text">Approved</span>
-                </div>
-                <div id="proposedName" class="signature-name"></div>
-                <div id="proposedDate" class="approval-date"></div>
-            </div>
-        </div>
-        
-        <!-- Main signature section - all other approvals -->
-        <div class="signature-section">
-            <div class="signature-box">
-                <div class="signature-title">Checked by:</div>
-                <div class="approval-stamp">
-                    <span class="approval-stamp-text">Approved</span>
-                </div>
-                <div id="checkedName" class="signature-name"></div>
-                <div id="checkedDate" class="approval-date"></div>
-            </div>
-
-            <div class="signature-box">
-                <div class="signature-title">Acknowledged by:</div>
-                <br><br>
-                <div class="approval-stamp">
-                    <span class="approval-stamp-text">Approved</span>
-                </div>
-                <div id="acknowledgedName" class="signature-name"></div>
-                <div id="acknowledgedDate" class="approval-date"></div>
-            </div>
             
-            <div class="signature-box">
-                <div class="signature-title">Approved by:</div>
-                <div class="approval-stamp">
-                    <span class="approval-stamp-text">Approved</span>
-                </div>
-                <div id="approvedName" class="signature-name"></div>
-                <div id="approvedDate" class="approval-date"></div>
+        <!-- Important Notes -->
+        <div class="notes-section">
+            <div class="note">
+                <strong>Note:</strong> The payment through cash is valid, at the time you sign on the column of "Cash is received by:"
             </div>
-            
-            <div class="signature-box">
-                <div class="signature-title">Received by:</div>
-            <!--    <div class="approval-stamp">
-                    <span class="approval-stamp-text">Received</span>
-                </div>
-            -->
-                <div id="receivedName" class="signature-name"></div>
-                <div id="receivedDate" class="approval-date"></div>
+            <div class="note">
+                <strong>Important:</strong> The Cash Advance Must be Settled within 1 Month, Otherwise The Company has full authority to deduct from the Salary.
             </div>
         </div>
         
-        <div id="closedBySection" class="form-row" style="margin-top: 15px;">
-            <div class="form-label">Closed by:</div>
-            <div class="form-field">
-                Name: <span id="closedName"></span>, 
-                Date: <span id="closedDate"></span>
-            </div>
-        </div>
-        <br><br><br>
-        
-        <div class="form-row">
-            <div class="form-label">Category</div>
-            <div class="form-field" id="category"></div>
-        </div>
-        <div class="form-row">
-            <div class="form-label">Description</div>
-            <div class="form-field" id="description"></div>
-        </div>
-
-        <div class="form-row" style="margin-top: 25px;">
-            <div class="form-label">Remarks</div>
-            <div class="form-field" id="remarks"></div>
-        </div>
-        
-        <div class="form-row">
-            <div class="form-label">Estimated cost</div>
-            <div class="form-field">Rp <span id="estimatedCost"></span></div>
-        </div>
-        
-        <div class="form-row">
-            <div class="form-label">In words</div>
-            <div class="form-field" id="amountInWords"></div>
-        </div>
-        
-        <div class="form-row">
-            <div class="form-label">Purpose of Advance</div>
-            <div class="form-field" id="purpose"></div>
-        </div>
-        
-        <div class="footer-note">
-            The payment through cash is valid, at the time you sign on the column of "Cash is received by".<br>
-            The Cash Advance Must be Settled within 1 Month, Otherwise The Company has full authority to deduct from the Salary.
+        <!-- Print Button -->
+        <div class="print-actions">
+            <button onclick="window.print()" class="print-btn">Print Voucher</button>
+            <button onclick="window.close()" class="close-btn">Close</button>
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Get URL parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            const cashAdvanceId = urlParams.get('ca-id');
-            
-            if (cashAdvanceId) {
-                // If we have a cash advance ID, try to fetch data from API
-                fetchCashAdvanceData(cashAdvanceId);
-            } else {
-                // Otherwise use URL parameters
-                loadDataFromUrlParams();
-            }
-            
-            // Show or hide approval stamps based on data
-            showHideApprovalStamps();
-        });
-                
-        function fetchCashAdvanceData(cashAdvanceId) {
-            // Try to fetch from API using the ID
-            // This is a placeholder - in a real implementation, you would make an API call
-            console.log("Fetching data for cash advance ID:", cashAdvanceId);
-            
-            // For now, fall back to URL parameters
-            loadDataFromUrlParams();
-        }
-        
-        function loadDataFromUrlParams() {
-            const urlParams = new URLSearchParams(window.location.search);
-            
-            // Map fields from URL parameters based on the mapping provided
-            document.getElementById('transactionType').textContent = urlParams.get('transactionType') || '';
-            document.getElementById('voucherNo').textContent = urlParams.get('invno') || '';
-            document.getElementById('submissionDate').textContent = formatDate(urlParams.get('postingDate') || '');
-            document.getElementById('paidTo').textContent = ': ' + (urlParams.get('paidTo') || '');
-            
-            // Set department checkbox
-            const department = urlParams.get('department') || '';
-            if (department) {
-                const dept = department.toLowerCase();
-                if (dept.includes('production')) {
-                    document.getElementById('productionCheck').style.backgroundColor = 'black';
-                } else if (dept.includes('marketing')) {
-                    document.getElementById('marketingCheck').style.backgroundColor = 'black';
-                } else if (dept.includes('technical')) {
-                    document.getElementById('technicalCheck').style.backgroundColor = 'black';
-                } else if (dept.includes('admin')) {
-                    document.getElementById('administrationCheck').style.backgroundColor = 'black';
-                }
-            }
-            
-            // Set signatures
-            document.getElementById('proposedName').textContent = urlParams.get('prepared') || '';
-            document.getElementById('proposedDate').textContent = formatDate(urlParams.get('postingDate') || '');
-            
-            document.getElementById('checkedName').textContent = urlParams.get('Checked') || '';
-            document.getElementById('checkedDate').textContent = formatDate(urlParams.get('postingDate') || '');
-            
-            document.getElementById('acknowledgedName').textContent = urlParams.get('Acknowledged') || '';
-            document.getElementById('acknowledgedDate').textContent = formatDate(urlParams.get('postingDate') || '');
-            
-            document.getElementById('approvedName').textContent = urlParams.get('Approved') || '';
-            document.getElementById('approvedDate').textContent = formatDate(urlParams.get('postingDate') || '');
-            
-            document.getElementById('receivedName').textContent = urlParams.get('Received') || '';
-            document.getElementById('receivedDate').textContent = formatDate(urlParams.get('postingDate') || '');
-            
-            // Set closed by section
-            const closed = urlParams.get('Closed') || '';
-            if (closed) {
-                document.getElementById('closedName').textContent = closed;
-                document.getElementById('closedDate').textContent = formatDate(urlParams.get('postingDate') || '');
-                document.getElementById('closedBySection').style.display = 'flex';
-            } else {
-                document.getElementById('closedBySection').style.display = 'none';
-            }
-            
-            // Set remarks
-            document.getElementById('remarks').textContent = urlParams.get('remarks') || '';
-            
-            // Calculate total amount from table rows (if available)
-            // For simplicity, we'll use a fixed amount here
-            const amount = parseFloat(urlParams.get('amount') || '0');
-            document.getElementById('estimatedCost').textContent = amount.toLocaleString();
-            document.getElementById('amountInWords').textContent = numberToWords(amount) + ' rupiah';
-            
-            // Set purpose
-            document.getElementById('purpose').textContent = urlParams.get('purposed') || '';
-        }
-        
-        function showHideApprovalStamps() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const approvalStamps = document.querySelectorAll('.approval-stamp');
-            
-            // Get approval status from URL parameters
-            const proposedApproved = urlParams.get('proposedApproved') === 'true';
-            const checkedApproved = urlParams.get('checkedApproved') === 'true';
-            const acknowledgedApproved = urlParams.get('acknowledgedApproved') === 'true';
-            const approvedApproved = urlParams.get('approvedApproved') === 'true';
-            const receivedApproved = urlParams.get('receivedApproved') === 'true';
-            
-            // Show stamps only if approved
-            if (approvalStamps.length >= 5) {
-                approvalStamps[0].style.visibility = proposedApproved ? 'visible' : 'hidden';
-                approvalStamps[1].style.visibility = checkedApproved ? 'visible' : 'hidden';
-                approvalStamps[2].style.visibility = acknowledgedApproved ? 'visible' : 'hidden';
-                approvalStamps[3].style.visibility = approvedApproved ? 'visible' : 'hidden';
-                approvalStamps[4].style.visibility = receivedApproved ? 'visible' : 'hidden';
-            }
-        }
-        
-        function formatDate(dateString) {
-            if (!dateString) return '';
-            
-            try {
-                const date = new Date(dateString);
-                if (isNaN(date.getTime())) return dateString;
-                
-                return date.toLocaleDateString('en-GB');
-            } catch (e) {
-                return dateString;
-            }
-        }
-        
-        // Function to convert number to words
-        function numberToWords(number) {
-            const ones = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
-            const teens = ['ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
-            const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
-            
-            function convertLessThanOneThousand(num) {
-                if (num === 0) {
-                    return '';
-                } else if (num < 10) {
-                    return ones[num];
-                } else if (num < 20) {
-                    return teens[num - 10];
-                } else if (num < 100) {
-                    return tens[Math.floor(num / 10)] + (num % 10 !== 0 ? ' ' + ones[num % 10] : '');
-                } else {
-                    return ones[Math.floor(num / 100)] + ' hundred' + (num % 100 !== 0 ? ' ' + convertLessThanOneThousand(num % 100) : '');
-                }
-            }
-            
-            if (number === 0) {
-                return 'zero';
-            }
-            
-            const num = parseFloat(number.toString().replace(/,/g, ''));
-            
-            const billion = Math.floor(num / 1000000000);
-            const million = Math.floor((num % 1000000000) / 1000000);
-            const thousand = Math.floor((num % 1000000) / 1000);
-            const remainder = Math.floor(num % 1000);
-            
-            let result = '';
-            
-            if (billion > 0) {
-                result += convertLessThanOneThousand(billion) + ' billion ';
-            }
-            
-            if (million > 0) {
-                result += convertLessThanOneThousand(million) + ' million ';
-            }
-            
-            if (thousand > 0) {
-                result += convertLessThanOneThousand(thousand) + ' thousand ';
-            }
-            
-            if (remainder > 0 || result === '') {
-                result += convertLessThanOneThousand(remainder);
-            }
-            
-            return result;
-        }
-
-        function goBack() {
-            window.close();
-        }
-    </script>
+    <script src="printCashAdv.js"></script>
 </body>
 </html> 

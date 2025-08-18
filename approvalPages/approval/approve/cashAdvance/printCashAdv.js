@@ -1,363 +1,272 @@
-// Using BASE_URL from auth.js instead of hardcoded baseUrl
-let cashAdvanceId = '';
+// Cash Advance Voucher Print JavaScript
+class CashAdvancePrinter {
+    constructor() {
+        this.apiBaseUrl = 'https://expressiv-be-sb.idsdev.site/api';
+        this.cashAdvanceId = this.getCashAdvanceIdFromUrl();
+        this.cashAdvanceData = null;
+        
+        this.init();
+    }
 
-// Get cash advance ID from URL
-function getCashAdvanceIdFromUrl() {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('ca-id');
-}
-
-// Convert number to words (for amount in words)
-function numberToWords(number) {
-    const ones = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
-    const teens = ['ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
-    const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
-    
-    function convertLessThanOneThousand(num) {
-        if (num === 0) {
-            return '';
-        } else if (num < 10) {
-            return ones[num];
-        } else if (num < 20) {
-            return teens[num - 10];
-        } else if (num < 100) {
-            return tens[Math.floor(num / 10)] + (num % 10 !== 0 ? ' ' + ones[num % 10] : '');
+    init() {
+        if (this.cashAdvanceId) {
+            this.loadCashAdvanceData();
         } else {
-            return ones[Math.floor(num / 100)] + ' hundred' + (num % 100 !== 0 ? ' ' + convertLessThanOneThousand(num % 100) : '');
+            this.showError('Cash Advance ID not found in URL');
         }
     }
-    
-    if (number === 0) {
-        return 'zero';
-    }
-    
-    const num = parseFloat(number.toString().replace(/,/g, ''));
-    
-    const billion = Math.floor(num / 1000000000);
-    const million = Math.floor((num % 1000000000) / 1000000);
-    const thousand = Math.floor((num % 1000000) / 1000);
-    const remainder = Math.floor(num % 1000);
-    
-    let result = '';
-    
-    if (billion > 0) {
-        result += convertLessThanOneThousand(billion) + ' billion ';
-    }
-    
-    if (million > 0) {
-        result += convertLessThanOneThousand(million) + ' million ';
-    }
-    
-    if (thousand > 0) {
-        result += convertLessThanOneThousand(thousand) + ' thousand ';
-    }
-    
-    if (remainder > 0 || result === '') {
-        result += convertLessThanOneThousand(remainder);
-    }
-    
-    return result;
-}
 
-// Format date to a readable format
-function formatDate(dateString) {
-    if (!dateString) return '';
-    
-    try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return dateString;
-        
-        return date.toLocaleDateString('en-GB');
-    } catch (e) {
-        return dateString;
+    getCashAdvanceIdFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('id') || urlParams.get('cashAdvanceId');
     }
-}
 
-// Calculate total amount from table rows
-function calculateTotalAmount() {
-    let totalAmount = 0;
-    const amountInputs = document.querySelectorAll('#tableBody .amount');
-    
-    amountInputs.forEach(input => {
-        const amount = parseFloat(input.value) || 0;
-        totalAmount += amount;
-    });
-    
-    return totalAmount;
-}
-
-// Initialize when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if we are in data retrieval mode
-    const urlParams = new URLSearchParams(window.location.search);
-    const mode = urlParams.get('mode');
-    
-    if (mode === 'getdata') {
-        // We're being loaded to retrieve data, send it back to the parent window
-        sendDataToParent();
-        return;
-    }
-    
-    // Normal print mode - get cash advance ID from URL
-    cashAdvanceId = getCashAdvanceIdFromUrl();
-    
-    if (cashAdvanceId) {
-        // If we have a cash advance ID, load data from approveCash.html
-        loadDataFromApproveCash();
-    } else {
-        // Otherwise use URL parameters as fallback
-        loadDataFromUrlParams();
-    }
-});
-
-// Send data from approveCash.html to parent window
-function sendDataToParent() {
-    // Get data from the form
-    const data = {
-        transactionType: document.getElementById('typeTransaction').value,
-        voucherNo: document.getElementById('invno').value,
-        submissionDate: document.getElementById('postingDate').value,
-        department: document.getElementById('department').value,
-        paidTo: document.getElementById('paidTo').value,
-        prepared: document.getElementById('preparedBySearch').value,
-        checked: document.getElementById('checkedBySearch').value,
-        acknowledged: document.getElementById('acknowledgedBySearch').value,
-        approved: document.getElementById('approvedBySearch').value,
-        received: document.getElementById('receivedBySearch').value,
-        closed: document.getElementById('closedBySearch') ? document.getElementById('closedBySearch').value : '',
-        remarks: document.getElementById('remarks').value,
-        purpose: document.getElementById('purposed').value
-    };
-    
-    // Calculate total amount from table
-    let totalAmount = 0;
-    const amountInputs = document.querySelectorAll('#tableBody .amount');
-    amountInputs.forEach(input => {
-        const amount = parseFloat(input.value) || 0;
-        totalAmount += amount;
-    });
-    data.amount = totalAmount.toString();
-    
-    // Send data to parent window
-    window.opener.postMessage({
-        type: 'cashAdvanceData',
-        data: data
-    }, '*');
-}
-
-// Load data from approveCash.html
-function loadDataFromApproveCash() {
-    // Create a hidden iframe to load approveCash.html
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = `approveCash.html?ca-id=${cashAdvanceId}&mode=getdata`;
-    document.body.appendChild(iframe);
-    
-    // Listen for message from iframe
-    window.addEventListener('message', function(event) {
-        if (event.data && event.data.type === 'cashAdvanceData') {
-            // Remove the iframe
-            document.body.removeChild(iframe);
+    async loadCashAdvanceData() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/cash-advance/${this.cashAdvanceId}`);
             
-            // Use the data to populate the print form
-            populatePrintForm(event.data.data);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.status && result.data) {
+                this.cashAdvanceData = result.data;
+                this.populateForm();
+            } else {
+                throw new Error(result.message || 'Failed to load data');
+            }
+        } catch (error) {
+            console.error('Error loading cash advance data:', error);
+            this.showError(`Failed to load data: ${error.message}`);
         }
-    }, false);
-}
+    }
 
-// Load data from URL parameters
-function loadDataFromUrlParams() {
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // Map fields from URL parameters based on the mapping provided
-    document.getElementById('transactionType').textContent = urlParams.get('transactionType') || '';
-    document.getElementById('voucherNo').textContent = urlParams.get('invno') || '';
-    document.getElementById('submissionDate').textContent = formatDate(urlParams.get('postingDate') || '');
-    document.getElementById('paidTo').textContent = ': ' + (urlParams.get('paidTo') || '');
-    
-    // Set department checkbox
-    const department = urlParams.get('department') || '';
-    if (department) {
-        const dept = department.toLowerCase();
-        if (dept.includes('production')) {
-            document.getElementById('productionCheck').style.backgroundColor = 'black';
-        } else if (dept.includes('marketing')) {
-            document.getElementById('marketingCheck').style.backgroundColor = 'black';
-        } else if (dept.includes('technical')) {
-            document.getElementById('technicalCheck').style.backgroundColor = 'black';
-        } else if (dept.includes('admin')) {
-            document.getElementById('administrationCheck').style.backgroundColor = 'black';
-        }
-    }
-    
-    // Set signatures
-    document.getElementById('proposedName').textContent = urlParams.get('prepared') || '';
-    document.getElementById('proposedDate').textContent = formatDate(urlParams.get('postingDate') || '');
-    
-    document.getElementById('checkedName').textContent = urlParams.get('Checked') || '';
-    document.getElementById('checkedDate').textContent = formatDate(urlParams.get('postingDate') || '');
-    
-    document.getElementById('acknowledgedName').textContent = urlParams.get('Acknowledged') || '';
-    document.getElementById('acknowledgedDate').textContent = formatDate(urlParams.get('postingDate') || '');
-    
-    document.getElementById('approvedName').textContent = urlParams.get('Approved') || '';
-    document.getElementById('approvedDate').textContent = formatDate(urlParams.get('postingDate') || '');
-    
-    document.getElementById('receivedName').textContent = urlParams.get('Received') || '';
-    document.getElementById('receivedDate').textContent = formatDate(urlParams.get('postingDate') || '');
-    
-    // Set closed by section if it exists
-    if (document.getElementById('closedName')) {
-        document.getElementById('closedName').textContent = urlParams.get('Closed') || '';
-        document.getElementById('closedDate').textContent = formatDate(urlParams.get('postingDate') || '');
+    populateForm() {
+        if (!this.cashAdvanceData) return;
+
+        // Header Information
+        this.setElementText('voucherNo', this.cashAdvanceData.cashAdvanceNo || '-');
+        this.setElementText('submissionDate', this.formatDate(this.cashAdvanceData.submissionDate) || '-');
         
-        // Show/hide closed by section based on whether there's data
-        const closedBySection = document.getElementById('closedBySection');
-        if (closedBySection) {
-            closedBySection.style.display = urlParams.get('Closed') ? 'flex' : 'none';
+        // Set batch number (using voucher number as fallback)
+        this.setElementText('batchNo', this.cashAdvanceData.cashAdvanceNo || '-');
+
+        // Department Selection
+        this.setDepartmentCheckbox(this.cashAdvanceData.departmentName);
+
+        // Recipient Information
+        this.setElementText('recipientName', this.cashAdvanceData.employeeName || '-');
+
+        // Approval Information
+        this.setApprovalInfo('proposedByName', 'proposedDate', 
+            this.cashAdvanceData.preparedName, this.cashAdvanceData.preparedDate);
+        this.setApprovalInfo('checkedByName', 'checkedDate', 
+            this.cashAdvanceData.checkedName, this.cashAdvanceData.checkedDate);
+        this.setApprovalInfo('acknowledgedByName', 'acknowledgedDate', 
+            this.cashAdvanceData.acknowledgedName, this.cashAdvanceData.acknowledgedDate);
+        this.setApprovalInfo('approvedByName', 'approvedDate', 
+            this.cashAdvanceData.approvedName, this.cashAdvanceData.approvedDate);
+        this.setApprovalInfo('receivedByName', 'receivedDate', 
+            this.cashAdvanceData.receivedName, this.cashAdvanceData.receivedDate);
+
+
+
+        // Cost and Purpose
+        this.setElementText('totalAmount', this.formatCurrency(this.cashAdvanceData.totalAmount));
+        this.setElementText('amountInWords', this.numberToWords(this.cashAdvanceData.totalAmount));
+        this.setElementText('purpose', this.cashAdvanceData.purpose || '-');
+
+        // Settlement Table
+        this.populateSettlementTable();
+
+        // Return Amount (same as total amount for cash advance)
+        this.setElementText('returnAmount', this.formatCurrency(this.cashAdvanceData.totalAmount));
+        this.setElementText('returnAmountInWords', this.numberToWords(this.cashAdvanceData.totalAmount));
+        
+        // Set return date to 1 month from submission date
+        const returnDate = this.calculateReturnDate(this.cashAdvanceData.submissionDate);
+        this.setElementText('returnDate', returnDate);
+
+
+    }
+
+    setDepartmentCheckbox(departmentName) {
+        if (!departmentName) return;
+
+        const deptLower = departmentName.toLowerCase();
+        
+        if (deptLower.includes('production')) {
+            document.getElementById('deptProduction').checked = true;
+        } else if (deptLower.includes('marketing')) {
+            document.getElementById('deptMarketing').checked = true;
+        } else if (deptLower.includes('technical')) {
+            document.getElementById('deptTechnical').checked = true;
+        } else if (deptLower.includes('administration') || deptLower.includes('finance')) {
+            document.getElementById('deptAdministration').checked = true;
         }
     }
-    
-    // Set remarks if it exists
-    if (document.getElementById('remarks')) {
-        document.getElementById('remarks').textContent = urlParams.get('remarks') || '';
+
+    setApprovalInfo(nameId, dateId, name, date) {
+        if (name) {
+            this.setElementText(nameId, name);
+        }
+        if (date) {
+            this.setElementText(dateId, this.formatDate(date));
+        }
     }
-    
-    // Set amount information
-    const amount = parseFloat(urlParams.get('amount') || urlParams.get('amount') || '0') || 0;
-    document.getElementById('estimatedCost').textContent = amount.toLocaleString();
-    document.getElementById('amountInWords').textContent = numberToWords(amount) + ' rupiah';
-    
-    // Set purpose
-    document.getElementById('purpose').textContent = urlParams.get('purposed') || urlParams.get('purpose') || '';
-    
-    // Set category and description if they exist
-    try {
-        const itemsParam = urlParams.get('items');
-        if (itemsParam) {
-            const items = JSON.parse(decodeURIComponent(itemsParam));
-            if (items && items.length > 0) {
-                // Ambil kategori dan deskripsi dari item pertama
-                if (document.getElementById('category')) {
-                    document.getElementById('category').textContent = items[0].category || '';
-                }
-                if (document.getElementById('description')) {
-                    document.getElementById('description').textContent = items[0].description || '';
-                }
-                
-                console.log('Items data loaded:', items);
+
+
+
+    populateSettlementTable() {
+        const tableBody = document.getElementById('settlementTableBody');
+        if (!tableBody) return;
+
+        tableBody.innerHTML = '';
+
+        if (this.cashAdvanceData.cashAdvanceDetails && this.cashAdvanceData.cashAdvanceDetails.length > 0) {
+            this.cashAdvanceData.cashAdvanceDetails.forEach(detail => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${detail.description || '-'}</td>
+                    <td>${this.formatCurrency(detail.amount)}</td>
+                    <td>-</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        } else {
+            // Add empty rows if no details
+            for (let i = 0; i < 6; i++) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                    <td>&nbsp;</td>
+                `;
+                tableBody.appendChild(row);
             }
         }
-    } catch (error) {
-        console.error('Error parsing items data:', error);
-    }
-    
-    // Set return amount if they exist
-    if (document.getElementById('returnAmount')) {
-        document.getElementById('returnAmount').textContent = amount.toLocaleString();
-    }
-    if (document.getElementById('returnAmountInWords')) {
-        document.getElementById('returnAmountInWords').textContent = numberToWords(amount) + ' rupiah';
-    }
-    if (document.getElementById('returnDate')) {
-        document.getElementById('returnDate').textContent = formatDate(urlParams.get('postingDate') || '');
-    }
-}
 
-// Populate print form with data
-function populatePrintForm(data) {
-    // Populate header information
-    if (document.getElementById('transactionType')) {
-        document.getElementById('transactionType').textContent = data.transactionType || '';
+        // Set totals
+        this.setElementText('totalDebit', this.formatCurrency(this.cashAdvanceData.totalAmount));
+        this.setElementText('totalCredit', '-');
     }
-    if (document.getElementById('batchNo')) {
-        document.getElementById('batchNo').textContent = data.batchNo || '';
-    }
-    document.getElementById('voucherNo').textContent = data.voucherNo || '';
-    document.getElementById('submissionDate').textContent = formatDate(data.submissionDate);
-    document.getElementById('paidTo').textContent = ': ' + (data.paidTo || '');
-    
-    // Set department checkbox
-    if (data.department) {
-        const dept = data.department.toLowerCase();
-        if (dept.includes('production')) {
-            document.getElementById('productionCheck').style.backgroundColor = 'black';
-        } else if (dept.includes('marketing')) {
-            document.getElementById('marketingCheck').style.backgroundColor = 'black';
-        } else if (dept.includes('technical')) {
-            document.getElementById('technicalCheck').style.backgroundColor = 'black';
-        } else if (dept.includes('admin') || dept.includes('admninistration')) {
-            document.getElementById('administrationCheck').style.backgroundColor = 'black';
+
+    setElementText(elementId, text) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = text;
         }
     }
-    
-    // Set signatures
-    document.getElementById('proposedName').textContent = data.prepared || '';
-    document.getElementById('proposedDate').textContent = formatDate(data.submissionDate);
-    
-    document.getElementById('checkedName').textContent = data.checked || '';
-    document.getElementById('checkedDate').textContent = formatDate(data.submissionDate);
-    
-    if (document.getElementById('acknowledgedName')) {
-        document.getElementById('acknowledgedName').textContent = data.acknowledged || '';
-        document.getElementById('acknowledgedDate').textContent = formatDate(data.submissionDate);
-    }
-    
-    document.getElementById('approvedName').textContent = data.approved || '';
-    document.getElementById('approvedDate').textContent = formatDate(data.submissionDate);
-    
-    document.getElementById('receivedName').textContent = data.received || data.paidTo || '';
-    document.getElementById('receivedDate').textContent = formatDate(data.submissionDate);
-    
-    // Set closed by section if it exists
-    if (document.getElementById('closedName')) {
-        document.getElementById('closedName').textContent = data.closed || '';
-        document.getElementById('closedDate').textContent = formatDate(data.submissionDate);
+
+    formatDate(dateString) {
+        if (!dateString) return '-';
         
-        // Show/hide closed by section based on whether there's data
-        const closedBySection = document.getElementById('closedBySection');
-        if (closedBySection) {
-            closedBySection.style.display = data.closed ? 'flex' : 'none';
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return '-';
+            
+            return date.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        } catch (error) {
+            return '-';
         }
     }
-    
-    // Set remarks if it exists
-    if (document.getElementById('remarks')) {
-        document.getElementById('remarks').textContent = data.remarks || '';
+
+    formatCurrency(amount) {
+        if (amount === null || amount === undefined) return '-';
+        
+        return new Intl.NumberFormat('id-ID', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(amount);
     }
-    
-    // Set amount information
-    const amount = parseFloat(data.amount) || 0;
-    document.getElementById('estimatedCost').textContent = amount.toLocaleString();
-    document.getElementById('amountInWords').textContent = numberToWords(amount) + ' rupiah';
-    
-    // Set purpose
-    document.getElementById('purpose').textContent = data.purpose || '';
-    
-    // Set category and description if they exist
-    if (document.getElementById('category')) {
-        // Jika ada data category dari form, gunakan itu
-        document.getElementById('category').textContent = data.category || '';
+
+    calculateReturnDate(submissionDate) {
+        if (!submissionDate) return '-';
+        
+        try {
+            const date = new Date(submissionDate);
+            date.setMonth(date.getMonth() + 1);
+            
+            return this.formatDate(date);
+        } catch (error) {
+            return '-';
+        }
     }
-    
-    if (document.getElementById('description')) {
-        // Jika ada data description dari form, gunakan itu
-        document.getElementById('description').textContent = data.description || '';
+
+    numberToWords(num) {
+        if (num === null || num === undefined || num === 0) return 'Zero Rupiah';
+        
+        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+        const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        
+        function convertLessThanOneThousand(n) {
+            if (n === 0) return '';
+            
+            if (n < 10) return ones[n];
+            if (n < 20) return teens[n - 10];
+            if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '');
+            if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' and ' + convertLessThanOneThousand(n % 100) : '');
+        }
+        
+        function convert(n) {
+            if (n === 0) return 'Zero';
+            
+            const billion = Math.floor(n / 1000000000);
+            const million = Math.floor((n % 1000000000) / 1000000);
+            const thousand = Math.floor((n % 1000000) / 1000);
+            const remainder = n % 1000;
+            
+            let result = '';
+            
+            if (billion) result += convertLessThanOneThousand(billion) + ' Billion ';
+            if (million) result += convertLessThanOneThousand(million) + ' Million ';
+            if (thousand) result += convertLessThanOneThousand(thousand) + ' Thousand ';
+            if (remainder) result += convertLessThanOneThousand(remainder);
+            
+            return result.trim();
+        }
+        
+        const wholePart = Math.floor(num);
+        const decimalPart = Math.round((num - wholePart) * 100);
+        
+        let result = convert(wholePart) + ' Rupiah';
+        
+        if (decimalPart > 0) {
+            result += ' and ' + convert(decimalPart) + ' Cents';
+        }
+        
+        return result;
     }
-    
-    // Set return amount if they exist
-    if (document.getElementById('returnAmount')) {
-        document.getElementById('returnAmount').textContent = amount.toLocaleString();
-    }
-    if (document.getElementById('returnAmountInWords')) {
-        document.getElementById('returnAmountInWords').textContent = numberToWords(amount) + ' rupiah';
-    }
-    if (document.getElementById('returnDate')) {
-        document.getElementById('returnDate').textContent = formatDate(data.submissionDate);
+
+    showError(message) {
+        console.error(message);
+        // You can implement a user-friendly error display here
+        alert('Error: ' + message);
     }
 }
 
-// Go back to previous page
-function goBack() {
+// Initialize the printer when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    new CashAdvancePrinter();
+});
+
+// Add print functionality
+function printVoucher() {
+    window.print();
+}
+
+// Add close functionality
+function closeWindow() {
     window.close();
 }
+
+// Export functions for global access
+window.printVoucher = printVoucher;
+window.closeWindow = closeWindow;
