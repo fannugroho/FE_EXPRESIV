@@ -622,18 +622,18 @@ window.viewInvoiceDetails = function (id) {
 
     if (invoice) {
         if (invoice.docType === 'I') {
-            // Invoice Item Approval
-            window.location.href = `../../../../approvalPages/approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${id}`;
+            // Invoice Item Approval dengan status Approved
+            window.location.href = `../../../../approvalPages/approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${id}&status=Approved&source=approve`;
         } else if (invoice.docType === 'S') {
-            // Invoice Service Approval (kalau ada file khususnya)
-            window.location.href = `../../../../approvalPages/approval/02.ARInvoice/Approval/PartApprovalInvService.html?stagingID=${id}`;
+            // Invoice Service Approval dengan status Approved
+            window.location.href = `../../../../approvalPages/approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${id}&status=Approved&source=approve`;
         } else {
-            // Default ke Invoice Item Approval
-            window.location.href = `../../../../approvalPages/approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${id}`;
+            // Default ke Invoice Item Approval dengan status Approved
+            window.location.href = `../../../../approvalPages/approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${id}&status=Approved&source=approve`;
         }
     } else {
-        // Kalau data invoice tidak ditemukan, default ke Invoice Item Approval
-        window.location.href = `../../../../approvalPages/approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${id}`;
+        // Kalau data invoice tidak ditemukan, default ke Invoice Item Approval dengan status Approved
+        window.location.href = `../../../../approvalPages/approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${id}&status=Approved&source=approve`;
     }
 };
 

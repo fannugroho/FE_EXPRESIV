@@ -24,35 +24,35 @@ const itemsPerPage = 10;
 // Override authentication check for development
 if (typeof isAuthenticated === 'function') {
     const originalIsAuthenticated = isAuthenticated;
-    window.isAuthenticated = function() {
+    window.isAuthenticated = function () {
         console.log('Development mode: Authentication check bypassed');
         return true;
     };
 }
 
 // Load dashboard when page is ready
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', async function () {
     await loadUserData();
     await loadDashboard();
-    
+
     // Add event listener for search input with debouncing
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         let searchTimeout;
-        searchInput.addEventListener('input', function() {
+        searchInput.addEventListener('input', function () {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(async () => {
                 await handleSearch();
             }, 500); // Debounce search by 500ms
         });
     }
-    
+
     // Add event listener to the search type dropdown
     const searchType = document.getElementById('searchType');
     if (searchType) {
-        searchType.addEventListener('change', async function() {
+        searchType.addEventListener('change', async function () {
             const searchInput = document.getElementById('searchInput');
-            
+
             // Update input type and placeholder based on search type
             if (this.value === 'date') {
                 searchInput.type = 'date';
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 searchInput.type = 'text';
                 searchInput.placeholder = `Search by ${this.options[this.selectedIndex].text}...`;
             }
-            
+
             // Clear current search and trigger new search
             searchInput.value = '';
             currentSearchTerm = '';
@@ -76,7 +76,7 @@ async function loadUserData() {
     try {
         // Get user ID from localStorage or session
         const userId = localStorage.getItem('userId') || '7e0e0ad6-bceb-4e92-8a38-e14b7fb097ae'; // Default for development
-        
+
         // Fetch user data
         const response = await fetch(`${BASE_URL}/api/users/${userId}`, {
             method: 'GET',
@@ -91,11 +91,11 @@ async function loadUserData() {
         }
 
         const result = await response.json();
-        
+
         if (result.status && result.data) {
             const userData = result.data;
             console.log('User data loaded:', userData);
-            
+
             // Display user name and avatar
             try {
                 if (userData.fullName) {
@@ -104,22 +104,22 @@ async function loadUserData() {
                         userNameDisplay.textContent = userData.fullName;
                     }
                 }
-                
+
                 // Set default avatar
                 const dashboardUserIcon = document.getElementById('dashboardUserIcon');
                 if (dashboardUserIcon) {
                     dashboardUserIcon.src = '../../../../image/profil.png';
                 }
-                
+
                 // Show user profile section
                 const userProfile = document.querySelector('.user-profile');
                 if (userProfile) {
                     userProfile.style.display = 'flex';
                 }
-                
+
                 // Store user data for later use
                 localStorage.setItem('currentUser', JSON.stringify(userData));
-                
+
             } catch (error) {
                 console.log('Error setting user display elements:', error);
             }
@@ -141,7 +141,7 @@ function setDummyUserData() {
         name: 'Development User',
         avatar: '../../../../image/profil.png'
     };
-    
+
     try {
         if (dummyUserData.name) {
             const userNameDisplay = document.getElementById('userNameDisplay');
@@ -149,14 +149,14 @@ function setDummyUserData() {
                 userNameDisplay.textContent = dummyUserData.name;
             }
         }
-        
+
         if (dummyUserData.avatar) {
             const dashboardUserIcon = document.getElementById('dashboardUserIcon');
             if (dashboardUserIcon) {
                 dashboardUserIcon.src = dummyUserData.avatar;
             }
         }
-        
+
         // Show user profile section
         const userProfile = document.querySelector('.user-profile');
         if (userProfile) {
@@ -172,7 +172,7 @@ async function getUserId() {
     try {
         // Get user ID from localStorage or session
         const userId = localStorage.getItem('userId') || '7e0e0ad6-bceb-4e92-8a38-e14b7fb097ae'; // Default for development
-        
+
         // Fetch user data to get kansaiEmployeeId
         const response = await fetch(`${BASE_URL}/api/users/${userId}`, {
             method: 'GET',
@@ -187,7 +187,7 @@ async function getUserId() {
         }
 
         const result = await response.json();
-        
+
         if (result.status && result.data) {
             console.log('User data fetched:', result.data);
             return result.data.kansaiEmployeeId;
@@ -227,14 +227,14 @@ async function loadDashboard() {
         });
 
         console.log('API Response status:', response.status);
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
         console.log('API Response data:', result);
-        
+
         if (result.status && result.data) {
             console.log('Transforming API data...');
             // Transform API data to match our expected format
@@ -246,7 +246,7 @@ async function loadDashboard() {
                 } else if (invoice.docType === 'S') {
                     displayType = 'Services';
                 }
-                
+
                 const transformedInvoice = {
                     id: invoice.stagingID,
                     invoiceNo: invoice.u_bsi_invnum || invoice.numAtCard,
@@ -273,15 +273,15 @@ async function loadDashboard() {
                 console.log('Transformed invoice:', transformedInvoice);
                 return transformedInvoice;
             });
-            
+
             // Filter based on current tab
             filteredInvoices = filterInvoicesByTab(allInvoices, currentTab);
-            
+
             // Apply search filter if any
             if (currentSearchTerm) {
                 filteredInvoices = applySearchFilter(filteredInvoices, currentSearchTerm, currentSearchType);
             }
-            
+
             // Update counters and table
             updateCounters();
             updateTable(filteredInvoices);
@@ -292,11 +292,11 @@ async function loadDashboard() {
             updateCounters();
             updateTable([]);
         }
-        
+
     } catch (error) {
         console.error('Error loading dashboard:', error);
         alert('Error loading dashboard data. Please try again.');
-        
+
         // Show empty state when API fails
         allInvoices = [];
         filteredInvoices = [];
@@ -309,23 +309,23 @@ async function loadDashboard() {
 function getInvoiceStatus(invoice) {
     console.log('Invoice arInvoiceApprovalSummary:', invoice.arInvoiceApprovalSummary);
     console.log('Invoice arInvoiceApprovalSummary type:', typeof invoice.arInvoiceApprovalSummary);
-    
+
     if (invoice.arInvoiceApprovalSummary === null || invoice.arInvoiceApprovalSummary === undefined) {
         console.log('arInvoiceApprovalSummary is null/undefined, returning Draft');
         return 'Draft';
     }
-    
+
     // If arInvoiceApprovalSummary exists, use the approvalStatus field from API
     if (invoice.arInvoiceApprovalSummary) {
         const summary = invoice.arInvoiceApprovalSummary;
         console.log('arInvoiceApprovalSummary properties:', summary);
-        
+
         // Use the approvalStatus field from the API response
         if (summary.approvalStatus) {
             console.log('Using approvalStatus from API:', summary.approvalStatus);
             return summary.approvalStatus;
         }
-        
+
         // Fallback to old logic if approvalStatus is not available
         if (summary.isRejected) return 'Rejected';
         if (summary.isApproved) return 'Approved';
@@ -333,12 +333,12 @@ function getInvoiceStatus(invoice) {
         if (summary.isChecked) return 'Checked';
         if (summary.isReceived) return 'Received';
     }
-    
+
     if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
     if (invoice.stagingID && invoice.stagingID.startsWith('STG')) return 'Draft';
     if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
     if (invoice.docNum && invoice.docNum > 0) return 'Prepared';
-    
+
     return 'Draft';
 }
 
@@ -352,9 +352,9 @@ function filterInvoicesByTab(invoices, tab) {
             return invoices.filter(inv => inv.status === 'Checked');
         case 'acknowledged':
             // Tab acknowledged: menampilkan dokumen yang statusnya acknowledged, approved, received
-            return invoices.filter(inv => 
-                inv.status === 'Acknowledged' || 
-                inv.status === 'Approved' || 
+            return invoices.filter(inv =>
+                inv.status === 'Acknowledged' ||
+                inv.status === 'Approved' ||
                 inv.status === 'Received'
             );
         case 'rejected':
@@ -367,9 +367,9 @@ function filterInvoicesByTab(invoices, tab) {
 // Helper function to apply search filter
 function applySearchFilter(invoices, searchTerm, searchType) {
     if (!searchTerm) return invoices;
-    
+
     const term = searchTerm.toLowerCase();
-    
+
     return invoices.filter(invoice => {
         switch (searchType) {
             case 'invoice':
@@ -382,7 +382,7 @@ function applySearchFilter(invoices, searchTerm, searchType) {
                 return invoice.status.toLowerCase().includes(term);
             default:
                 return invoice.invoiceNo.toLowerCase().includes(term) ||
-                       invoice.customerName.toLowerCase().includes(term);
+                    invoice.customerName.toLowerCase().includes(term);
         }
     });
 }
@@ -451,7 +451,7 @@ function getMockInvoiceData() {
             invoiceType: 'Regular'
         }
     ];
-    
+
     // Filter based on current tab
     if (currentTab === 'checked') {
         return mockInvoices.filter(inv => inv.status === 'Checked');
@@ -460,7 +460,7 @@ function getMockInvoiceData() {
     } else if (currentTab === 'rejected') {
         return mockInvoices.filter(inv => inv.status === 'Rejected');
     }
-    
+
     return mockInvoices;
 }
 
@@ -470,19 +470,19 @@ async function updateCounters() {
         const totalCount = allInvoices.length;
         const checkedCount = allInvoices.filter(inv => inv.status === 'Checked').length;
         // Count acknowledged includes: Acknowledged, Approved, Received
-        const acknowledgedCount = allInvoices.filter(inv => 
-            inv.status === 'Acknowledged' || 
-            inv.status === 'Approved' || 
+        const acknowledgedCount = allInvoices.filter(inv =>
+            inv.status === 'Acknowledged' ||
+            inv.status === 'Approved' ||
             inv.status === 'Received'
         ).length;
         const rejectedCount = allInvoices.filter(inv => inv.status === 'Rejected').length;
-        
+
         // Update counter displays
         document.getElementById('totalCount').textContent = totalCount;
         document.getElementById('checkedCount').textContent = checkedCount;
         document.getElementById('acknowledgedCount').textContent = acknowledgedCount;
         document.getElementById('rejectedCount').textContent = rejectedCount;
-        
+
     } catch (error) {
         console.error('Error updating counters:', error);
     }
@@ -491,9 +491,9 @@ async function updateCounters() {
 function updateTable(invoices) {
     const tbody = document.getElementById('recentDocs');
     if (!tbody) return;
-    
+
     tbody.innerHTML = '';
-    
+
     if (!invoices || invoices.length === 0) {
         const row = tbody.insertRow();
         const cell = row.insertCell();
@@ -502,26 +502,26 @@ function updateTable(invoices) {
         cell.textContent = 'No documents found';
         return;
     }
-    
+
     // Calculate pagination
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const paginatedInvoices = invoices.slice(startIndex, endIndex);
-    
+
     paginatedInvoices.forEach((invoice, index) => {
         const row = tbody.insertRow();
         row.className = 'hover:bg-gray-50';
-        
+
         // Row number
         const cellNo = row.insertCell();
         cellNo.className = 'p-2 text-center';
         cellNo.textContent = startIndex + index + 1;
-        
+
         // Invoice Number (no scroll)
         const cellInvoice = row.insertCell();
         cellInvoice.className = 'p-2';
         cellInvoice.textContent = `${invoice.invoiceNo}`;
-        
+
         // Customer (small scroll if > 15 chars)
         const cellCustomer = row.insertCell();
         const useSmallScroll = invoice.customerName && invoice.customerName.length > 15;
@@ -529,37 +529,37 @@ function updateTable(invoices) {
         cellCustomer.innerHTML = useSmallScroll
             ? `<div class=\"scrollable-cell-sm\">${invoice.customerName}</div>`
             : `${invoice.customerName}`;
-        
+
         // Date
         const cellDate = row.insertCell();
         cellDate.className = 'p-2';
         cellDate.textContent = formatDate(invoice.invoiceDate);
-        
+
         // Due Date
         const cellDueDate = row.insertCell();
         cellDueDate.className = 'p-2';
         cellDueDate.textContent = formatDate(invoice.dueDate);
-        
+
         // Status
         const cellStatus = row.insertCell();
         cellStatus.className = 'p-2';
-        
+
         // Debug logging for status
         console.log(`Invoice ${index + 1} status:`, invoice.status);
         console.log(`Invoice ${index + 1} status class:`, `status-${invoice.status.toLowerCase()}`);
-        
+
         cellStatus.innerHTML = `<span class="status-badge status-${invoice.status.toLowerCase()}">${invoice.status}</span>`;
-        
+
         // Total Amount
         const cellAmount = row.insertCell();
         cellAmount.className = 'p-2 text-right';
         cellAmount.textContent = formatCurrency(invoice.totalAmount);
-        
+
         // Type
         const cellType = row.insertCell();
         cellType.className = 'p-2';
         cellType.textContent = invoice.invoiceType;
-        
+
         // Tools
         const cellTools = row.insertCell();
         cellTools.className = 'p-2';
@@ -567,7 +567,7 @@ function updateTable(invoices) {
             <button onclick="viewInvoiceDetails('${invoice.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
         `;
     });
-    
+
     // Update pagination info
     updatePaginationInfo(invoices.length);
 }
@@ -589,38 +589,38 @@ function formatCurrency(amount) {
 function updatePaginationInfo(totalItems) {
     const startItem = (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
-    
+
     document.getElementById('startItem').textContent = startItem;
     document.getElementById('endItem').textContent = endItem;
     document.getElementById('totalItems').textContent = totalItems;
     document.getElementById('currentPage').textContent = currentPage;
-    
+
     // Update pagination buttons
     const prevBtn = document.getElementById('prevPage');
     const nextBtn = document.getElementById('nextPage');
-    
+
     prevBtn.disabled = currentPage <= 1;
     prevBtn.className = currentPage <= 1 ? 'pagination-btn disabled' : 'pagination-btn';
-    
+
     nextBtn.disabled = endItem >= totalItems;
     nextBtn.className = endItem >= totalItems ? 'pagination-btn disabled' : 'pagination-btn';
 }
 
 // Global function definitions
-window.switchTab = async function(tabName) {
+window.switchTab = async function (tabName) {
     currentTab = tabName;
     currentPage = 1;
-    
+
     // Update tab button styles
     document.querySelectorAll('[id$="TabBtn"]').forEach(btn => {
         btn.classList.remove('tab-active');
     });
-    
+
     const tabBtn = document.getElementById(tabName + 'TabBtn');
     if (tabBtn) {
         tabBtn.classList.add('tab-active');
     }
-    
+
     // Reload dashboard with new tab
     await loadDashboard();
 };
@@ -628,18 +628,18 @@ window.switchTab = async function(tabName) {
 async function switchTab(tabName) {
     currentTab = tabName;
     currentPage = 1;
-    
+
     // Update tab button styles
     document.querySelectorAll('[id$="TabBtn"]').forEach(btn => {
         btn.classList.remove('tab-active');
     });
-    
+
     // Try to find the tab button and make it active
     const tabBtn = document.getElementById(tabName + 'TabBtn');
     if (tabBtn) {
         tabBtn.classList.add('tab-active');
     }
-    
+
     // Reload dashboard with new tab
     await loadDashboard();
 }
@@ -651,10 +651,10 @@ async function handleSearch() {
     await loadDashboard();
 }
 
-window.changePage = function(direction) {
+window.changePage = function (direction) {
     const newPage = currentPage + direction;
     const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
-    
+
     if (newPage >= 1 && newPage <= totalPages) {
         currentPage = newPage;
         updateTable(filteredInvoices);
@@ -664,7 +664,7 @@ window.changePage = function(direction) {
 function changePage(direction) {
     const newPage = currentPage + direction;
     const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
-    
+
     if (newPage >= 1 && newPage <= totalPages) {
         currentPage = newPage;
         updateTable(filteredInvoices);
@@ -672,7 +672,7 @@ function changePage(direction) {
 }
 
 // Navigation functions
-window.goToTotalDocs = function() {
+window.goToTotalDocs = function () {
     // Navigate to total documents view
     console.log('Navigate to total documents');
 };
@@ -682,29 +682,29 @@ function goToTotalDocs() {
     console.log('Navigate to total documents');
 }
 
-window.viewInvoiceDetails = function(stagingId) {
+window.viewInvoiceDetails = function (stagingId) {
     // Cari data invoice untuk dapatkan docType
     const invoice = allInvoices.find(inv => inv.id === stagingId);
-    
+
     if (invoice) {
-        // Routing berdasarkan docType
+        // Routing berdasarkan docType dengan status Acknowledged
         if (invoice.docType === 'I') {
             // AR Invoice Item Approval
-            window.location.href = `../../../approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${stagingId}`;
+            window.location.href = `../../../approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${stagingId}&status=Acknowledged&source=acknowledge`;
         } else if (invoice.docType === 'S') {
             // AR Invoice Service Approval
-            window.location.href = `../../../approval/02.ARInvoice/Approval/PartApprovalInvService.html?stagingID=${stagingId}`;
+            window.location.href = `../../../approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${stagingId}&status=Acknowledged&source=acknowledge`;
         } else {
             // Default ke Invoice Item Approval
-            window.location.href = `../../../approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${stagingId}`;
+            window.location.href = `../../../approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${stagingId}&status=Acknowledged&source=acknowledge`;
         }
     } else {
         // Kalau invoice tidak ditemukan
-        window.location.href = `../../../approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingID=${stagingId}`;
+        window.location.href = `../../../approval/02.ARInvoice/Approval/PartApprovalInvItem.html?stagingId=${stagingId}&status=Acknowledged&source=acknowledge`;
     }
 };
 
-window.acknowledgeInvoice = async function(id) {
+window.acknowledgeInvoice = async function (id) {
     // Acknowledge invoice
     if (confirm('Are you sure you want to acknowledge this invoice?')) {
         // In production, make API call to acknowledge
@@ -713,7 +713,7 @@ window.acknowledgeInvoice = async function(id) {
     }
 };
 
-window.rejectInvoice = async function(id) {
+window.rejectInvoice = async function (id) {
     // Reject invoice
     if (confirm('Are you sure you want to reject this invoice?')) {
         // In production, make API call to reject
@@ -722,7 +722,7 @@ window.rejectInvoice = async function(id) {
     }
 };
 
-window.printInvoice = function(id) {
+window.printInvoice = function (id) {
     // Open print dialog for invoice
     window.open(`../../../../pages/printInvoice.html?id=${id}`, '_blank');
 };
@@ -730,7 +730,7 @@ window.printInvoice = function(id) {
 function viewInvoiceDetails(stagingId) {
     // Find the invoice data to get docType
     const invoice = allInvoices.find(inv => inv.id === stagingId);
-    
+
     if (invoice) {
         // Route based on docType
         if (invoice.docType === 'I') {
@@ -772,14 +772,14 @@ function printInvoice(id) {
     window.open(`../../../../pages/printInvoice.html?id=${id}`, '_blank');
 }
 
-window.toggleSidebar = function() {
+window.toggleSidebar = function () {
     const sidebar = document.getElementById('sidebar');
     if (sidebar) {
         sidebar.classList.toggle('hidden');
     }
 };
 
-window.toggleSubMenu = function(menuId) {
+window.toggleSubMenu = function (menuId) {
     const submenu = document.getElementById(menuId);
     if (submenu) {
         submenu.classList.toggle('hidden');
@@ -801,10 +801,10 @@ function toggleSubMenu(menuId) {
 }
 
 // Export functions
-window.downloadExcel = async function() {
+window.downloadExcel = async function () {
     try {
         const workbook = XLSX.utils.book_new();
-        
+
         // Prepare data for export
         const exportData = filteredInvoices.map(invoice => ({
             'Invoice No.': invoice.invoiceNo,
@@ -816,35 +816,35 @@ window.downloadExcel = async function() {
             'Type': invoice.invoiceType,
             'Total': invoice.totalAmount
         }));
-        
+
         const worksheet = XLSX.utils.json_to_sheet(exportData);
         XLSX.utils.book_append_sheet(workbook, worksheet, 'AR Invoices');
-        
+
         // Generate filename
         const date = new Date().toISOString().split('T')[0];
         const filename = `AR_Invoice_Acknowledge_${currentTab}_${date}.xlsx`;
-        
+
         XLSX.writeFile(workbook, filename);
-        
+
     } catch (error) {
         console.error('Error exporting to Excel:', error);
         alert('Error exporting to Excel. Please try again.');
     }
 }
 
-window.downloadPDF = async function() {
+window.downloadPDF = async function () {
     try {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        
+
         // Add title
         doc.setFontSize(16);
         doc.text('AR Invoice Acknowledge Report', 14, 20);
-        
+
         doc.setFontSize(10);
         doc.text(`Generated on: ${new Date().toLocaleDateString('id-ID')}`, 14, 30);
         doc.text(`Status: ${currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}`, 14, 40);
-        
+
         // Prepare table data
         const tableData = filteredInvoices.map(invoice => [
             invoice.invoiceNo,
@@ -856,7 +856,7 @@ window.downloadPDF = async function() {
             invoice.invoiceType,
             formatCurrency(invoice.totalAmount)
         ]);
-        
+
         // Add table
         doc.autoTable({
             head: [['Invoice No.', 'Customer', 'Sales Employee', 'Date', 'Due Date', 'Status', 'Type', 'Total']],
@@ -871,13 +871,13 @@ window.downloadPDF = async function() {
                 textColor: 255
             }
         });
-        
+
         // Generate filename
         const date = new Date().toISOString().split('T')[0];
         const filename = `AR_Invoice_Acknowledge_${currentTab}_${date}.pdf`;
-        
+
         doc.save(filename);
-        
+
     } catch (error) {
         console.error('Error exporting to PDF:', error);
         alert('Error exporting to PDF. Please try again.');
@@ -885,7 +885,7 @@ window.downloadPDF = async function() {
 }
 
 // Profile navigation
-window.goToProfile = function() {
+window.goToProfile = function () {
     window.location.href = '../../../../pages/profile.html';
 };
 
@@ -931,7 +931,7 @@ function createNotificationPanel() {
             </div>
         </div>
     `;
-    
+
     document.getElementById('notificationBellWrapper').appendChild(panel);
     showNotificationPanel();
 }
@@ -963,9 +963,9 @@ function showNotification(message, invoiceNo) {
     const toast = document.createElement('div');
     toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
     toast.textContent = message;
-    
+
     document.body.appendChild(toast);
-    
+
     setTimeout(() => {
         toast.remove();
     }, 3000);
@@ -1005,7 +1005,7 @@ async function pollRejectedDocs() {
 }
 
 // Start polling when page loads
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', async function () {
     // Wait a bit before starting polling to avoid conflicts with initial load
     setTimeout(() => {
         pollCheckedDocs();

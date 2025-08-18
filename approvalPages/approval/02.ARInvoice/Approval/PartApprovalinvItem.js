@@ -8,8 +8,170 @@ const AppState = {
     allUsers: [],
     initialized: false,
     docType: 'I', // Default to Item, will be set from URL parameter
-    currentStatus: 'Draft'
+    currentStatus: 'Draft',
+    // New properties for URL parameters
+    urlStatus: null,
+    urlSource: null
 };
+
+// Function to get URL parameters
+function getUrlParameter(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramValue = urlParams.get(name);
+    console.log(`🔍 URL Parameter '${name}':`, paramValue);
+    return paramValue;
+}
+
+// =========================
+// === JUDUL SETUP BLOCK ===
+// =========================
+
+// Fungsi utama untuk setup judul halaman AR Invoice
+function setupARInvoiceTitle({ status, source, docType } = {}) {
+    // Ambil status/source dari URL jika tidak diberikan
+    if (!status) status = getUrlParameter('status');
+    if (!source) source = getUrlParameter('source');
+    if (!docType) docType = AppState.docType;
+
+    // Mapping status/source ke teks user-friendly
+    const sourceMap = {
+        'check': 'Check',
+        'acknowledge': 'Acknowledge',
+        'approve': 'Approve',
+        'receive': 'Receive'
+    };
+    const statusMap = {
+        'checked': 'Checked',
+        'acknowledged': 'Acknowledged',
+        'approved': 'Approved',
+        'received': 'Received',
+        'prepared': 'Prepared',
+        'draft': 'Draft',
+        'rejected': 'Rejected'
+    };
+    const sourceText = sourceMap[source] || source || '';
+    const statusText = statusMap[(status || '').toLowerCase()] || status || '';
+    const docTypeName = docType === 'S' ? 'Service' : 'Item';
+
+    // Simpan pendingTitle untuk update judul utama setelah docType diketahui
+    AppState.pendingTitle = statusText ? `${statusText} AR Invoice` : `AR Invoice`;
+
+    // Update <title> browser
+    document.title = statusText ? `${statusText} AR Invoice - ${sourceText}` : `AR Invoice`;
+
+    // Update judul utama (mainTitle)
+    const mainTitle = document.getElementById('mainTitle');
+    if (mainTitle) {
+        mainTitle.textContent = `${AppState.pendingTitle} (${docTypeName})`;
+    }
+
+    // Update status badge
+    const statusBadge = document.getElementById('statusBadge');
+    if (statusBadge) {
+        statusBadge.textContent = statusText;
+        updateStatusBadgeClass(statusText);
+    }
+
+    // Update current status text
+    const currentStatusText = document.getElementById('currentStatusText');
+    if (currentStatusText) {
+        currentStatusText.textContent = statusText;
+    }
+
+    // Update status description
+    const statusDescription = document.getElementById('statusDescription');
+    if (statusDescription) {
+        statusDescription.textContent = statusText ? `This document is currently in ${statusText} status and requires your ${sourceText?.toLowerCase() || ''} action.` : '';
+    }
+}
+
+// Fungsi lama tetap dipanggil, tapi hanya untuk backward compatibility
+function updatePageTitleFromURL() {
+    setupARInvoiceTitle();
+}
+
+// Fungsi update judul utama setelah docType diketahui
+function updateFinalTitleWithDocType() {
+    // Gunakan pendingTitle dan docType terbaru
+    const docTypeName = AppState.docType === 'S' ? 'Service' : 'Item';
+    const mainTitle = document.getElementById('mainTitle');
+    if (mainTitle) {
+        mainTitle.textContent = `${AppState.pendingTitle} (${docTypeName})`;
+    }
+}
+
+// Fungsi update judul dinamis saat status berubah
+function updateMainTitleWithStatus(status) {
+    const config = DOC_TYPE_CONFIG[AppState.docType];
+    const mainTitle = OptimizedUtils.safeGetElement('mainTitle');
+    if (mainTitle) {
+        mainTitle.textContent = `${status} AR Invoice ${config.name}`;
+    }
+}
+// =========================
+// === END JUDUL BLOCK  ===
+// =========================
+
+// Function to update status badge class
+function updateStatusBadgeClass(status) {
+    const statusBadge = document.getElementById('statusBadge');
+    if (!statusBadge) return;
+
+    // Remove all existing status classes
+    statusBadge.classList.remove('status-prepared', 'status-checked', 'status-acknowledged', 'status-approved', 'status-received', 'status-rejected', 'status-draft');
+
+    // Add appropriate class based on status
+    switch (status.toLowerCase()) {
+        case 'prepared':
+            statusBadge.classList.add('status-prepared');
+            break;
+        case 'checked':
+            statusBadge.classList.add('status-checked');
+            break;
+        case 'acknowledged':
+            statusBadge.classList.add('status-acknowledged');
+            break;
+        case 'approved':
+            statusBadge.classList.add('status-approved');
+            break;
+        case 'received':
+            statusBadge.classList.add('status-received');
+            break;
+        case 'rejected':
+            statusBadge.classList.add('status-rejected');
+            break;
+        case 'draft':
+            statusBadge.classList.add('status-draft');
+            break;
+        default:
+            statusBadge.classList.add('status-prepared');
+    }
+}
+
+// Function to update final title with document type
+function updateFinalTitleWithDocType() {
+    console.log('🔧 updateFinalTitleWithDocType called with:', {
+        pendingTitle: AppState.pendingTitle,
+        docType: AppState.docType
+    });
+
+    if (AppState.pendingTitle && AppState.docType) {
+        const mainTitle = document.getElementById('mainTitle');
+        if (mainTitle) {
+            const docTypeName = AppState.docType === 'S' ? 'Service' : 'Item';
+            const finalTitle = `${AppState.pendingTitle} (${docTypeName})`;
+            mainTitle.textContent = finalTitle;
+            console.log('✅ Final title updated:', finalTitle);
+        } else {
+            console.log('❌ mainTitle element not found');
+        }
+    } else {
+        console.log('⚠️ Missing data for final title:', {
+            pendingTitle: AppState.pendingTitle,
+            docType: AppState.docType
+        });
+    }
+}
 
 // API Configuration
 const API_CONFIG = {
@@ -178,6 +340,9 @@ const OptimizedUtils = {
 async function initializePage() {
     if (AppState.initialized) return;
     try {
+        // Update page title from URL parameters first
+        updatePageTitleFromURL();
+
         // Get URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const stagingId = urlParams.get('stagingID');
@@ -231,8 +396,9 @@ async function initializePage() {
             docTypeFromApi = urlParams.get('docType') === 'service' ? 'S' : 'I';
         }
         AppState.docType = docTypeFromApi === 'S' ? 'S' : 'I';
+        console.log('📋 Document type set:', AppState.docType);
 
-        // 3. Setup page sesuai docType
+        // 3. Setup page sesuai docType (this will handle title updates)
         setupPageForDocType();
 
         // 4. Get current user
@@ -306,43 +472,40 @@ async function initializePage() {
 
 // Setup page based on document type
 function setupPageForDocType() {
+    console.log('🔧 setupPageForDocType called with docType:', AppState.docType);
+
     const config = DOC_TYPE_CONFIG[AppState.docType];
     if (!config) {
-        console.error('Invalid document type:', AppState.docType);
+        console.error('❌ Invalid document type:', AppState.docType);
         return;
     }
 
-    // Update page title and elements
-    document.title = `AR Invoice ${config.name}`;
-    OptimizedUtils.safeSetValue('pageTitle', `AR Invoice ${config.name}`);
+    console.log('📋 Config found:', config);
 
-    const mainTitle = OptimizedUtils.safeGetElement('mainTitle');
-    if (mainTitle) {
-        mainTitle.textContent = `AR Invoice ${config.name}`;
-    }
+    // Setup judul utama (khusus judul)
+    updateFinalTitleWithDocType();
 
+    // Setup judul tabel
     const tableTitle = OptimizedUtils.safeGetElement('tableTitle');
     if (tableTitle) {
         tableTitle.textContent = config.tableTitle;
+        console.log('📊 Table title set:', config.tableTitle);
     }
 
     // Apply CSS class for showing/hiding columns
     document.body.classList.remove('item-mode', 'service-mode');
     document.body.classList.add(config.className);
+    console.log('🎨 CSS classes applied:', config.className);
 
     console.log(`✅ Page configured for ${config.name} mode`);
 }
 
 // Update page title and status based on current status
 function updatePageTitleAndStatus(status) {
+    // Jangan update judul utama di sini, biarkan tetap dari URL param
+
     const config = DOC_TYPE_CONFIG[AppState.docType];
     const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG['Draft'];
-
-    // Update main title
-    const mainTitle = OptimizedUtils.safeGetElement('mainTitle');
-    if (mainTitle) {
-        mainTitle.textContent = `${status} AR Invoice ${config.name}`;
-    }
 
     // Update status badge
     const statusBadge = OptimizedUtils.safeGetElement('statusBadge');
@@ -361,6 +524,9 @@ function updatePageTitleAndStatus(status) {
 
     AppState.currentStatus = status;
 }
+// =========================
+// === END KHUSUS JUDUL ===
+// =========================
 
 // Update approval progress visualization
 function updateApprovalProgress(status) {
@@ -398,7 +564,12 @@ function updateApprovalProgress(status) {
 
 // Update current status display in the action section
 function updateCurrentStatusDisplay(status) {
-    const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG['Draft'];
+    // Always use API status for current status display
+    let apiStatus = 'Draft';
+    if (AppState.currentInvItemData) {
+        apiStatus = getStatusFromInvoice(AppState.currentInvItemData);
+    }
+    const statusConfig = STATUS_CONFIG[apiStatus] || STATUS_CONFIG['Draft'];
 
     const statusIndicator = OptimizedUtils.safeGetElement('statusIndicator');
     const currentStatusText = OptimizedUtils.safeGetElement('currentStatusText');
@@ -407,7 +578,7 @@ function updateCurrentStatusDisplay(status) {
 
     if (statusIndicator && currentStatusText && statusDescription && currentStatusDisplay) {
         statusIndicator.className = `w-3 h-3 rounded-full ${statusConfig.color}`;
-        currentStatusText.textContent = `Current Status: ${status}`;
+        currentStatusText.textContent = `Current Status: ${apiStatus}`;
         statusDescription.textContent = statusConfig.description;
         currentStatusDisplay.className = `mb-6 p-4 rounded-lg ${statusConfig.className}`;
     }
@@ -582,10 +753,11 @@ function populateInvItemData(data) {
             OptimizedUtils.safeSetValue(id, value);
         });
 
-        // Populate status and handle visibility
-        const status = getStatusFromInvoice(data);
-        console.log('📊 Document Status:', status);
+        // Populate status field in form: ALWAYS use API status, never URL
+        let status = getStatusFromInvoice(data);
+        console.log('📊 Document Status (API for form):', status);
         OptimizedUtils.safeSetValue('Status', status);
+        // For page title, still allow URL param (handled in updatePageTitleAndStatus)
         updatePageTitleAndStatus(status);
 
         // Debug: log summary data
@@ -908,13 +1080,13 @@ function createOptimizedItemRow(item, index) {
         cellData.push(
             { class: 'uom-column item-only', content: `<textarea class="w-full item-uom bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.unitMsr || ''}</textarea>` },
             { class: 'packing-size-column item-only', content: `<textarea class="w-full item-packing-size bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.unitMsr2 || ''}</textarea>` },
-            { class: 'quantity-column item-only', content: `<textarea class="quantity-input item-sls-qty bg-gray-100 text-center" disabled style="height: 40px;">${item.quantity || ''}</textarea>` }
+            { class: 'quantity-column item-only', content: `<textarea class="quantity-input item-sls-qty bg-gray-100 text-center currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.quantity) || ''}</textarea>` }
         );
     }
 
     // Quantity column (common but different labels)
     cellData.push(
-        { class: 'quantity-column', content: `<textarea class="quantity-input item-quantity bg-gray-100 text-center" disabled style="height: 40px;">${item.invQty || ''}</textarea>` }
+        { class: 'quantity-column', content: `<textarea class="quantity-input item-quantity bg-gray-100 text-center currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.invQty) || ''}</textarea>` }
     );
 
     // Hidden UoM column
@@ -925,12 +1097,12 @@ function createOptimizedItemRow(item, index) {
     // Price columns
     if (AppState.docType === 'I') {
         cellData.push(
-            { class: 'price-column item-only', content: `<textarea class="price-input item-sls-price bg-gray-100 text-right" disabled style="height: 40px;">${item.u_bsi_salprice || ''}</textarea>` }
+            { class: 'price-column item-only', content: `<textarea class="price-input item-sls-price bg-gray-100 text-right currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.u_bsi_salprice) || ''}</textarea>` }
         );
     }
 
     cellData.push(
-        { class: 'price-column', content: `<textarea class="price-input item-price bg-gray-100 text-right" disabled style="height: 40px;">${item.priceBefDi || ''}</textarea>` }
+        { class: 'price-column', content: `<textarea class="price-input item-price bg-gray-100 text-right currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.priceBefDi) || ''}</textarea>` }
     );
 
     // VAT column
@@ -948,7 +1120,7 @@ function createOptimizedItemRow(item, index) {
 
     // Line total column
     cellData.push(
-        { class: 'line-total-column', content: `<textarea class="line-total-input item-line-total bg-gray-100 text-right" disabled style="height: 40px;">${item.lineTotal || ''}</textarea>` }
+        { class: 'line-total-column', content: `<textarea class="line-total-input item-line-total bg-gray-100 text-right currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.lineTotal) || ''}</textarea>` }
     );
 
     // Hidden columns
@@ -1313,8 +1485,12 @@ function makeAllFieldsReadOnly() {
 
 // Navigation function
 function goToMenuReceiveInvItem() {
-    const docTypeParam = AppState.docType === 'S' ? '?docType=service' : '';
-    window.location.href = `../../../dashboard/dashboardReceive/ARInvoice/menuARItemReceive.html${docTypeParam}`;
+    // Prefer back if possible, else go to menuARItemCheck.html
+    if (window.history.length > 1) {
+        window.history.back();
+    } else {
+        window.location.href = '/approvalPages/dashboard/dashboardCheck/ARInvoice/menuARItemCheck.html';
+    }
 }
 
 // Storage functions
@@ -1345,27 +1521,16 @@ function clearInvoiceDataFromStorage(stagingID) {
 
 // Optimized currency formatting for table
 function applyCurrencyFormattingToTable() {
-    const currencySelectors = [
-        { selector: '.item-sls-price', defaultValue: '0.00' },
-        { selector: '.item-price', defaultValue: '0.00' },
-        { selector: '.item-line-total', defaultValue: '0.00' }
-    ];
-
-    currencySelectors.forEach(({ selector, defaultValue }) => {
-        document.querySelectorAll(selector).forEach(input => {
-            input.classList.add('currency-input-idr');
-
-            if (input.value && input.value !== defaultValue) {
-                // Format existing value
-                if (typeof formatCurrencyInputIDR === 'function') {
-                    formatCurrencyInputIDR(input);
-                }
-            } else {
-                input.value = defaultValue;
-            }
-        });
+    // Format semua cell dengan class 'currency-value' di seluruh tabel agar tampil dengan pemisah ribuan
+    document.querySelectorAll('.currency-value').forEach(cell => {
+        // Untuk textarea/input, gunakan value, untuk td gunakan textContent
+        if (cell.tagName === 'TEXTAREA' || cell.tagName === 'INPUT') {
+            cell.value = OptimizedUtils.formatCurrencyIDR(cell.value);
+        } else {
+            cell.textContent = OptimizedUtils.formatCurrencyIDR(cell.textContent);
+        }
+        cell.classList.add('currency-input-idr');
     });
-
     console.log('✅ Currency formatting applied to table');
 }
 
@@ -2521,25 +2686,32 @@ function updateActionButtons(status) {
     console.log('Approval Summary:', approval);
     console.log('========================');
 
+    // Always get API status for button logic
+    let apiStatus = 'Draft';
+    if (AppState.currentInvItemData) {
+        apiStatus = getStatusFromInvoice(AppState.currentInvItemData);
+    }
+    const urlStatus = getUrlParameter('status');
+
     // Special cases first
-    if (status === 'Received') {
-        // Show E-Sign and Print buttons only
+    // E-Sign button: ONLY if BOTH API status and URL param are 'Received'
+    if (apiStatus === 'Received' && (urlStatus && urlStatus.toLowerCase() === 'received')) {
         const eSignBtn = OptimizedUtils.safeGetElement('eSignButton');
         if (eSignBtn) {
             eSignBtn.classList.remove('hidden');
             eSignBtn.disabled = false;
         }
+    }
+    // Print button: ONLY if API status is 'Approved' or 'Received'
+    if (apiStatus === 'Approved' || apiStatus === 'Received') {
         const printBtn = OptimizedUtils.safeGetElement('printButton');
         if (printBtn) {
             printBtn.classList.remove('hidden');
             printBtn.disabled = false;
         }
-        updateCurrentStatusDisplay(status);
-        return;
     }
-
-    if (status === 'Rejected') {
-        // Hide all buttons for rejected status
+    // Hide all buttons for rejected status
+    if (apiStatus === 'Rejected') {
         updateCurrentStatusDisplay(status);
         return;
     }
@@ -2628,70 +2800,71 @@ function updateActionButtons(status) {
         }
     }
 
-    // Smart reject button logic based on current status and filled dates
-    if (status !== 'Received' && status !== 'Rejected') {
-        const rejectBtn = OptimizedUtils.safeGetElement('rejectButton');
-        if (rejectBtn) {
-            // Determine who can reject based on current status
-            let canReject = false;
-            let rejectReason = '';
+    // Improved reject button logic: only show if API status is not 'Received'/'Rejected' AND user is authorized for current step and step belum selesai
+    const rejectBtn = OptimizedUtils.safeGetElement('rejectButton');
+    if (rejectBtn) {
+        // Always hide by default
+        rejectBtn.classList.add('hidden');
+        rejectBtn.disabled = true;
+        rejectBtn.title = '';
 
-            switch (status) {
-                case 'Prepared':
-                    // Only checker can reject prepared documents
-                    if (approval.checkedByKansaiId === currentKansaiId || approval.checkedBy === currentKansaiId) {
-                        canReject = true;
-                        rejectReason = 'Checker can reject prepared documents';
-                    } else {
-                        rejectReason = 'Only assigned checker can reject prepared documents';
-                    }
-                    break;
-
-                case 'Checked':
-                    // Only acknowledger can reject checked documents
-                    if (approval.acknowledgedByKansaiId === currentKansaiId || approval.acknowledgedBy === currentKansaiId) {
-                        canReject = true;
-                        rejectReason = 'Acknowledger can reject checked documents';
-                    } else {
-                        rejectReason = 'Only assigned acknowledger can reject checked documents';
-                    }
-                    break;
-
-                case 'Acknowledged':
-                    // Only approver can reject acknowledged documents
-                    if (approval.approvedByKansaiId === currentKansaiId || approval.approvedBy === currentKansaiId) {
-                        canReject = true;
-                        rejectReason = 'Approver can reject acknowledged documents';
-                    } else {
-                        rejectReason = 'Only assigned approver can reject acknowledged documents';
-                    }
-                    break;
-
-                case 'Approved':
-                    // Only receiver can reject approved documents
-                    if (approval.receivedByKansaiId === currentKansaiId || approval.receivedBy === currentKansaiId) {
-                        canReject = true;
-                        rejectReason = 'Receiver can reject approved documents';
-                    } else {
-                        rejectReason = 'Only assigned receiver can reject approved documents';
-                    }
-                    break;
-
-                default:
-                    rejectReason = 'Unknown status for rejection';
-                    break;
-            }
-
-            if (canReject) {
-                rejectBtn.classList.remove('hidden');
-                rejectBtn.disabled = false;
-                rejectBtn.title = rejectReason;
-                console.log('✅ Showing reject button:', rejectReason);
+        // Only show if API status is not 'Received' or 'Rejected'
+        if (status !== 'Received' && status !== 'Rejected') {
+            // Find current approval step
+            const approvalSteps = [
+                {
+                    currentStatus: 'Prepared',
+                    requiredKansaiIdField: 'checkedByKansaiId',
+                    fallbackIdField: 'checkedBy',
+                    dateField: 'checkedDate'
+                },
+                {
+                    currentStatus: 'Checked',
+                    requiredKansaiIdField: 'acknowledgedByKansaiId',
+                    fallbackIdField: 'acknowledgedBy',
+                    dateField: 'acknowledgedDate'
+                },
+                {
+                    currentStatus: 'Acknowledged',
+                    requiredKansaiIdField: 'approvedByKansaiId',
+                    fallbackIdField: 'approvedBy',
+                    dateField: 'approvedDate'
+                },
+                {
+                    currentStatus: 'Approved',
+                    requiredKansaiIdField: 'receivedByKansaiId',
+                    fallbackIdField: 'receivedBy',
+                    dateField: 'receivedDate'
+                }
+            ];
+            const currentStep = approvalSteps.find(step => step.currentStatus === status);
+            if (currentStep) {
+                let requiredKansaiId = approval[currentStep.requiredKansaiIdField] || approval[currentStep.fallbackIdField];
+                requiredKansaiId = normalizeKansaiId(requiredKansaiId);
+                const currentDateNotFilled = !approval[currentStep.dateField];
+                const userAuthorized = requiredKansaiId && requiredKansaiId === currentKansaiId;
+                if (userAuthorized && currentDateNotFilled) {
+                    rejectBtn.classList.remove('hidden');
+                    rejectBtn.disabled = false;
+                    rejectBtn.title = 'Reject this document';
+                    console.log('✅ Showing reject button (authorized & step belum selesai)');
+                } else {
+                    rejectBtn.classList.add('hidden');
+                    rejectBtn.disabled = true;
+                    rejectBtn.title = '';
+                    console.log('❌ Hiding reject button (not authorized or step sudah selesai)');
+                }
             } else {
+                // Not a valid approval step, always hide
                 rejectBtn.classList.add('hidden');
                 rejectBtn.disabled = true;
-                console.log('❌ Hiding reject button:', rejectReason);
+                rejectBtn.title = '';
             }
+        } else {
+            // Status is Received/Rejected, always hide
+            rejectBtn.classList.add('hidden');
+            rejectBtn.disabled = true;
+            rejectBtn.title = '';
         }
     }
 
@@ -2704,11 +2877,11 @@ function updateActionButtons(status) {
         }
     }
 
-    // Update current status display
-    updateCurrentStatusDisplay(status);
+    // Update current status display (always by API status)
+    updateCurrentStatusDisplay(apiStatus);
 
     // Display approval workflow information
-    displayApprovalWorkflowInfo();
+    // displayApprovalWorkflowInfo();
 }
 
 // Fixed build approval request data function

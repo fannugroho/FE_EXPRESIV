@@ -35,27 +35,27 @@ const API_BASE_URL = `${BASE_URL}/api`;
  */
 
 // Initialize the page
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Get invoice ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const invoiceId = urlParams.get('invoice-id') || urlParams.get('id'); // Try both parameter names
-    
+
     // Debug logging
     console.log('URL search params:', window.location.search);
     console.log('All URL params:', Object.fromEntries(urlParams.entries()));
     console.log('Invoice ID from URL:', invoiceId);
-    
+
     // Populate debug info (with null checks)
     const debugUrlElement = document.getElementById('debugUrl');
     const debugInvoiceIdElement = document.getElementById('debugInvoiceId');
-    
+
     if (debugUrlElement) {
         debugUrlElement.textContent = window.location.href;
     }
     if (debugInvoiceIdElement) {
         debugInvoiceIdElement.textContent = invoiceId || 'Not found';
     }
-    
+
     if (invoiceId && invoiceId.trim() !== '') {
         console.log('Loading invoice data for identifier:', invoiceId.trim());
         loadInvoiceData(invoiceId.trim());
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('No invoice identifier found, using default STG-001');
         loadInvoiceData('STG-001');
     }
-    
+
     // Try to resolve current user (if auth is enabled)
     try {
         if (typeof window.getCurrentUser === 'function') {
@@ -76,13 +76,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load employee data for approval dropdowns
     loadEmployeesData();
-    
+
     // Setup approval input listeners
     setupApprovalInputListeners();
-    
+
     // Setup other form field listeners
     setupOtherFieldListeners();
-    
+
     // Initialize action buttons visibility based on status once data is loaded
 });
 
@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
 async function loadEmployeesData() {
     try {
         console.log('Loading employees data from API...');
-        
+
         const response = await fetch(`${API_BASE_URL}/employees`, {
             method: 'GET',
             headers: {
@@ -98,9 +98,9 @@ async function loadEmployeesData() {
                 'Content-Type': 'application/json'
             }
         });
-        
+
         console.log('Employees API response status:', response.status);
-        
+
         if (!response.ok) {
             if (response.status === 404) {
                 console.warn('Employees API endpoint not found (404) - continuing without employee data');
@@ -108,17 +108,17 @@ async function loadEmployeesData() {
             }
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const result = await response.json();
         console.log('Employees API response:', result);
-        
+
         if (result.status && result.data) {
             employeesData = result.data;
             console.log('Employees data loaded:', employeesData);
-            
+
             // Setup approval dropdowns with employee data
             setupApprovalDropdowns();
-            
+
             // If form is already populated, refresh the dropdowns
             if (invoiceData) {
                 refreshApprovalDropdowns();
@@ -126,7 +126,7 @@ async function loadEmployeesData() {
         } else {
             throw new Error('Invalid response format from employees API');
         }
-        
+
     } catch (error) {
         console.error('Error loading employees data:', error);
         // Don't show error to user as this is not critical for main functionality
@@ -143,11 +143,11 @@ function setupApprovalDropdowns() {
         { inputId: 'approvedByName', dropdownId: 'approvedBySelectDropdown', selectId: 'approvedBy' },
         { inputId: 'receivedByName', dropdownId: 'receivedBySelectDropdown', selectId: 'receivedBy' }
     ];
-    
+
     approvalFields.forEach(field => {
         setupEmployeeDropdown(field.inputId, field.dropdownId, field.selectId);
     });
-    
+
     console.log('Approval dropdowns setup completed with employee data');
 }
 
@@ -156,12 +156,12 @@ function setupEmployeeDropdown(inputId, dropdownId, selectId) {
     const input = document.getElementById(inputId);
     const dropdown = document.getElementById(dropdownId);
     const select = document.getElementById(selectId);
-    
+
     if (!input || !dropdown || !select) {
         console.warn(`Missing elements for dropdown setup: ${inputId}`);
         return;
     }
-    
+
     // Populate select options
     select.innerHTML = '<option value="" disabled selected>Choose Name</option>';
     employeesData.forEach(employee => {
@@ -171,48 +171,48 @@ function setupEmployeeDropdown(inputId, dropdownId, selectId) {
         option.setAttribute('data-employee-id', employee.kansaiEmployeeId || '');
         select.appendChild(option);
     });
-    
+
     // Setup input event listeners
-    input.addEventListener('input', function() {
+    input.addEventListener('input', function () {
         // Check if document is editable
         const statusField = document.getElementById('Status');
         const currentStatus = statusField ? statusField.value : '';
-        
+
         if (currentStatus !== 'Draft') {
             // If not Draft, hide dropdown and don't filter
             dropdown.classList.add('hidden');
             return;
         }
-        
+
         const searchTerm = this.value.toLowerCase();
-        const filteredEmployees = employeesData.filter(employee => 
+        const filteredEmployees = employeesData.filter(employee =>
             employee.fullName.toLowerCase().includes(searchTerm)
         );
-    
+
         displayEmployeeDropdown(dropdown, filteredEmployees, input, select);
     });
-    
-    input.addEventListener('focus', function() {
+
+    input.addEventListener('focus', function () {
         // Check if document is editable
         const statusField = document.getElementById('Status');
         const currentStatus = statusField ? statusField.value : '';
-        
+
         if (currentStatus !== 'Draft') {
             // If not Draft, hide dropdown and don't filter
             dropdown.classList.add('hidden');
             return;
         }
-        
+
         const searchTerm = this.value.toLowerCase();
-        const filteredEmployees = employeesData.filter(employee => 
+        const filteredEmployees = employeesData.filter(employee =>
             employee.fullName.toLowerCase().includes(searchTerm)
         );
-        
+
         displayEmployeeDropdown(dropdown, filteredEmployees, input, select);
     });
-    
+
     // Hide dropdown when clicking outside
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         if (!input.contains(e.target) && !dropdown.contains(e.target)) {
             dropdown.classList.add('hidden');
         }
@@ -222,7 +222,7 @@ function setupEmployeeDropdown(inputId, dropdownId, selectId) {
 // Display employee dropdown with filtered results
 function displayEmployeeDropdown(dropdown, employees, input, select) {
     dropdown.innerHTML = '';
-    
+
     if (employees.length === 0) {
         dropdown.innerHTML = '<div class="dropdown-item no-results">No employees found</div>';
     } else {
@@ -234,25 +234,25 @@ function displayEmployeeDropdown(dropdown, employees, input, select) {
                     <span class="font-medium">${employee.fullName}</span>
                 </div>
             `;
-            
-            item.addEventListener('click', function() {
+
+            item.addEventListener('click', function () {
                 input.value = employee.fullName;
                 select.value = employee.fullName;
-                
+
                 // Store employee ID in a data attribute for later use
                 input.setAttribute('data-employee-id', employee.kansaiEmployeeId || '');
                 select.setAttribute('data-employee-id', employee.kansaiEmployeeId || '');
-                
+
                 dropdown.classList.add('hidden');
-                
+
                 // Trigger input event to mark as modified
                 input.dispatchEvent(new Event('input'));
             });
-            
+
             dropdown.appendChild(item);
         });
     }
-    
+
     dropdown.classList.remove('hidden');
 }
 
@@ -264,11 +264,11 @@ function refreshApprovalDropdowns() {
         { inputId: 'approvedByName', selectId: 'approvedBy' },
         { inputId: 'receivedByName', selectId: 'receivedBy' }
     ];
-    
+
     approvalFields.forEach(field => {
         const input = document.getElementById(field.inputId);
         const select = document.getElementById(field.selectId);
-        
+
         if (input && select) {
             // Update select options with employee data
             select.innerHTML = '<option value="" disabled selected>Choose Name</option>';
@@ -279,7 +279,7 @@ function refreshApprovalDropdowns() {
                 option.setAttribute('data-employee-id', employee.kansaiEmployeeId || '');
                 select.appendChild(option);
             });
-            
+
             // If input has a value, try to find and set the corresponding employee ID
             if (input.value) {
                 const selectedEmployee = employeesData.find(emp => emp.fullName === input.value);
@@ -296,11 +296,11 @@ function refreshApprovalDropdowns() {
 async function loadInvoiceData(invoiceId) {
     try {
         console.log('loadInvoiceData called with invoiceId:', invoiceId);
-        
+
         // Construct API URL
         const apiUrl = `${API_BASE_URL}/ar-invoices/${invoiceId}/details`;
         console.log('API URL:', apiUrl);
-        
+
         // Show loading indicator
         Swal.fire({
             title: 'Loading...',
@@ -309,7 +309,7 @@ async function loadInvoiceData(invoiceId) {
                 Swal.showLoading();
             }
         });
-        
+
         // Fetch data from API
         const response = await fetch(apiUrl, {
             method: 'GET',
@@ -318,44 +318,44 @@ async function loadInvoiceData(invoiceId) {
                 'Content-Type': 'application/json'
             }
         });
-        
+
         console.log('Response status:', response.status);
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const result = await response.json();
         console.log('API response result:', result);
-        
+
         if (result.status && result.data) {
             invoiceData = result.data;
             console.log('Invoice data loaded from API:', invoiceData);
-            
+
             // Populate form with data
             populateFormData(invoiceData);
-            
+
             // Populate invoice details table
             if (invoiceData.arInvoiceDetails && invoiceData.arInvoiceDetails.length > 0) {
                 populateInvoiceDetails(invoiceData.arInvoiceDetails);
             }
-            
+
             // Load attachments from the main response
             console.log('Invoice data structure:', invoiceData);
             console.log('arInvoiceAttachments from API:', invoiceData.arInvoiceAttachments);
             loadAttachmentsFromData(invoiceData.arInvoiceAttachments);
-            
+
             // Close loading indicator
             Swal.close();
         } else {
             throw new Error('Invalid response format from API');
         }
-        
+
     } catch (error) {
         console.error('Error loading invoice data:', error);
-        
+
         let errorMessage = 'Failed to load invoice data';
-        
+
         if (error.message.includes('404')) {
             errorMessage = 'Invoice not found. Please check the invoice identifier.';
             console.warn('Invoice not found (404) - this might be expected for new invoices');
@@ -366,12 +366,12 @@ async function loadInvoiceData(invoiceId) {
         } else {
             errorMessage = `Failed to load invoice data: ${error.message}`;
         }
-        
+
         // Close loading indicator if it's still open
         if (Swal.isVisible()) {
             Swal.close();
         }
-        
+
         Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -386,7 +386,7 @@ function populateFormData(data) {
     console.log('Complete invoice data:', data);
     console.log('Track number:', data.trackNo);
     console.log('Invoice number:', data.u_bsi_invnum);
-    
+
     // Helper function to safely set element value
     function safeSetValue(elementId, value) {
         const element = document.getElementById(elementId);
@@ -396,7 +396,7 @@ function populateFormData(data) {
             console.warn(`Element with id '${elementId}' not found`);
         }
     }
-    
+
     // Helper function to safely set element attribute
     function safeSetAttribute(elementId, attribute, value) {
         const element = document.getElementById(elementId);
@@ -406,7 +406,7 @@ function populateFormData(data) {
             console.warn(`Element with id '${elementId}' not found`);
         }
     }
-    
+
     // Populate header fields
     safeSetValue('DocEntry', data.stagingID || '');
     safeSetValue('DocNum', data.docNum || '');
@@ -429,21 +429,21 @@ function populateFormData(data) {
     safeSetValue('account', data.account || '');
     safeSetValue('acctName', data.acctName || '');
     safeSetValue('comments', data.comments || '');
-    
 
-    
+
+
     // Populate status from approval summary
     const status = getStatusFromInvoice(data);
     safeSetValue('Status', status);
-    
+
     // Check if submit button should be shown based on status
     updateSubmitAndRejectVisibility(status);
 
-    
+
     // Populate approval fields from approval summary - make them editable
     if (data.arInvoiceApprovalSummary) {
         console.log('Approval summary data:', data.arInvoiceApprovalSummary);
-        
+
         // Populate prepared by name (disabled as requested)
         const preparedByNameField = document.getElementById('preparedByName');
         if (preparedByNameField) {
@@ -455,13 +455,13 @@ function populateFormData(data) {
         } else {
             console.warn('Element with id "preparedByName" not found');
         }
-        
+
         // Populate other approval fields (acknowledge, check, approve, receive)
         const acknowledgeByNameField = document.getElementById('acknowledgeByName');
         const checkedByNameField = document.getElementById('checkedByName');
         const approvedByNameField = document.getElementById('approvedByName');
         const receivedByNameField = document.getElementById('receivedByName');
-        
+
         if (acknowledgeByNameField) {
             acknowledgeByNameField.value = data.arInvoiceApprovalSummary.acknowledgedByName || '';
         }
@@ -474,7 +474,7 @@ function populateFormData(data) {
         if (receivedByNameField) {
             receivedByNameField.value = data.arInvoiceApprovalSummary.receivedByName || '';
         }
-        
+
         // Store employee IDs from API data
         if (acknowledgeByNameField) {
             acknowledgeByNameField.setAttribute('data-employee-id', data.arInvoiceApprovalSummary.acknowledgedBy || '');
@@ -491,19 +491,19 @@ function populateFormData(data) {
         if (preparedByNameField) {
             preparedByNameField.setAttribute('data-employee-id', data.arInvoiceApprovalSummary.preparedBy || '');
         }
-        
+
         // Update corresponding select elements
         safeSetValue('acknowledgeBy', data.arInvoiceApprovalSummary.acknowledgedByName || '');
         safeSetValue('checkedBy', data.arInvoiceApprovalSummary.checkedByName || '');
         safeSetValue('approvedBy', data.arInvoiceApprovalSummary.approvedByName || '');
         safeSetValue('receivedBy', data.arInvoiceApprovalSummary.receivedByName || '');
-        
+
         // Store employee IDs in select elements as well
         safeSetAttribute('acknowledgeBy', 'data-employee-id', data.arInvoiceApprovalSummary.acknowledgedBy || '');
         safeSetAttribute('checkedBy', 'data-employee-id', data.arInvoiceApprovalSummary.checkedBy || '');
         safeSetAttribute('approvedBy', 'data-employee-id', data.arInvoiceApprovalSummary.approvedBy || '');
         safeSetAttribute('receivedBy', 'data-employee-id', data.arInvoiceApprovalSummary.receivedBy || '');
-        
+
         console.log('Stored employee IDs from API:', {
             acknowledgedBy: data.arInvoiceApprovalSummary.acknowledgedBy,
             checkedBy: data.arInvoiceApprovalSummary.checkedBy,
@@ -511,12 +511,12 @@ function populateFormData(data) {
             receivedBy: data.arInvoiceApprovalSummary.receivedBy,
             preparedBy: data.arInvoiceApprovalSummary.preparedBy
         });
-        
+
         // Handle rejection remarks if status is Rejected
         if (data.arInvoiceApprovalSummary.approvalStatus === 'Rejected' && data.arInvoiceApprovalSummary.rejectionRemarks) {
             const rejectionSection = document.getElementById('rejectionRemarksSection');
             const rejectionTextarea = document.getElementById('rejectionRemarks');
-            
+
             if (rejectionSection && rejectionTextarea) {
                 rejectionSection.style.display = 'block';
                 rejectionTextarea.value = data.arInvoiceApprovalSummary.rejectionRemarks;
@@ -534,13 +534,13 @@ function populateFormData(data) {
     } else {
         console.log('No approval summary data found');
     }
-    
+
     // Try to load saved approval data from localStorage
     loadApprovalDataFromLocalStorage();
-    
+
     // Get currency code
     const currencyCode = data.docCur || 'IDR';
-    
+
     // Populate totals with correct API field mapping
     console.log('💰 Populating financial summary with API fields:', {
         docCur: data.docCur,
@@ -551,28 +551,28 @@ function populateFormData(data) {
         vatSum: data.docTax,
         grandTotal: data.grandTotal
     });
-    
+
     // 1. Total (totalAmount) - API Field: "docCur" "netPrice"
     safeSetValue('docTotal', `${currencyCode} ${formatCurrencyIDR(data.netPrice || '0.00')}`);
-    
+
     // 2. Discounted (discountAmount) - API Field: "docCur" "discSum"
     safeSetValue('discSum', `${currencyCode} ${formatCurrencyIDR(data.discSum || '0.00')}`);
-    
+
     // 3. Sales Amount (salesAmount) - API Field: "docCur" "netPriceAfterDiscount"
     safeSetValue('netPriceAfterDiscount', `${currencyCode} ${formatCurrencyIDR(data.netPriceAfterDiscount || '0.00')}`);
-    
-            // 4. Tax Base Other Value (taxBase) - API Field: "dpp1112"
-        safeSetValue('dpp1112', `${currencyCode} ${formatCurrencyIDR(data.dpp1112 || '0.00')}`);
-    
+
+    // 4. Tax Base Other Value (taxBase) - API Field: "dpp1112"
+    safeSetValue('dpp1112', `${currencyCode} ${formatCurrencyIDR(data.dpp1112 || '0.00')}`);
+
     // 5. VAT 12% (vatAmount) - API Field: "docCur" "docTax"
     safeSetValue('vatSum', `${currencyCode} ${formatCurrencyIDR(data.docTax || '0.00')}`);
-    
+
     // 6. GRAND TOTAL (grandTotal) - API Field: "docCur" "grandTotal"
     safeSetValue('grandTotal', `${currencyCode} ${formatCurrencyIDR(data.grandTotal || '0.00')}`);
-    
+
     // Populate table with invoice details
     populateInvoiceDetails(data.arInvoiceDetails || []);
-    
+
     // Enable submit button after data is loaded
     enableSubmitButton();
 }
@@ -584,9 +584,9 @@ function populateInvoiceDetails(details) {
         console.warn('Element with id "tableBody" not found');
         return;
     }
-    
+
     tableBody.innerHTML = '';
-    
+
     if (details.length === 0) {
         // Add empty row message
         const emptyRow = document.createElement('tr');
@@ -598,10 +598,10 @@ function populateInvoiceDetails(details) {
         tableBody.appendChild(emptyRow);
         return;
     }
-    
+
     details.forEach((detail, index) => {
         const row = document.createElement('tr');
-        
+
         row.innerHTML = `
             <td class="p-2 border no-column">
                 <input type="text" class="line-num-input no-input p-2 border rounded bg-gray-100" value="${index + 1}" disabled autocomplete="off" />
@@ -658,25 +658,25 @@ function populateInvoiceDetails(details) {
                 <input type="number" class="w-full p-2 border rounded bg-gray-100" value="${detail.lineType || '0'}" disabled autocomplete="off" />
             </td>
         `;
-        
+
         tableBody.appendChild(row);
     });
-    
+
     // Apply text wrapping after populating the table
     if (window.refreshTextWrapping) {
         setTimeout(() => {
             window.refreshTextWrapping();
         }, 100);
     }
-    
+
     // Adjust textarea heights based on content
     adjustTextareaHeights();
-    
+
     // Apply currency formatting to table cells
     setTimeout(() => {
         applyCurrencyFormattingToTable();
     }, 200);
-    
+
     // Ensure all inputs in the table have autocomplete disabled
     const tableInputs = tableBody.querySelectorAll('input, textarea, select');
     tableInputs.forEach(element => {
@@ -687,14 +687,14 @@ function populateInvoiceDetails(details) {
 // Format date to YYYY-MM-DD
 function formatDate(dateString) {
     if (!dateString) return '';
-    
+
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return '';
-    
+
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    
+
     return `${year}-${month}-${day}`;
 }
 
@@ -703,28 +703,28 @@ function getStatusFromInvoice(invoice) {
     // Debug logging for arInvoiceApprovalSummary
     console.log('Invoice arInvoiceApprovalSummary:', invoice.arInvoiceApprovalSummary);
     console.log('Invoice arInvoiceApprovalSummary type:', typeof invoice.arInvoiceApprovalSummary);
-    
+
     // Check if invoice has approval summary - if null, return Draft
     if (invoice.arInvoiceApprovalSummary === null || invoice.arInvoiceApprovalSummary === undefined) {
         console.log('arInvoiceApprovalSummary is null/undefined, returning Draft');
         return 'Draft';
     }
-    
+
     // If arInvoiceApprovalSummary exists, use approvalStatus field first
     if (invoice.arInvoiceApprovalSummary) {
         const summary = invoice.arInvoiceApprovalSummary;
         console.log('arInvoiceApprovalSummary properties:', summary);
-        
+
         // First priority: use approvalStatus field from arInvoiceApprovalSummary
         if (summary.approvalStatus && summary.approvalStatus.trim() !== '') {
             console.log('Using approvalStatus from arInvoiceApprovalSummary:', summary.approvalStatus);
             return summary.approvalStatus;
         }
-        
+
         // If approvalStatus is empty, null, or undefined, return Draft
         console.log('approvalStatus is empty/null/undefined, returning Draft');
         return 'Draft';
-        
+
         // Fallback: check individual status flags
         if (summary.isRejected) return 'Rejected';
         if (summary.isApproved) return 'Approved';
@@ -732,19 +732,19 @@ function getStatusFromInvoice(invoice) {
         if (summary.isChecked) return 'Checked';
         if (summary.isReceived) return 'Received';
     }
-    
+
     // Check transfer status
     if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
-    
+
     // Check if it's a staging document (draft)
     if (invoice.stagingID && invoice.stagingID.startsWith('STG')) return 'Draft';
-    
+
     // Check if document has been transferred (received)
     if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
-    
+
     // Check if document is in preparation stage
     if (invoice.docNum && invoice.docNum > 0) return 'Prepared';
-    
+
     // Default to Draft for new documents
     return 'Draft';
 }
@@ -754,7 +754,7 @@ function getStatusFromInvoice(invoice) {
 // Save approval data to localStorage
 function saveApprovalDataToLocalStorage() {
     if (!invoiceData || !invoiceData.stagingID) return;
-    
+
     const approvalData = {
         stagingID: invoiceData.stagingID,
         acknowledgeByName: document.getElementById('acknowledgeByName').value || '',
@@ -767,7 +767,7 @@ function saveApprovalDataToLocalStorage() {
         receivedById: document.getElementById('receivedByName').getAttribute('data-employee-id') || '',
         timestamp: new Date().toISOString()
     };
-    
+
     localStorage.setItem(`approval_${invoiceData.stagingID}`, JSON.stringify(approvalData));
     console.log('Approval data saved to localStorage');
     console.log('Saved approval data:', approvalData);
@@ -776,23 +776,23 @@ function saveApprovalDataToLocalStorage() {
 // Load approval data from localStorage
 function loadApprovalDataFromLocalStorage() {
     if (!invoiceData || !invoiceData.stagingID) return;
-    
+
     const savedData = localStorage.getItem(`approval_${invoiceData.stagingID}`);
     if (savedData) {
         try {
             const approvalData = JSON.parse(savedData);
-            
+
             // Check if data is not too old (within 24 hours)
             const savedTime = new Date(approvalData.timestamp);
             const now = new Date();
             const hoursDiff = (now - savedTime) / (1000 * 60 * 60);
-            
+
             if (hoursDiff < 24) {
                 const acknowledgeByNameField = document.getElementById('acknowledgeByName');
                 const checkedByNameField = document.getElementById('checkedByName');
                 const approvedByNameField = document.getElementById('approvedByName');
                 const receivedByNameField = document.getElementById('receivedByName');
-                
+
                 if (acknowledgeByNameField) {
                     acknowledgeByNameField.value = approvalData.acknowledgeByName || '';
                     acknowledgeByNameField.setAttribute('data-employee-id', approvalData.acknowledgeById || '');
@@ -809,7 +809,7 @@ function loadApprovalDataFromLocalStorage() {
                     receivedByNameField.value = approvalData.receivedByName || '';
                     receivedByNameField.setAttribute('data-employee-id', approvalData.receivedById || '');
                 }
-                
+
                 console.log('Loaded approval data from localStorage');
                 console.log('Approval data details:', approvalData);
             } else {
@@ -835,6 +835,63 @@ function goToMenuARInv() {
 // Submit invoice data to API
 async function submitInvoiceData() {
     try {
+        // Validate all required form fields before confirmation
+        // 1. Header fields
+        const requiredHeaderFields = [
+            { id: 'DocNum', label: 'Invoice Number' },
+            { id: 'CardCode', label: 'Customer Code' },
+            { id: 'CardName', label: 'Customer Name' }
+        ];
+        for (const field of requiredHeaderFields) {
+            const el = document.getElementById(field.id);
+            if (!el || !el.value.trim()) {
+                Swal.fire({ icon: 'warning', title: 'Form Incomplete', text: `${field.label} is required!` });
+                return;
+            }
+        }
+
+        // 2. Approval Workflow section: ALL fields are required (including prepared by if editable)
+        const approvalFields = [
+            { id: 'preparedByName', label: 'Prepared by' },
+            { id: 'acknowledgeByName', label: 'Acknowledge by' },
+            { id: 'checkedByName', label: 'Checked by' },
+            { id: 'approvedByName', label: 'Approved by' },
+            { id: 'receivedByName', label: 'Received by' }
+        ];
+        for (const field of approvalFields) {
+            const el = document.getElementById(field.id);
+            // If field is disabled, skip (assume filled by system or not required to fill by user)
+            if (!el) {
+                Swal.fire({ icon: 'warning', title: 'Form Incomplete', text: `${field.label} is required!` });
+                return;
+            }
+            if (!el.value || !el.value.trim()) {
+                Swal.fire({ icon: 'warning', title: 'Approval Workflow Belum Lengkap', text: `Bagian ${field.label} wajib diisi!` });
+                el.focus();
+                return;
+            }
+        }
+
+        // 3. Invoice detail table: check all required columns for each row
+        if (!invoiceData.arInvoiceDetails || invoiceData.arInvoiceDetails.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'Form Incomplete', text: 'Invoice must have at least one detail item!' });
+            return;
+        }
+        for (let i = 0; i < invoiceData.arInvoiceDetails.length; i++) {
+            const detail = invoiceData.arInvoiceDetails[i];
+            if (!detail.itemCode || !detail.dscription || !detail.quantity || !detail.priceBefDi) {
+                Swal.fire({ icon: 'warning', title: 'Form Incomplete', text: `Detail row ${i + 1} is incomplete! Pastikan Item Code, Description, Quantity, dan Price terisi.` });
+                return;
+            }
+        }
+
+        // 4. Remarks (optional, but if required, uncomment below)
+        // const remarks = document.getElementById('comments');
+        // if (remarks && !remarks.value.trim()) {
+        //     Swal.fire({ icon: 'warning', title: 'Form Incomplete', text: 'Remarks is required!' });
+        //     return;
+        // }
+
         // Show confirmation dialog first
         const confirmResult = await Swal.fire({
             title: 'Confirm Submission',
@@ -846,38 +903,24 @@ async function submitInvoiceData() {
             confirmButtonText: 'Yes, Submit',
             cancelButtonText: 'Cancel'
         });
-        
         if (!confirmResult.isConfirmed) {
             return;
         }
-        
+
         // Show loading state
         const submitButton = document.getElementById('submitButton');
         const submitButtonText = document.getElementById('submitButtonText');
         const submitSpinner = document.getElementById('submitSpinner');
-        
+
         submitButton.disabled = true;
         submitButtonText.textContent = 'Updating Status...';
         submitSpinner.classList.remove('hidden');
-        
+
         // Get current invoice data
         if (!invoiceData) {
             throw new Error('No invoice data available');
         }
-        
-        // Validate required fields
-        if (!invoiceData.docNum) {
-            throw new Error('Invoice number is required');
-        }
-        
-        if (!invoiceData.cardCode) {
-            throw new Error('Customer code is required');
-        }
-        
-        if (!invoiceData.cardName) {
-            throw new Error('Customer name is required');
-        }
-        
+
         // Validate approval data if modified (excluding prepared by as requested)
         const approvalInputs = [
             { id: 'acknowledgeByName', label: 'Acknowledge by' },
@@ -885,46 +928,46 @@ async function submitInvoiceData() {
             { id: 'approvedByName', label: 'Approved by' },
             { id: 'receivedByName', label: 'Received by' }
         ];
-        
+
         for (const input of approvalInputs) {
             const value = document.getElementById(input.id).value.trim();
             if (value && value.length < 2) {
                 throw new Error(`${input.label} name must be at least 2 characters long`);
             }
         }
-        
+
         // Get staging ID for the API endpoint
         const stagingID = invoiceData.stagingID;
         if (!stagingID) {
             throw new Error('Staging ID is required for submission');
         }
-        
+
         // Prepare the request payload for PATCH endpoint
         const payload = prepareApprovalPayload();
-        
+
         console.log('Submitting approval data:', payload);
         console.log('API URL:', `${API_BASE_URL}/ar-invoices/approval/${stagingID}`);
         console.log('Request body:', JSON.stringify(payload, null, 2));
         console.log('Payload keys:', Object.keys(payload));
         console.log('Payload size:', JSON.stringify(payload).length, 'characters');
-        
+
         // Log specific information about preparedDate if it's being sent
         if (payload.preparedDate) {
             console.log('📅 preparedDate included in payload:', payload.preparedDate);
         } else {
             console.log('📅 No preparedDate in payload (status not changing from Draft to Prepared)');
         }
-        
+
         // Try different approaches - first try with PUT method
         let success = false;
         let apiResult = null;
-        
+
         // PATCH method with payload
         try {
             console.log('PATCH method with payload');
-            
+
             console.log('Payload for PATCH:', payload);
-            
+
             const response = await fetch(`${API_BASE_URL}/ar-invoices/approval/${stagingID}`, {
                 method: 'PATCH',
                 headers: {
@@ -933,10 +976,10 @@ async function submitInvoiceData() {
                 },
                 body: JSON.stringify(payload)
             });
-            
+
             console.log('Response status:', response.status);
             console.log('Response headers:', response.headers);
-            
+
             if (response.ok) {
                 success = true;
                 apiResult = await response.json();
@@ -945,13 +988,13 @@ async function submitInvoiceData() {
                 console.log('PATCH method failed:', response.status);
                 const errorText = await response.text();
                 console.error('API Error response:', errorText);
-                
+
                 // Handle 404 errors specifically
                 if (response.status === 404) {
                     console.warn('Approval endpoint not found (404) - this might be expected for new invoices');
                     throw new Error('Approval endpoint not available for this invoice');
                 }
-                
+
                 // Try to parse error response as JSON for better error handling
                 let errorDetails = errorText;
                 try {
@@ -961,28 +1004,28 @@ async function submitInvoiceData() {
                 } catch (parseError) {
                     console.error('Could not parse error response as JSON:', parseError);
                 }
-                
+
                 throw new Error(`API Error: ${response.status} - ${errorDetails}`);
             }
         } catch (error) {
             console.log('PATCH method error:', error);
             throw error;
         }
-        
+
         // If PATCH attempt failed, throw error
         if (!success) {
             throw new Error('API attempt failed');
         }
-        
+
         console.log('API Response:', apiResult);
         console.log('Approval data successfully submitted to API');
-        
+
         // Upload files if any are selected
         let uploadResult = null;
         if (uploadedFiles && uploadedFiles.length > 0) {
             console.log('Uploading files:', uploadedFiles.length, 'files');
             submitButtonText.textContent = 'Uploading Attachments...';
-            
+
             try {
                 uploadResult = await uploadAttachments(stagingID, uploadedFiles);
                 console.log('File upload result:', uploadResult);
@@ -992,24 +1035,24 @@ async function submitInvoiceData() {
                 // The approval data was already submitted successfully
             }
         }
-        
+
         // Show success message with details
         const approvalModified = window.approvalDataModified || false;
         const approvalInfo = approvalModified ? '<p><strong>Approval data has been updated successfully</strong></p>' : '';
-        
+
         // Check if approval status was updated from Draft to Prepared
         const originalStatus = invoiceData.arInvoiceApprovalSummary?.approvalStatus || 'Draft';
         const newStatus = apiResult.approvalStatus || 'Updated';
         const isStatusChangedFromDraftToPrepared = originalStatus === 'Draft' && newStatus === 'Prepared';
-        const statusChangeInfo = isStatusChangedFromDraftToPrepared 
-            ? '<p><strong>✅ Approval Status Updated:</strong> Draft → Prepared</p>' 
+        const statusChangeInfo = isStatusChangedFromDraftToPrepared
+            ? '<p><strong>✅ Approval Status Updated:</strong> Draft → Prepared</p>'
             : '';
-        
+
         // Add preparedDate info when status changes from Draft to Prepared
-        const preparedDateInfo = isStatusChangedFromDraftToPrepared 
-            ? '<p><strong>📅 Prepared Date Set:</strong> Current timestamp has been recorded</p>' 
+        const preparedDateInfo = isStatusChangedFromDraftToPrepared
+            ? '<p><strong>📅 Prepared Date Set:</strong> Current timestamp has been recorded</p>'
             : '';
-        
+
         // Add file upload info
         let uploadInfo = '';
         if (uploadResult && uploadResult.status) {
@@ -1018,11 +1061,11 @@ async function submitInvoiceData() {
         } else if (uploadedFiles && uploadedFiles.length > 0) {
             uploadInfo = '<p><strong>⚠️ File Upload:</strong> Files were not uploaded due to an error, but approval data was updated successfully</p>';
         }
-        
+
         console.log('Submission completed successfully');
         console.log('Approval data was modified:', approvalModified);
         console.log('Status change:', originalStatus, '→', newStatus);
-        
+
         Swal.fire({
             icon: 'success',
             title: 'Invoice Approval Updated Successfully!',
@@ -1046,18 +1089,18 @@ async function submitInvoiceData() {
                 localStorage.removeItem(`approval_${invoiceData.stagingID}`);
                 console.log('Cleared approval data from localStorage after successful submission');
             }
-            
+
             // Clear uploaded files
             uploadedFiles = [];
             displayFileList();
-            
+
             // Optionally redirect or refresh
             window.location.reload();
         });
-        
+
     } catch (error) {
         console.error('Error submitting invoice data:', error);
-        
+
         // Show error message
         console.log('Submission failed:', error.message);
         Swal.fire({
@@ -1071,7 +1114,7 @@ async function submitInvoiceData() {
         const submitButton = document.getElementById('submitButton');
         const submitButtonText = document.getElementById('submitButtonText');
         const submitSpinner = document.getElementById('submitSpinner');
-        
+
         submitButton.disabled = false;
         submitButtonText.textContent = 'Submit & Update Status';
         submitSpinner.classList.add('hidden');
@@ -1083,25 +1126,25 @@ async function uploadAttachments(stagingID, files) {
     try {
         console.log('Starting file upload for stagingID:', stagingID);
         console.log('Files to upload:', files);
-        
+
         if (!files || files.length === 0) {
             console.log('No files to upload');
             return { status: true, message: 'No files to upload' };
         }
-        
+
         // Create FormData object for multipart/form-data
         const formData = new FormData();
-        
+
         // Add each file to the FormData
         files.forEach((file, index) => {
             console.log(`Adding file ${index + 1}:`, file.name, file.type, file.size);
             formData.append('files', file);
         });
-        
+
         // Construct the API URL
         const uploadUrl = `${API_BASE_URL}/ar-invoices/${stagingID}/attachments/upload`;
         console.log('Upload URL:', uploadUrl);
-        
+
         // Make the API request
         const response = await fetch(uploadUrl, {
             method: 'POST',
@@ -1111,20 +1154,20 @@ async function uploadAttachments(stagingID, files) {
             },
             body: formData
         });
-        
+
         console.log('Upload response status:', response.status);
         console.log('Upload response headers:', response.headers);
-        
+
         if (!response.ok) {
             const errorText = await response.text();
             console.error('Upload API Error response:', errorText);
-            
+
             // Handle 404 errors specifically
             if (response.status === 404) {
                 console.warn('Upload endpoint not found (404) - this might be expected for new invoices');
                 throw new Error('Upload endpoint not available for this invoice');
             }
-            
+
             // Try to parse error response as JSON for better error handling
             let errorDetails = errorText;
             try {
@@ -1134,20 +1177,20 @@ async function uploadAttachments(stagingID, files) {
             } catch (parseError) {
                 console.error('Could not parse upload error response as JSON:', parseError);
             }
-            
+
             throw new Error(`Upload API Error: ${response.status} - ${errorDetails}`);
         }
-        
+
         const result = await response.json();
         console.log('Upload API response:', result);
-        
+
         if (result.status && result.code === 200) {
             console.log('Files uploaded successfully:', result.data);
             return result;
         } else {
             throw new Error(`Upload failed: ${result.message || 'Unknown error'}`);
         }
-        
+
     } catch (error) {
         console.error('Error in uploadAttachments:', error);
         throw error;
@@ -1158,27 +1201,27 @@ async function uploadAttachments(stagingID, files) {
 // Prepare approval payload for PATCH API submission
 function prepareApprovalPayload() {
     const now = new Date().toISOString();
-    
+
     // Get current approval values from form inputs and their corresponding employee IDs
     const preparedByName = document.getElementById('preparedByName').value || '';
     const acknowledgeByName = document.getElementById('acknowledgeByName').value || '';
     const checkedByName = document.getElementById('checkedByName').value || '';
     const approvedByName = document.getElementById('approvedByName').value || '';
     const receivedByName = document.getElementById('receivedByName').value || '';
-    
+
     // Get employee IDs from data attributes
     const preparedByElement = document.getElementById('preparedByName');
     const acknowledgeByElement = document.getElementById('acknowledgeByName');
     const checkedByElement = document.getElementById('checkedByName');
     const approvedByElement = document.getElementById('approvedByName');
     const receivedByElement = document.getElementById('receivedByName');
-    
+
     const preparedById = preparedByElement ? preparedByElement.getAttribute('data-employee-id') || '' : '';
     const acknowledgedById = acknowledgeByElement ? acknowledgeByElement.getAttribute('data-employee-id') || '' : '';
     const checkedById = checkedByElement ? checkedByElement.getAttribute('data-employee-id') || '' : '';
     const approvedById = approvedByElement ? approvedByElement.getAttribute('data-employee-id') || '' : '';
     const receivedById = receivedByElement ? receivedByElement.getAttribute('data-employee-id') || '' : '';
-    
+
     console.log('Preparing approval payload with values:', {
         preparedByName,
         acknowledgeByName,
@@ -1191,17 +1234,17 @@ function prepareApprovalPayload() {
         approvedById,
         receivedById
     });
-    
+
     // Determine the new approval status
     // If current status is "Draft", automatically change to "Prepared" when submitting
     let newApprovalStatus = invoiceData.arInvoiceApprovalSummary?.approvalStatus || 'Draft';
     const isStatusChangingFromDraftToPrepared = newApprovalStatus === 'Draft';
-    
+
     if (isStatusChangingFromDraftToPrepared) {
         newApprovalStatus = 'Prepared';
         console.log('Approval status automatically updated from Draft to Prepared');
     }
-    
+
     // Try sending data in the format that matches the API response structure
     const payload = {
         // Remove stagingID from payload since it's already in the URL path
@@ -1219,13 +1262,13 @@ function prepareApprovalPayload() {
         receivedByName: receivedByName,
         updatedAt: now
     };
-    
+
     // Add preparedDate when status changes from Draft to Prepared
     if (isStatusChangingFromDraftToPrepared) {
         payload.preparedDate = now;
         console.log('Added preparedDate to payload:', now);
     }
-    
+
     console.log('Prepared simplified approval payload for submission:', payload);
     console.log('Approval status updated to:', newApprovalStatus);
     return payload;
@@ -1234,14 +1277,14 @@ function prepareApprovalPayload() {
 // Prepare invoice payload for API submission (legacy function - kept for reference)
 function prepareInvoicePayload(data) {
     const now = new Date().toISOString();
-    
+
     // Get current approval values from form inputs (excluding prepared by as requested)
     const preparedByName = document.getElementById('preparedByName').value || '';
     const acknowledgeByName = document.getElementById('acknowledgeByName').value || '';
     const checkedByName = document.getElementById('checkedByName').value || '';
     const approvedByName = document.getElementById('approvedByName').value || '';
     const receivedByName = document.getElementById('receivedByName').value || '';
-    
+
     console.log('Submitting approval data:', {
         preparedByName,
         acknowledgeByName,
@@ -1282,7 +1325,7 @@ function prepareInvoicePayload(data) {
         cogsOcrCo3: detail.cogsOcrCo3 || '',
         docEntrySAP: parseInt(detail.docEntrySAP) || 0
     }));
-    
+
     // Prepare attachments
     const invoiceAttachments = (data.arInvoiceAttachments || []).map(attachment => ({
         fileName: attachment.fileName || attachment.file_name || '',
@@ -1292,7 +1335,7 @@ function prepareInvoicePayload(data) {
         createdAt: attachment.createdAt || attachment.created_at || '',
         updatedAt: attachment.updatedAt || attachment.updated_at || ''
     }));
-    
+
     // Prepare approval summary with updated values from form
     const approvalSummary = {
         stagingID: data.arInvoiceApprovalSummary?.stagingID || data.stagingID || '',
@@ -1315,9 +1358,9 @@ function prepareInvoicePayload(data) {
         revisionDate: data.arInvoiceApprovalSummary?.revisionDate || now,
         revisionRemarks: data.arInvoiceApprovalSummary?.revisionRemarks || ''
     };
-    
+
     console.log('Prepared approval summary for submission:', approvalSummary);
-    
+
     // Return the complete payload
     const payload = {
         docNum: parseInt(data.docNum) || 0,
@@ -1355,7 +1398,7 @@ function prepareInvoicePayload(data) {
         arInvoiceAttachments: invoiceAttachments,
         arInvoiceApprovalSummary: approvalSummary
     };
-    
+
     console.log('Complete payload prepared for submission:', payload);
     return payload;
 }
@@ -1365,10 +1408,10 @@ function enableSubmitButton() {
     // Get current status from the Status field
     const statusField = document.getElementById('Status');
     const currentStatus = statusField ? statusField.value : '';
-    
+
     // Use the helper function to update visibility
     updateSubmitAndRejectVisibility(currentStatus);
-    
+
     // Update form editability based on status
     updateFormEditability(currentStatus);
 }
@@ -1376,24 +1419,24 @@ function enableSubmitButton() {
 // Function to control form editability based on document status
 function updateFormEditability(status) {
     console.log('Updating form editability for status:', status);
-    
+
     const isDraft = status === 'Draft';
-    
+
     // Update status indicator
     updateDocumentStatusIndicator(status, isDraft);
-    
+
     // Control approval section (only editable for Draft status)
     setApprovalFieldsEditability(isDraft);
-    
+
     // Control file upload section
     setFileUploadEditability(isDraft);
-    
+
     // Control remarks field
     setRemarksEditability(isDraft);
-    
+
     // Control table cells (in case there are any editable table fields)
     setTableFieldsEditability(isDraft);
-    
+
     console.log(`Form editability updated: ${isDraft ? 'Enabled' : 'Disabled'} for status: ${status}`);
 }
 
@@ -1402,17 +1445,17 @@ function updateDocumentStatusIndicator(status, isEditable) {
     const indicator = document.getElementById('documentStatusIndicator');
     const statusDisplay = document.getElementById('currentStatusDisplay');
     const badge = document.getElementById('readOnlyBadge');
-    
+
     if (!indicator || !statusDisplay || !badge) return;
-    
+
     if (!isEditable) {
         // Show read-only indicator for non-Draft status
         statusDisplay.textContent = status;
         indicator.classList.remove('hidden');
-        
+
         // Update badge color based on status
         badge.className = 'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border';
-        
+
         switch (status) {
             case 'Prepared':
                 badge.classList.add('bg-blue-100', 'text-blue-800', 'border-blue-300');
@@ -1445,17 +1488,17 @@ function updateDocumentStatusIndicator(status, isEditable) {
 function setApprovalFieldsEditability(isEditable) {
     const approvalInputs = [
         'acknowledgeByName',
-        'checkedByName', 
+        'checkedByName',
         'approvedByName',
         'receivedByName'
     ];
-    
+
     approvalInputs.forEach(inputId => {
         const input = document.getElementById(inputId);
         if (input) {
             input.disabled = !isEditable;
             input.readOnly = !isEditable;
-            
+
             // Update visual appearance
             if (isEditable) {
                 input.classList.remove('bg-gray-100');
@@ -1466,15 +1509,15 @@ function setApprovalFieldsEditability(isEditable) {
             }
         }
     });
-    
+
     // Also disable the corresponding dropdowns
     const dropdownIds = [
         'acknowledgeBySelectDropdown',
         'checkedBySelectDropdown',
-        'approvedBySelectDropdown', 
+        'approvedBySelectDropdown',
         'receivedBySelectDropdown'
     ];
-    
+
     dropdownIds.forEach(dropdownId => {
         const dropdown = document.getElementById(dropdownId);
         if (dropdown) {
@@ -1494,7 +1537,7 @@ function setFileUploadEditability(isEditable) {
     const fileInput = document.getElementById('filePath');
     if (fileInput) {
         fileInput.disabled = !isEditable;
-        
+
         // Update visual appearance
         if (isEditable) {
             fileInput.classList.remove('bg-gray-100');
@@ -1504,7 +1547,7 @@ function setFileUploadEditability(isEditable) {
             fileInput.classList.add('bg-gray-100');
         }
     }
-    
+
     // Hide/show file upload section
     const fileUploadSection = document.querySelector('.file-upload-section');
     if (fileUploadSection) {
@@ -1522,7 +1565,7 @@ function setRemarksEditability(isEditable) {
     if (remarksField) {
         remarksField.disabled = !isEditable;
         remarksField.readOnly = !isEditable;
-        
+
         // Update visual appearance
         if (isEditable) {
             remarksField.classList.remove('bg-gray-100');
@@ -1538,14 +1581,14 @@ function setRemarksEditability(isEditable) {
 function setTableFieldsEditability(isEditable) {
     const tableBody = document.getElementById('tableBody');
     if (!tableBody) return;
-    
+
     // Get all input and textarea elements in the table
     const tableInputs = tableBody.querySelectorAll('input, textarea, select');
-    
+
     tableInputs.forEach(element => {
         element.disabled = !isEditable;
         element.readOnly = !isEditable;
-        
+
         // Update visual appearance
         if (isEditable) {
             element.classList.remove('bg-gray-100');
@@ -1555,7 +1598,7 @@ function setTableFieldsEditability(isEditable) {
             element.classList.add('bg-gray-100');
         }
     });
-    
+
     // Hide/show any action buttons in table (like add/remove row buttons)
     const actionButtons = tableBody.querySelectorAll('button, .btn-add, .btn-remove, .btn-delete');
     actionButtons.forEach(button => {
@@ -1574,7 +1617,7 @@ function updateSubmitAndRejectVisibility(status) {
     const submitButton = document.getElementById('submitButton');
     const submitButtonContainer = submitButton ? submitButton.closest('.text-center') : null;
     const rejectButton = document.getElementById('rejectButton');
-    
+
     if (submitButton && submitButtonContainer) {
         if (status === 'Draft') {
             // Show submit button for Draft status
@@ -1764,7 +1807,7 @@ function getCurrentUserFullNameDetail() {
                 if (logged?.fullName) return logged.fullName;
                 if (logged?.username) return logged.username;
             }
-        } catch {}
+        } catch { }
 
         // 4) Try auth.js current user if available
         const user = currentUser || (typeof window.getCurrentUser === 'function' ? window.getCurrentUser() : null);
@@ -1784,20 +1827,20 @@ function getCurrentUserFullNameDetail() {
 // Add event listeners for approval inputs to track changes
 function setupApprovalInputListeners() {
     const approvalInputs = [
-        'acknowledgeByName', 
+        'acknowledgeByName',
         'checkedByName',
         'approvedByName',
         'receivedByName'
     ];
-    
+
     approvalInputs.forEach(inputId => {
         const input = document.getElementById(inputId);
         if (input) {
-            input.addEventListener('input', function() {
+            input.addEventListener('input', function () {
                 // Check if document is editable before allowing changes
                 const statusField = document.getElementById('Status');
                 const currentStatus = statusField ? statusField.value : '';
-                
+
                 if (currentStatus !== 'Draft') {
                     // If not Draft, prevent changes and show warning
                     Swal.fire({
@@ -1808,22 +1851,22 @@ function setupApprovalInputListeners() {
                         timer: 3000,
                         timerProgressBar: true
                     });
-                    
+
                     // Revert the change by clearing the input
                     this.value = this.getAttribute('data-original-value') || '';
                     return;
                 }
-                
+
                 // Mark that approval data has been modified
                 window.approvalDataModified = true;
                 console.log(`Approval data modified: ${inputId} = ${this.value}`);
-                
+
                 // Try to find and update employee ID based on entered name
                 if (this.value.trim()) {
-                    const selectedEmployee = employeesData.find(emp => 
+                    const selectedEmployee = employeesData.find(emp =>
                         emp.fullName.toLowerCase() === this.value.toLowerCase()
                     );
-                    
+
                     if (selectedEmployee) {
                         this.setAttribute('data-employee-id', selectedEmployee.kansaiEmployeeId || '');
                         console.log(`Updated employee ID for ${inputId}: ${selectedEmployee.kansaiEmployeeId}`);
@@ -1836,7 +1879,7 @@ function setupApprovalInputListeners() {
                     // Clear employee ID if input is empty
                     this.setAttribute('data-employee-id', '');
                 }
-                
+
                 // Safely get approval data state with null checks
                 const approvalDataState = {
                     preparedByName: document.getElementById('preparedByName')?.value || '',
@@ -1849,18 +1892,18 @@ function setupApprovalInputListeners() {
                     approvedById: document.getElementById('approvedByName')?.getAttribute('data-employee-id') || '',
                     receivedById: document.getElementById('receivedByName')?.getAttribute('data-employee-id') || ''
                 };
-                
+
                 console.log(`Current approval data state:`, approvalDataState);
-                
+
                 // Save to localStorage as backup
                 saveApprovalDataToLocalStorage();
-                
+
                 // Show subtle notification that data has been modified
                 showApprovalModifiedNotification();
             });
-            
+
             // Store original value when the input gains focus (for reverting if needed)
-            input.addEventListener('focus', function() {
+            input.addEventListener('focus', function () {
                 this.setAttribute('data-original-value', this.value);
             });
         } else {
@@ -1874,11 +1917,11 @@ function setupOtherFieldListeners() {
     // Setup comments/remarks field listener
     const commentsField = document.getElementById('comments');
     if (commentsField) {
-        commentsField.addEventListener('input', function() {
+        commentsField.addEventListener('input', function () {
             // Check if document is editable before allowing changes
             const statusField = document.getElementById('Status');
             const currentStatus = statusField ? statusField.value : '';
-            
+
             if (currentStatus !== 'Draft') {
                 // If not Draft, prevent changes and show warning
                 Swal.fire({
@@ -1889,15 +1932,15 @@ function setupOtherFieldListeners() {
                     timer: 3000,
                     timerProgressBar: true
                 });
-                
+
                 // Revert the change
                 this.value = this.getAttribute('data-original-value') || '';
                 return;
             }
         });
-        
+
         // Store original value when the field gains focus
-        commentsField.addEventListener('focus', function() {
+        commentsField.addEventListener('focus', function () {
             this.setAttribute('data-original-value', this.value);
         });
     }
@@ -1910,7 +1953,7 @@ function showApprovalModifiedNotification() {
     if (existingNotification) {
         existingNotification.remove();
     }
-    
+
     // Create notification element
     const notification = document.createElement('div');
     notification.id = 'approvalModifiedNotification';
@@ -1923,10 +1966,10 @@ function showApprovalModifiedNotification() {
             <span>Approval data modified</span>
         </div>
     `;
-    
+
     // Add to page
     document.body.appendChild(notification);
-    
+
     // Auto remove after 3 seconds
     setTimeout(() => {
         if (notification.parentNode) {
@@ -1945,7 +1988,7 @@ function resetApprovalData() {
         });
         return;
     }
-    
+
     // Show confirmation dialog
     Swal.fire({
         title: 'Reset Approval Data',
@@ -1964,7 +2007,7 @@ function resetApprovalData() {
                 const checkedByNameField = document.getElementById('checkedByName');
                 const approvedByNameField = document.getElementById('approvedByName');
                 const receivedByNameField = document.getElementById('receivedByName');
-                
+
                 if (acknowledgeByNameField) {
                     acknowledgeByNameField.value = invoiceData.arInvoiceApprovalSummary.acknowledgedByName || '';
                 }
@@ -1984,7 +2027,7 @@ function resetApprovalData() {
                 const checkedByNameField = document.getElementById('checkedByName');
                 const approvedByNameField = document.getElementById('approvedByName');
                 const receivedByNameField = document.getElementById('receivedByName');
-                
+
                 if (acknowledgeByNameField) {
                     acknowledgeByNameField.value = '';
                 }
@@ -1999,16 +2042,16 @@ function resetApprovalData() {
                 }
                 console.log('Cleared all approval fields (no original data available)');
             }
-            
+
             // Reset modification flag
             window.approvalDataModified = false;
-            
+
             // Clear localStorage for this invoice
             if (invoiceData && invoiceData.stagingID) {
                 localStorage.removeItem(`approval_${invoiceData.stagingID}`);
                 console.log('Cleared approval data from localStorage');
             }
-            
+
             // Show success message
             Swal.fire({
                 icon: 'success',
@@ -2021,7 +2064,7 @@ function resetApprovalData() {
     });
 }
 
- 
+
 
 // Load attachments from the main API response data
 function loadAttachmentsFromData(attachments) {
@@ -2029,10 +2072,10 @@ function loadAttachmentsFromData(attachments) {
         console.log('Loading attachments from data:', attachments);
         console.log('Attachments type:', typeof attachments);
         console.log('Attachments length:', attachments ? attachments.length : 'null/undefined');
-        
+
         // Initialize global attachment variables
         uploadedFiles = [];
-        
+
         // Check if attachments exist and have valid data
         if (attachments && Array.isArray(attachments) && attachments.length > 0) {
             // Filter out attachments with empty or invalid file names
@@ -2040,9 +2083,9 @@ function loadAttachmentsFromData(attachments) {
                 const fileName = attachment.fileName || attachment.file_name;
                 return fileName && fileName !== 'string' && fileName.trim() !== '';
             });
-            
+
             console.log('Valid attachments found:', validAttachments.length);
-            
+
             if (validAttachments.length > 0) {
                 console.log('Displaying existing attachments:', validAttachments);
                 displayExistingAttachments(validAttachments);
@@ -2054,7 +2097,7 @@ function loadAttachmentsFromData(attachments) {
             console.log('No attachments data or empty array');
             showNoExistingAttachments();
         }
-        
+
     } catch (error) {
         console.error('Error loading attachments from data:', error);
         showNoExistingAttachments();
@@ -2079,24 +2122,24 @@ function displayExistingAttachments(attachments) {
     attachments.forEach((attachment, index) => {
         const attachmentItem = document.createElement('div');
         attachmentItem.className = 'flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg mb-3 shadow-sm hover:shadow-md transition-shadow';
-        
+
         // Get file name from various possible fields
         const fileName = attachment.fileName || attachment.file_name || attachment.name || `Attachment ${index + 1}`;
-        
+
         // Get file icon based on file extension
         const fileIcon = getFileIcon(fileName);
-        
+
         // Format file size if available
         const fileSize = attachment.fileSize || attachment.file_size || attachment.size;
         const formattedFileSize = fileSize ? formatFileSize(fileSize) : '';
-        
+
         // Format creation date
         const createdAt = attachment.createdAt || attachment.created_at || attachment.uploadDate || attachment.upload_date;
         const formattedCreatedAt = createdAt ? new Date(createdAt).toLocaleDateString() : '';
-        
+
         // Get file URL from various possible fields
         const fileUrl = attachment.fileUrl || attachment.file_url || attachment.filePath || attachment.file_path || attachment.path || '';
-        
+
         // Create attachment object for function call (with proper escaping)
         const attachmentData = {
             fileName: fileName,
@@ -2107,10 +2150,10 @@ function displayExistingAttachments(attachments) {
             fileType: attachment.fileType || attachment.contentType || attachment.type || '',
             id: attachment.id || attachment.attachmentId || ''
         };
-        
+
         // Escape the JSON properly for HTML attributes
         const attachmentJson = JSON.stringify(attachmentData).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-        
+
         attachmentItem.innerHTML = `
             <div class="flex items-center flex-1">
                 <span class="text-blue-600 mr-3 text-xl">${fileIcon}</span>
@@ -2171,9 +2214,9 @@ function showNoAttachments() {
 // Get file icon based on file extension
 function getFileIcon(fileName) {
     if (!fileName) return '📄';
-    
+
     const extension = fileName.split('.').pop().toLowerCase();
-    
+
     const iconMap = {
         'pdf': '📄',
         'doc': '📝',
@@ -2197,7 +2240,7 @@ function getFileIcon(fileName) {
         'mp3': '🎵',
         'wav': '🎵'
     };
-    
+
     return iconMap[extension] || '📄';
 }
 
@@ -2210,23 +2253,23 @@ function getFileIcon(fileName) {
 // Adjust textarea heights based on content length
 function adjustTextareaHeights() {
     const textareas = document.querySelectorAll('.table-container textarea');
-    
+
     textareas.forEach(textarea => {
         const content = textarea.value || textarea.textContent || '';
         const charLength = content.length;
-        
+
         // Set uniform height for all textareas
         textarea.style.height = '50px';
         textarea.style.minHeight = '50px';
         textarea.style.maxHeight = '50px';
-        
+
         // Add scroll indicator if content is long
         if (charLength > 100) {
             textarea.style.borderRight = '2px solid #3b82f6';
         } else {
             textarea.style.borderRight = '';
         }
-        
+
         // Ensure consistent vertical alignment
         textarea.style.verticalAlign = 'middle';
     });
@@ -2246,7 +2289,7 @@ function previewAttachment(fileUrl, fileName) {
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
         modal.id = 'attachmentViewerModal';
-        
+
         // Create modal content
         modal.innerHTML = `
             <div class="bg-white rounded-lg shadow-xl w-4/5 h-4/5 flex flex-col">
@@ -2261,17 +2304,17 @@ function previewAttachment(fileUrl, fileName) {
                 </div>
             </div>
         `;
-        
+
         // Add modal to body
         document.body.appendChild(modal);
-        
+
         // Close modal when clicking outside
-        modal.addEventListener('click', function(e) {
+        modal.addEventListener('click', function (e) {
             if (e.target === modal) {
                 closeAttachmentModal();
             }
         });
-        
+
         console.log('Preview opened for:', fileName);
     } catch (error) {
         console.error('Error previewing file:', error);
@@ -2297,7 +2340,7 @@ function formatCurrencyIDR(number) {
     if (number === null || number === undefined || number === '') {
         return '0.00';
     }
-    
+
     let num;
     try {
         if (typeof number === 'string') {
@@ -2310,7 +2353,7 @@ function formatCurrencyIDR(number) {
         } else {
             num = Number(number);
         }
-        
+
         if (isNaN(num)) {
             return '0.00';
         }
@@ -2318,7 +2361,7 @@ function formatCurrencyIDR(number) {
         console.error('Error parsing number:', e);
         return '0.00';
     }
-    
+
     const maxAmount = 100000000000000;
     if (num > maxAmount) {
         if (typeof Swal !== 'undefined') {
@@ -2332,12 +2375,12 @@ function formatCurrencyIDR(number) {
         }
         num = maxAmount;
     }
-    
+
     if (num >= 1e12) {
         let strNum = num.toString();
         let result = '';
         let count = 0;
-        
+
         for (let i = strNum.length - 1; i >= 0; i--) {
             result = strNum[i] + result;
             count++;
@@ -2345,7 +2388,7 @@ function formatCurrencyIDR(number) {
                 result = ',' + result;
             }
         }
-        
+
         return result + '.00';
     } else {
         return num.toLocaleString('en-US', {
@@ -2357,7 +2400,7 @@ function formatCurrencyIDR(number) {
 
 function parseCurrencyIDR(formattedValue) {
     if (!formattedValue) return 0;
-    
+
     try {
         const numericValue = formattedValue.toString().replace(/,/g, '');
         return parseFloat(numericValue) || 0;
@@ -2372,22 +2415,22 @@ function formatCurrencyInputIDR(input) {
     if (input.type === 'number') {
         input.type = 'text';
     }
-    
+
     const cursorPos = input.selectionStart;
     const originalLength = input.value.length;
-    
+
     let value = input.value.replace(/[^\d,.]/g, '');
-    
+
     let parts = value.split('.');
     if (parts.length > 1) {
         value = parts[0] + '.' + parts.slice(1).join('');
     }
-    
+
     const numValue = parseCurrencyIDR(value);
     const formattedValue = formatCurrencyIDR(numValue);
-    
+
     input.value = formattedValue;
-    
+
     const newLength = input.value.length;
     const newCursorPos = cursorPos + (newLength - originalLength);
     input.setSelectionRange(Math.max(0, newCursorPos), Math.max(0, newCursorPos));
@@ -2399,7 +2442,7 @@ function applyCurrencyFormattingToTable() {
     const pricePerUoMInputs = document.querySelectorAll('.item-sls-price');
     pricePerUoMInputs.forEach(input => {
         input.classList.add('currency-input-idr');
-        input.addEventListener('input', function() {
+        input.addEventListener('input', function () {
             formatCurrencyInputIDR(this);
         });
         if (input.value) {
@@ -2413,7 +2456,7 @@ function applyCurrencyFormattingToTable() {
     const pricePerUnitInputs = document.querySelectorAll('.item-price');
     pricePerUnitInputs.forEach(input => {
         input.classList.add('currency-input-idr');
-        input.addEventListener('input', function() {
+        input.addEventListener('input', function () {
             formatCurrencyInputIDR(this);
         });
         if (input.value) {
@@ -2427,7 +2470,7 @@ function applyCurrencyFormattingToTable() {
     const amountInputs = document.querySelectorAll('.item-line-total');
     amountInputs.forEach(input => {
         input.classList.add('currency-input-idr');
-        input.addEventListener('input', function() {
+        input.addEventListener('input', function () {
             formatCurrencyInputIDR(this);
         });
         if (input.value) {
@@ -2447,7 +2490,7 @@ function previewPDF(event) {
     // Check if document is editable
     const statusField = document.getElementById('Status');
     const currentStatus = statusField ? statusField.value : '';
-    
+
     if (currentStatus !== 'Draft') {
         // If not Draft, prevent file upload and show warning
         Swal.fire({
@@ -2458,15 +2501,15 @@ function previewPDF(event) {
             timer: 3000,
             timerProgressBar: true
         });
-        
+
         // Clear the file input
         event.target.value = '';
         return;
     }
-    
+
     const files = event.target.files;
-    
-    
+
+
     Array.from(files).forEach(file => {
         if (file.type === 'application/pdf') {
             uploadedFiles.push(file);
@@ -2474,16 +2517,16 @@ function previewPDF(event) {
             alert('Please upload a valid PDF file');
         }
     });
-    
+
     displayFileList();
 }
 
 function displayFileList() {
     const fileList = document.getElementById('fileList');
     if (!fileList) return;
-    
+
     fileList.innerHTML = '';
-    
+
     uploadedFiles.forEach((file, index) => {
         const fileItem = document.createElement('div');
         fileItem.className = 'flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded mb-2';
@@ -2517,13 +2560,13 @@ function viewUploadedFile(index) {
         console.error('File not found at index:', index);
         return;
     }
-    
+
     // Create a URL for the file
     const fileUrl = URL.createObjectURL(file);
-    
+
     // Open the PDF in a new tab
     window.open(fileUrl, '_blank');
-    
+
     // Clean up the URL object after a delay to prevent memory leaks
     setTimeout(() => {
         URL.revokeObjectURL(fileUrl);
@@ -2534,15 +2577,15 @@ function viewUploadedFile(index) {
 function previewExistingAttachment(fileUrl, fileName) {
     try {
         console.log('Previewing existing attachment:', fileName, fileUrl);
-        
+
         // Construct full URL if it's a relative path
         const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${API_BASE_URL}${fileUrl}`;
-        
+
         // Create modal container
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
         modal.id = 'existingAttachmentViewerModal';
-        
+
         // Create modal content
         modal.innerHTML = `
             <div class="bg-white rounded-lg shadow-xl w-4/5 h-4/5 flex flex-col">
@@ -2557,17 +2600,17 @@ function previewExistingAttachment(fileUrl, fileName) {
                 </div>
             </div>
         `;
-        
+
         // Add modal to body
         document.body.appendChild(modal);
-        
+
         // Close modal when clicking outside
-        modal.addEventListener('click', function(e) {
+        modal.addEventListener('click', function (e) {
             if (e.target === modal) {
                 closeExistingAttachmentModal();
             }
         });
-        
+
         console.log('Preview opened for existing attachment:', fileName);
     } catch (error) {
         console.error('Error previewing existing file:', error);
@@ -2593,11 +2636,11 @@ function closeExistingAttachmentModal() {
 // Format file size
 function formatFileSize(bytes) {
     if (!bytes || bytes === 0) return '0 Bytes';
-    
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
@@ -2605,7 +2648,7 @@ function formatFileSize(bytes) {
 async function viewExistingAttachment(attachmentJson) {
     try {
         console.log('Viewing existing attachment:', attachmentJson);
-        
+
         // Parse the JSON string if it's passed as a string
         let attachment;
         if (typeof attachmentJson === 'string') {
@@ -2618,15 +2661,15 @@ async function viewExistingAttachment(attachmentJson) {
         } else {
             attachment = attachmentJson;
         }
-        
+
         console.log('Parsed attachment data:', attachment);
-        
+
         // Construct full URL if it's a relative path
         let fullUrl = attachment.fileUrl || attachment.filePath || attachment.path;
         if (!fullUrl) {
             throw new Error('File URL not available');
         }
-        
+
         // If it's not already a full URL, construct it
         if (!fullUrl.startsWith('http')) {
             if (fullUrl.startsWith('/api')) {
@@ -2638,13 +2681,13 @@ async function viewExistingAttachment(attachmentJson) {
                 fullUrl = `${API_BASE_URL}${fullUrl}`;
             }
         }
-        
+
         console.log('Constructed full URL:', fullUrl);
-        
+
         // Get file name and determine file type
         const fileName = attachment.fileName || attachment.name || 'attachment';
         const fileExtension = fileName.split('.').pop().toLowerCase();
-        
+
         if (fileExtension === 'pdf') {
             // For PDF files, use the PDF viewer modal
             await showPDFViewerDetail(fullUrl, fileName);
@@ -2652,10 +2695,10 @@ async function viewExistingAttachment(attachmentJson) {
             // For other file types, open in new tab
             openInNewTabDetail(fullUrl, fileName);
         }
-        
+
     } catch (error) {
         console.error('Error viewing existing attachment:', error);
-        
+
         // Show error message
         if (typeof Swal !== 'undefined') {
             Swal.fire({
@@ -2728,7 +2771,7 @@ async function showPDFViewerDetail(pdfUrl, fileName) {
 
     } catch (error) {
         console.error('Error loading PDF for viewing:', error);
-        
+
         // Fallback to Google Docs viewer
         Swal.fire({
             title: fileName,
@@ -2762,19 +2805,19 @@ function openInNewTabDetail(fileUrl, fileName) {
         toast: true,
         position: 'top-end'
     });
-    
+
     // Create a temporary link to force view behavior
     const tempLink = document.createElement('a');
     tempLink.href = fileUrl;
     tempLink.target = '_blank';
     tempLink.rel = 'noopener noreferrer';
-    
+
     // Add parameters to hint at viewing instead of downloading
     const viewUrl = `${fileUrl}${fileUrl.includes('?') ? '&' : '?'}view=1&inline=1`;
-    
+
     // Try to open in new tab
     const newWindow = window.open(viewUrl, '_blank', 'noopener,noreferrer');
-    
+
     // Check if popup was blocked
     if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
         loadingToast.close();

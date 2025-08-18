@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test URL Parameters</title>
+</head>
+
+<body>
+    <h1>Test URL Parameters</h1>
+    <div id="output"></div>
+
+    <script>
+        // Function to get URL parameters
+        function getUrlParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // Test the function
+        const stagingID = getUrlParameter('stagingID');
+        const status = getUrlParameter('status');
+        const source = getUrlParameter('source');
+
+        const output = document.getElementById('output');
+        output.innerHTML = `
+            <h2>URL Parameters:</h2>
+            <p><strong>stagingID:</strong> ${stagingID || 'Not found'}</p>
+            <p><strong>status:</strong> ${status || 'Not found'}</p>
+            <p><strong>source:</strong> ${source || 'Not found'}</p>
+            
+            <h2>Test URLs:</h2>
+            <ul>
+                <li><a href="?stagingID=123&status=Received&source=receive">Received from Receive Menu</a></li>
+                <li><a href="?stagingID=123&status=Approved&source=approve">Approved from Approve Menu</a></li>
+                <li><a href="?stagingID=123&status=Acknowledged&source=acknowledge">Acknowledged from Acknowledge Menu</a></li>
+                <li><a href="?stagingID=123&status=Checked&source=check">Checked from Check Menu</a></li>
+            </ul>
+        `;
+
+        console.log('URL Parameters:', { stagingID, status, source });
+    </script>
+</body>
+
+</html>
