@@ -1,40 +1,40 @@
-// Cash Advance Voucher Print JavaScript
-class CashAdvancePrinter {
+// Settlement Voucher Print JavaScript
+class SettlementPrinter {
     constructor() {
         this.apiBaseUrl = 'https://expressiv-be-sb.idsdev.site/api';
-        this.cashAdvanceId = this.getCashAdvanceIdFromUrl();
-        this.cashAdvanceData = null;
+        this.settlementId = this.getSettlementIdFromUrl();
+        this.settlementData = null;
         
         this.init();
     }
 
     init() {
-        if (this.cashAdvanceId) {
-            this.loadCashAdvanceData();
+        if (this.settlementId) {
+            this.loadSettlementData();
         } else {
             const currentUrl = window.location.href;
-            this.showError(`Cash Advance ID not found in URL. Current URL: ${currentUrl}. Expected parameters: id, cashAdvanceId, ca-id, or cashAdvanceNo`);
+            this.showError(`Settlement ID not found in URL. Current URL: ${currentUrl}. Expected parameters: id, settlementId, settle-id, or settlementNo`);
         }
     }
 
-    getCashAdvanceIdFromUrl() {
+    getSettlementIdFromUrl() {
         const urlParams = new URLSearchParams(window.location.search);
         // Check for all possible parameter names used in different parts of the application
         const id = urlParams.get('id') || 
-                   urlParams.get('cashAdvanceId') || 
-                   urlParams.get('ca-id') || 
-                   urlParams.get('cashAdvanceNo');
+                   urlParams.get('settlementId') || 
+                   urlParams.get('settle-id') || 
+                   urlParams.get('settlementNo');
         
         // Debug logging
         console.log('URL parameters found:', Object.fromEntries(urlParams.entries()));
-        console.log('Cash Advance ID extracted:', id);
+        console.log('Settlement ID extracted:', id);
         
         return id;
     }
 
-    async loadCashAdvanceData() {
+    async loadSettlementData() {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/cash-advance/${this.cashAdvanceId}`);
+            const response = await fetch(`${this.apiBaseUrl}/settlement/${this.settlementId}`);
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -43,63 +43,75 @@ class CashAdvancePrinter {
             const result = await response.json();
             
             if (result.status && result.data) {
-                this.cashAdvanceData = result.data;
+                this.settlementData = result.data;
                 this.populateForm();
             } else {
                 throw new Error(result.message || 'Failed to load data');
             }
         } catch (error) {
-            console.error('Error loading cash advance data:', error);
+            console.error('Error loading settlement data:', error);
             this.showError(`Failed to load data: ${error.message}`);
         }
     }
 
     populateForm() {
-        if (!this.cashAdvanceData) return;
+        if (!this.settlementData) return;
 
         // Header Information
-        this.setElementText('voucherNo', this.cashAdvanceData.cashAdvanceNo || '-');
-        this.setElementText('submissionDate', this.formatDate(this.cashAdvanceData.submissionDate) || '-');
+        this.setElementText('voucherNo', this.settlementData.settlementNo || '-');
+        this.setElementText('submissionDate', this.formatDate(this.settlementData.submissionDate) || '-');
+        
+        // Set batch number (using settlement number as fallback)
+        this.setElementText('batchNo', this.settlementData.settlementNo || '-');
 
         // Department Selection
-        this.setElementText('departmentName', this.cashAdvanceData.departmentName || '-');
+        this.setElementText('departmentName', this.settlementData.departmentName || '-');
 
         // Recipient Information
-        this.setElementText('recipientName', this.cashAdvanceData.employeeName || '-');
+        this.setElementText('recipientName', this.settlementData.employeeName || '-');
 
         // Approval Information
         this.setApprovalInfo('proposedByName', 'proposedDate', 
-            this.cashAdvanceData.preparedName, this.cashAdvanceData.preparedDate);
+            this.settlementData.preparedName, this.settlementData.preparedDate);
         this.setApprovalInfo('checkedByName', 'checkedDate', 
-            this.cashAdvanceData.checkedName, this.cashAdvanceData.checkedDate);
+            this.settlementData.checkedName, this.settlementData.checkedDate);
         this.setApprovalInfo('acknowledgedByName', 'acknowledgedDate', 
-            this.cashAdvanceData.acknowledgedName, this.cashAdvanceData.acknowledgedDate);
+            this.settlementData.acknowledgedName, this.settlementData.acknowledgedDate);
         this.setApprovalInfo('approvedByName', 'approvedDate', 
-            this.cashAdvanceData.approvedName, this.cashAdvanceData.approvedDate);
+            this.settlementData.approvedName, this.settlementData.approvedDate);
         this.setApprovalInfo('receivedByName', 'receivedDate', 
-            this.cashAdvanceData.receivedName, this.cashAdvanceData.receivedDate);
-
-
+            this.settlementData.receivedName, this.settlementData.receivedDate);
 
         // Cost and Purpose
-        this.setElementText('totalAmount', this.formatCurrency(this.cashAdvanceData.totalAmount));
-        this.setElementText('amountInWords', this.numberToWords(this.cashAdvanceData.totalAmount));
-        this.setElementText('purpose', this.cashAdvanceData.purpose || '-');
-        this.setElementText('remarks', this.cashAdvanceData.remarks || '-');
+        this.setElementText('totalAmount', this.formatCurrency(this.settlementData.totalAmount));
+        this.setElementText('amountInWords', this.numberToWords(this.settlementData.totalAmount));
+        this.setElementText('purpose', this.settlementData.purpose || '-');
         
         // Set currency from API data
-        this.setElementText('currency', this.cashAdvanceData.currency || 'Rp');
-        this.setElementText('returnCurrency', this.cashAdvanceData.currency || 'Rp');
+        this.setElementText('currency', this.settlementData.currency || 'Rp');
+        this.setElementText('originalCurrency', this.settlementData.currency || 'Rp');
+        this.setElementText('usedCurrency', this.settlementData.currency || 'Rp');
+        this.setElementText('returnCurrency', this.settlementData.currency || 'Rp');
 
         // Settlement Table
         this.populateSettlementTable();
 
-
-
-
+        // Settlement Details
+        this.setElementText('originalAmount', this.formatCurrency(this.settlementData.originalAmount || this.settlementData.totalAmount));
+        this.setElementText('usedAmount', this.formatCurrency(this.settlementData.usedAmount || 0));
+        
+        // Calculate return amount (original amount - used amount)
+        const originalAmount = this.settlementData.originalAmount || this.settlementData.totalAmount;
+        const usedAmount = this.settlementData.usedAmount || 0;
+        const returnAmount = Math.max(0, originalAmount - usedAmount);
+        
+        this.setElementText('returnAmount', this.formatCurrency(returnAmount));
+        this.setElementText('returnAmountInWords', this.numberToWords(returnAmount));
+        
+        // Set settlement date to current date or from API
+        const settlementDate = this.settlementData.settlementDate || this.settlementData.submissionDate || new Date();
+        this.setElementText('settlementDate', this.formatDate(settlementDate));
     }
-
-
 
     setApprovalInfo(nameId, dateId, name, date) {
         if (name) {
@@ -110,21 +122,16 @@ class CashAdvancePrinter {
         }
     }
 
-
-
     populateSettlementTable() {
         const tableBody = document.getElementById('settlementTableBody');
         if (!tableBody) return;
 
         tableBody.innerHTML = '';
 
-        if (this.cashAdvanceData.cashAdvanceDetails && this.cashAdvanceData.cashAdvanceDetails.length > 0) {
-            this.cashAdvanceData.cashAdvanceDetails.forEach(detail => {
+        if (this.settlementData.settlementDetails && this.settlementData.settlementDetails.length > 0) {
+            this.settlementData.settlementDetails.forEach(detail => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${detail.category || '-'}</td>
-                    <td>${detail.accountName || '-'}</td>
-                    <td>${detail.glAccount || detail.coa || '-'}</td>
                     <td>${detail.description || '-'}</td>
                     <td>${this.formatCurrency(detail.amount)}</td>
                     <td>-</td>
@@ -139,16 +146,13 @@ class CashAdvancePrinter {
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>
-                    <td>&nbsp;</td>
-                    <td>&nbsp;</td>
-                    <td>&nbsp;</td>
                 `;
                 tableBody.appendChild(row);
             }
         }
 
         // Set totals
-        this.setElementText('totalDebit', this.formatCurrency(this.cashAdvanceData.totalAmount));
+        this.setElementText('totalDebit', this.formatCurrency(this.settlementData.totalAmount));
         this.setElementText('totalCredit', '-');
     }
 
@@ -184,8 +188,6 @@ class CashAdvancePrinter {
             maximumFractionDigits: 2
         }).format(amount);
     }
-
-
 
     numberToWords(num) {
         if (num === null || num === undefined || num === 0) return 'Zero Rupiah';
@@ -242,7 +244,7 @@ class CashAdvancePrinter {
 
 // Initialize the printer when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-    new CashAdvancePrinter();
+    new SettlementPrinter();
 });
 
 // Add print functionality
