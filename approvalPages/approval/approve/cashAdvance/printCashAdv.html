@@ -5,6 +5,135 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cash Advance Voucher - Print</title>
     <link rel="stylesheet" href="printCashAdv.css">
+    <style>
+        /* Approval stamp styling */
+        .approval-stamp {
+            position: relative;
+            width: 100%;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+
+        .approval-stamp-text {
+            color: #0056b3;
+            font-weight: bold;
+            font-size: 10px;
+            border: 2px solid #0056b3;
+            border-radius: 4px;
+            padding: 2px 6px;
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            white-space: nowrap;
+            min-width: 50px;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        /* Print media queries for approval stamps - Enhanced precision */
+        @media print {
+            .approval-stamp {
+                height: 20px !important;
+                margin-bottom: 4px !important;
+                margin-top: 2px !important;
+                position: relative !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+
+            .approval-stamp-text {
+                height: 16px !important;
+                margin-bottom: 0 !important;
+                font-size: 7px !important;
+                padding: 1px 3px !important;
+                border-width: 1px !important;
+                min-width: 40px !important;
+                max-width: 60px !important;
+                position: static !important;
+                transform: none !important;
+                top: auto !important;
+                left: auto !important;
+                display: inline-block !important;
+                vertical-align: middle !important;
+                line-height: 14px !important;
+                box-sizing: border-box !important;
+            }
+
+            /* Ensure approval boxes maintain consistent height and alignment */
+            .approval-box {
+                min-height: 60px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: flex-start !important;
+                align-items: center !important;
+                padding: 8px 6px !important;
+                box-sizing: border-box !important;
+            }
+
+            .box-title {
+                font-size: 9px !important;
+                margin-bottom: 4px !important;
+                text-align: center !important;
+                font-weight: bold !important;
+                line-height: 1.1 !important;
+            }
+
+            .approval-content {
+                margin-top: 2px !important;
+                text-align: center !important;
+                width: 100% !important;
+            }
+
+            .approval-name {
+                font-size: 8px !important;
+                margin-bottom: 2px !important;
+                font-weight: 500 !important;
+                line-height: 1.1 !important;
+            }
+
+            .approval-date {
+                font-size: 7px !important;
+                color: #666 !important;
+                line-height: 1.1 !important;
+            }
+
+            /* Ensure approval section maintains grid alignment */
+            .approval-section {
+                display: grid !important;
+                grid-template-columns: repeat(5, 1fr) !important;
+                gap: 8px !important;
+                margin: 15px 0 !important;
+                page-break-inside: avoid !important;
+            }
+
+            /* Prevent page breaks within approval boxes */
+            .approval-box {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+        }
+
+        /* Screen media queries for better alignment */
+        @media screen {
+            .approval-stamp {
+                margin: 3px 0;
+            }
+
+            .approval-stamp-text {
+                background: white;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="print-container">
@@ -12,14 +141,10 @@
         <div class="header">
             <div class="company-info">
                 <h2>PT KANSAI PAINT INDONESIA</h2>
-                <p>Blok DD-7 & DD-6 Kawasan Industri MM2100 Danau indah Cikarang Barat<br>
-                Kab. Bekasi Jawa Barat 17530</p>
+                <p>Blok DD-7 & DD-6 Kawasan Industri MM2100, Danau Indah, Cikarang Barat<br>
+                    Kab. Bekasi, Jawa Barat 17847</p>
             </div>
             <div class="voucher-details">
-                <div class="detail-row">
-                    <label>Batch No:</label>
-                    <span id="batchNo">-</span>
-                </div>
                 <div class="detail-row">
                     <label>Voucher No:</label>
                     <span id="voucherNo">-</span>
@@ -33,33 +158,14 @@
         
         <!-- Main Title -->
         <div class="main-title">
-            <h1>CASH ADVANCE VOUCHER</h1>
+            <h1>CASH ADVANCE</h1>
         </div>
         
         <!-- Department Selection -->
         <div class="department-section">
             <div class="department-title">Department/Category:</div>
-            <div class="department-checkboxes">
-                <label class="checkbox-item">
-                    <input type="checkbox" id="deptProduction" disabled>
-                    <span class="checkmark"></span>
-                    Production
-                </label>
-                <label class="checkbox-item">
-                    <input type="checkbox" id="deptMarketing" disabled>
-                    <span class="checkmark"></span>
-                    Marketing
-                </label>
-                <label class="checkbox-item">
-                    <input type="checkbox" id="deptTechnical" disabled>
-                    <span class="checkmark"></span>
-                    Technical
-                </label>
-                <label class="checkbox-item">
-                    <input type="checkbox" id="deptAdministration" disabled>
-                    <span class="checkmark"></span>
-                    Administration
-                </label>
+            <div class="department-field">
+                <span id="departmentName">-</span>
             </div>
         </div>
         
@@ -69,72 +175,15 @@
             <div class="recipient-name" id="recipientName">-</div>
         </div>
         
-        <!-- Approval Boxes -->
-        <div class="approval-section">
-            <div class="approval-box">
-                <div class="box-title">Proposed by:</div>
-                <div class="approval-content">
-                    <div class="approval-name" id="proposedByName">-</div>
-                    <div class="approval-date" id="proposedDate">-</div>
-                </div>
-            </div>
-            <div class="approval-box">
-                <div class="box-title">Checked by:</div>
-                <div class="approval-content">
-                    <div class="approval-name" id="checkedByName">-</div>
-                    <div class="approval-date" id="checkedDate">-</div>
-                </div>
-            </div>
-            <div class="approval-box">
-                <div class="box-title">Acknowledged by:</div>
-                <div class="approval-content">
-                    <div class="approval-name" id="acknowledgedByName">-</div>
-                    <div class="approval-date" id="acknowledgedDate">-</div>
-                </div>
-            </div>
-            <div class="approval-box">
-                <div class="box-title">Approved by:</div>
-                <div class="approval-content">
-                    <div class="approval-name" id="approvedByName">-</div>
-                    <div class="approval-date" id="approvedDate">-</div>
-                </div>
-            </div>
-            <div class="approval-box">
-                <div class="box-title">Received by:</div>
-                <div class="approval-content">
-                    <div class="approval-name" id="receivedByName">-</div>
-                    <div class="approval-date" id="receivedDate">-</div>
-                </div>
-            </div>
-        </div>
-        
-        
-        
-        <!-- Cost and Purpose -->
-        <div class="cost-purpose-section">
-            <div class="cost-row">
-                <label>Estimated cost:</label>
-                <div class="cost-amount">
-                    <span class="currency">Rp</span>
-                    <span class="amount" id="totalAmount">-</span>
-            </div>
-            </div>
-            <div class="cost-words">
-                <label>in words:</label>
-                <div class="words-content" id="amountInWords">-</div>
-            </div>
-            <div class="purpose-row">
-                <label>Purpose of Advance:</label>
-                <div class="purpose-content" id="purpose">-</div>
-            </div>
-        </div>
-        
         <!-- Settlement Table -->
         <div class="settlement-section">
-            <div class="table-title">Settlement of advance:</div>
+            <div class="table-title"></div>
             <table class="settlement-table">
                 <thead>
                     <tr>
+                        <th>Category</th>
+                        <th>Account Name</th>
+                        <th>GL Account (COA)</th>
                         <th>Description</th>
                         <th>Debit</th>
                         <th>Credit</th>
@@ -145,7 +194,7 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td><strong>Total</strong></td>
+                        <td colspan="4"><strong>Total</strong></td>
                         <td id="totalDebit">-</td>
                         <td id="totalCredit">-</td>
                     </tr>
@@ -153,37 +202,86 @@
             </table>
         </div>
         
-        <!-- Return and Final Approval -->
-        <div class="return-section">
-            <div class="return-row">
-                <label>Total cash must be returned to the Company (paid to the Employee):</label>
-                <div class="return-amount">
-                    <span class="currency">Rp</span>
-                    <span class="amount" id="returnAmount">-</span>
+        <!-- Cost and Purpose -->
+        <div class="cost-purpose-section">
+            <div class="cost-row">
+                <label>Estimated cost:</label>
+                            <div class="cost-amount">
+                <span class="currency" id="currency">Rp</span>
+                <span class="amount" id="totalAmount">-</span>
+            </div>
+            </div>
+            <div class="cost-words">
+                <label>in words:</label>
+                <div class="words-content" id="amountInWords">-</div>
+            </div>
+            <div class="purpose-row">
+                <label>Purpose of Advance:</label>
+                <div class="purpose-content" id="purpose">-</div>
+            </div>
+            <div class="remarks-row">
+                <label>Remarks:</label>
+                <div class="remarks-content" id="remarks">-</div>
+            </div>
+        </div>
+        
+        <!-- Approval Boxes with Stamps -->
+        <div class="approval-section">
+            <div class="approval-box">
+                <div class="box-title">Proposed by:</div>
+                <div class="approval-stamp">
+                    <span class="approval-stamp-text">Signed</span>
+                </div>
+                <div class="approval-content">
+                    <div class="approval-name" id="proposedByName">-</div>
+                    <div class="approval-date" id="proposedDate">-</div>
                 </div>
             </div>
-            <div class="return-words">
-                <label>in words:</label>
-                <div class="words-content" id="returnAmountInWords">-</div>
+            <div class="approval-box">
+                <div class="box-title">Checked by:</div>
+                <div class="approval-stamp">
+                    <span class="approval-stamp-text">Signed</span>
+                </div>
+                <div class="approval-content">
+                    <div class="approval-name" id="checkedByName">-</div>
+                    <div class="approval-date" id="checkedDate">-</div>
+                </div>
             </div>
-            <div class="return-date">
-                <label>Return Date:</label>
-                <span id="returnDate">-</span>
+            <div class="approval-box">
+                <div class="box-title">Acknowledged by:</div>
+                <div class="approval-stamp">
+                    <span class="approval-stamp-text">Signed</span>
+                </div>
+                <div class="approval-content">
+                    <div class="approval-name" id="acknowledgedByName">-</div>
+                    <div class="approval-date" id="acknowledgedDate">-</div>
+                </div>
             </div>
+            <div class="approval-box">
+                <div class="box-title">Approved by:</div>
+                <div class="approval-stamp">
+                    <span class="approval-stamp-text">Approved</span>
+                </div>
+                <div class="approval-content">
+                    <div class="approval-name" id="approvedByName">-</div>
+                    <div class="approval-date" id="approvedDate">-</div>
+                </div>
             </div>
-            
-                <!-- Final Approval Boxes -->
-        <div class="final-approval-section">
+            <div class="approval-box">
+                <div class="box-title">Received by:</div>
+                <div class="approval-stamp">
+                    <span class="approval-stamp-text">Received</span>
+                </div>
+                <div class="approval-content">
+                    <div class="approval-name" id="receivedByName">-</div>
+                    <div class="approval-date" id="receivedDate">-</div>
+                </div>
+            </div>
         </div>
-            
-        <!-- Important Notes -->
-        <div class="notes-section">
-            <div class="note">
-                <strong>Note:</strong> The payment through cash is valid, at the time you sign on the column of "Cash is received by:"
-            </div>
-            <div class="note">
-                <strong>Important:</strong> The Cash Advance Must be Settled within 1 Month, Otherwise The Company has full authority to deduct from the Salary.
-            </div>
+        
+        <!-- Watermark -->
+        <div class="watermark-section">
+            <div class="watermark-text">Generate by Expressiv System</div>
         </div>
         
         <!-- Print Button -->

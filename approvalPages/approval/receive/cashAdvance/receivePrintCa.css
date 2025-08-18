@@ -171,8 +171,6 @@ body {
     padding: 1px;
 }
 
-
-
 /* Cost and Purpose Section */
 .cost-purpose-section {
     margin-bottom: 25px;
@@ -308,10 +306,6 @@ body {
     text-align: right;
 }
 
-
-
-
-
 /* Watermark Section */
 .watermark-section {
     text-align: center;
@@ -440,10 +434,6 @@ body {
         transition: none !important;
     }
 }
-
-
-
-
 
 /* Responsive Design */
 @media (max-width: 768px) {
