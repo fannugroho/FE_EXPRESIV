@@ -1080,13 +1080,13 @@ function createOptimizedItemRow(item, index) {
         cellData.push(
             { class: 'uom-column item-only', content: `<textarea class="w-full item-uom bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.unitMsr || ''}</textarea>` },
             { class: 'packing-size-column item-only', content: `<textarea class="w-full item-packing-size bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.unitMsr2 || ''}</textarea>` },
-            { class: 'quantity-column item-only', content: `<textarea class="quantity-input item-sls-qty bg-gray-100 text-center" disabled style="height: 40px;">${item.quantity || ''}</textarea>` }
+            { class: 'quantity-column item-only', content: `<textarea class="quantity-input item-sls-qty bg-gray-100 text-center currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.quantity) || ''}</textarea>` }
         );
     }
 
     // Quantity column (common but different labels)
     cellData.push(
-        { class: 'quantity-column', content: `<textarea class="quantity-input item-quantity bg-gray-100 text-center" disabled style="height: 40px;">${item.invQty || ''}</textarea>` }
+        { class: 'quantity-column', content: `<textarea class="quantity-input item-quantity bg-gray-100 text-center currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.invQty) || ''}</textarea>` }
     );
 
     // Hidden UoM column
@@ -1097,12 +1097,12 @@ function createOptimizedItemRow(item, index) {
     // Price columns
     if (AppState.docType === 'I') {
         cellData.push(
-            { class: 'price-column item-only', content: `<textarea class="price-input item-sls-price bg-gray-100 text-right" disabled style="height: 40px;">${item.u_bsi_salprice || ''}</textarea>` }
+            { class: 'price-column item-only', content: `<textarea class="price-input item-sls-price bg-gray-100 text-right currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.u_bsi_salprice) || ''}</textarea>` }
         );
     }
 
     cellData.push(
-        { class: 'price-column', content: `<textarea class="price-input item-price bg-gray-100 text-right" disabled style="height: 40px;">${item.priceBefDi || ''}</textarea>` }
+        { class: 'price-column', content: `<textarea class="price-input item-price bg-gray-100 text-right currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.priceBefDi) || ''}</textarea>` }
     );
 
     // VAT column
@@ -1120,7 +1120,7 @@ function createOptimizedItemRow(item, index) {
 
     // Line total column
     cellData.push(
-        { class: 'line-total-column', content: `<textarea class="line-total-input item-line-total bg-gray-100 text-right" disabled style="height: 40px;">${item.lineTotal || ''}</textarea>` }
+        { class: 'line-total-column', content: `<textarea class="line-total-input item-line-total bg-gray-100 text-right currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.lineTotal) || ''}</textarea>` }
     );
 
     // Hidden columns
@@ -1521,27 +1521,16 @@ function clearInvoiceDataFromStorage(stagingID) {
 
 // Optimized currency formatting for table
 function applyCurrencyFormattingToTable() {
-    const currencySelectors = [
-        { selector: '.item-sls-price', defaultValue: '0.00' },
-        { selector: '.item-price', defaultValue: '0.00' },
-        { selector: '.item-line-total', defaultValue: '0.00' }
-    ];
-
-    currencySelectors.forEach(({ selector, defaultValue }) => {
-        document.querySelectorAll(selector).forEach(input => {
-            input.classList.add('currency-input-idr');
-
-            if (input.value && input.value !== defaultValue) {
-                // Format existing value
-                if (typeof formatCurrencyInputIDR === 'function') {
-                    formatCurrencyInputIDR(input);
-                }
-            } else {
-                input.value = defaultValue;
-            }
-        });
+    // Format semua cell dengan class 'currency-value' di seluruh tabel agar tampil dengan pemisah ribuan
+    document.querySelectorAll('.currency-value').forEach(cell => {
+        // Untuk textarea/input, gunakan value, untuk td gunakan textContent
+        if (cell.tagName === 'TEXTAREA' || cell.tagName === 'INPUT') {
+            cell.value = OptimizedUtils.formatCurrencyIDR(cell.value);
+        } else {
+            cell.textContent = OptimizedUtils.formatCurrencyIDR(cell.textContent);
+        }
+        cell.classList.add('currency-input-idr');
     });
-
     console.log('✅ Currency formatting applied to table');
 }
 
