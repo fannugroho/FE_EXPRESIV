@@ -1203,7 +1203,7 @@ function filterUsers(fieldId) {
                             const newOption = document.createElement('option');
                             newOption.value = user.id;
                             newOption.textContent = user.name;
-                            selectElement.appendChild(option);
+                            selectElement.appendChild(newOption);
                             selectElement.value = user.id;
                         }
                     }
@@ -1671,6 +1671,18 @@ async function populateSuperiorEmployeeDropdownWithData(fieldId, superiors) {
                 console.log(`Set pending approval value for ${fieldId}:`, pendingUserId);
             }
         }
+    }
+
+    // Auto-select the single available option for specific fields
+    // If there's exactly one supervisor for the requested level, pre-fill it
+    if (superiors.length === 1) {
+        const onlySuperior = superiors[0];
+        selectElement.value = onlySuperior.superiorUserId;
+        const autoSearchInput = document.getElementById(fieldId + 'Search');
+        if (autoSearchInput) {
+            autoSearchInput.value = onlySuperior.superiorFullName;
+        }
+        console.log(`Auto-selected ${onlySuperior.superiorFullName} for ${fieldId} because only one option was available.`);
     }
 }
 
