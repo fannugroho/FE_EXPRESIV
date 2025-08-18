@@ -679,10 +679,34 @@ function setupPageForDocType() {
         console.log('📊 Table title set:', config.tableTitle);
     }
 
-    // Apply CSS class for showing/hiding columns
+    // Apply CSS class for showing/hiding columns - FORCE CLEAN REMOVAL
     document.body.classList.remove('item-mode', 'service-mode');
+    document.body.className = document.body.className.replace(/\b(item-mode|service-mode)\b/g, '').trim();
     document.body.classList.add(config.className);
+
     console.log('🎨 CSS classes applied:', config.className);
+    console.log('🔍 Body classes after setup:', document.body.className);
+
+    // Debug: Check if freetext column should be visible
+    console.log('🔍 Freetext column visibility check:', {
+        docType: AppState.docType,
+        isService: AppState.docType === 'S',
+        cssClass: config.className,
+        bodyClasses: document.body.className,
+        freetextShouldBeVisible: AppState.docType === 'S',
+        hasServiceMode: document.body.classList.contains('service-mode'),
+        hasItemMode: document.body.classList.contains('item-mode')
+    });
+
+    // Force immediate check of freetext visibility
+    setTimeout(() => {
+        const freetextCols = document.querySelectorAll('.freetext-column');
+        console.log('📊 Freetext columns found:', freetextCols.length);
+        freetextCols.forEach((col, index) => {
+            const computedStyle = window.getComputedStyle(col);
+            console.log(`Column ${index + 1} display:`, computedStyle.display);
+        });
+    }, 100);
 
     console.log(`✅ Page configured for ${config.name} mode`);
 }
@@ -967,7 +991,7 @@ function populateInvItemData(data) {
         };
 
         console.log('📋 HEADER FIELDS TO POPULATE:', headerFields);
-        
+
         // Debug: specifically check u_bsi_udf3 field
         console.log('🔍 DEBUG u_bsi_udf3:', {
             raw: data.u_bsi_udf3,
@@ -1046,6 +1070,19 @@ function populateInvItemData(data) {
             detailsCount: data.arInvoiceDetails ? data.arInvoiceDetails.length : 0,
             sampleDetail: data.arInvoiceDetails ? data.arInvoiceDetails[0] : null
         });
+
+        // Debug: Check for freetext fields in sample detail
+        if (data.arInvoiceDetails && data.arInvoiceDetails[0]) {
+            const sampleItem = data.arInvoiceDetails[0];
+            const freetextFields = {};
+            ['text', 'freeTxt', 'freeText', 'remarks', 'comments', 'free_text'].forEach(field => {
+                if (sampleItem.hasOwnProperty(field)) {
+                    freetextFields[field] = sampleItem[field];
+                }
+            });
+            console.log('🔍 Available freetext fields in sample item:', freetextFields);
+            console.log('📋 All fields in sample item:', Object.keys(sampleItem));
+        }
 
         // Populate items table based on doc type
         const invoiceDetails = data.arInvoiceDetails || data.invoiceDetails || data.details || [];
@@ -1262,6 +1299,38 @@ function populateItemsTable(items) {
     // Use document fragment for better performance
     const fragment = document.createDocumentFragment();
 
+    // Service row creation for docType 'S' with correct order and mapping
+    function createServiceRow(item, index) {
+        // Debug: log all keys and values for this service row
+        console.log(`🔍 [Service Row ${index + 1}] All keys/values:`, item);
+        const row = document.createElement('tr');
+        row.className = 'border-b';
+        // Map: No. | Description | GL Account | Account Name | Control Account | VAT Code | Wtax | unit | qty | Price | Amount | Free Text
+        const acctName = AppState.currentInvItemData?.acctName || '';
+        const controlAccount = AppState.currentInvItemData?.u_bsi_udf3 || '';
+        row.innerHTML = `
+        <td class="p-2">${index + 1}</td>
+        <td class="p-2 description-column service-only">${item.dscription || ''}</td>
+        <td class="p-2 account-code-column service-only">${item.acctCode || ''}</td>
+        <td class="p-2 account-name-column service-only" style="min-width:120px; vertical-align:top;">
+          <div style="margin-bottom:12px;">${acctName}</div>
+        </td>
+                <td class="p-2 freetext-column service-only">${item.freeTxt || 'null'}</td>
+
+        <td class="p-2 control-account-column service-only" style="min-width:120px; vertical-align:bottom;">
+          <div style="margin-top:12px;">${controlAccount}</div>
+        </td>
+        <td class="p-2 tax-code-column service-only">${item.vatgroup || ''}</td>
+        <td class="p-2 wtax-column service-only">${item.wtLiable || ''}</td>
+        <td class="p-2 uom-column service-only">${item.unitMsr || ''}</td>
+        <td class="p-2 quantity-column service-only">${item.invQty != null ? item.invQty : ''}</td>
+        <td class="p-2 price-column service-only">${item.priceBefDi != null ? OptimizedUtils.formatCurrencyIDR(item.priceBefDi) : ''}</td>
+
+        <td class="p-2 line-total-column service-only">${item.lineTotal != null ? OptimizedUtils.formatCurrencyIDR(item.lineTotal) : ''}</td>
+    `;
+        return row;
+    }
+
     items.forEach((item, index) => {
         let row;
         if (AppState.docType === 'S') {
@@ -1271,28 +1340,6 @@ function populateItemsTable(items) {
         }
         fragment.appendChild(row);
     });
-    // Service row creation for docType 'S' with correct order and mapping
-    function createServiceRow(item, index) {
-        const row = document.createElement('tr');
-        row.className = 'border-b';
-        // Map: No. | Description | GL Account | Account Name | Control Account | VAT Code | Wtax | unit | qty | Price | Amount
-        const acctName = AppState.currentInvItemData?.acctName || '';
-        const controlAccount = AppState.currentInvItemData?.u_bsi_udf3 || '';
-        row.innerHTML = `
-        <td class="p-2">${index + 1}</td>
-        <td class="p-2 description-column service-only">${item.dscription || ''}</td>
-        <td class="p-2 account-code-column service-only">${item.acctCode || ''}</td>
-        <td class="p-2 account-name-column service-only">${acctName}</td>
-        <td class="p-2 control-account-column service-only">${controlAccount}</td>
-        <td class="p-2 tax-code-column service-only">${item.vatgroup || ''}</td>
-        <td class="p-2 wtax-column service-only">${item.wtLiable || ''}</td>
-        <td class="p-2 uom-column service-only">${item.unitMsr || ''}</td>
-        <td class="p-2 quantity-column service-only">${item.invQty != null ? item.invQty : ''}</td>
-        <td class="p-2 price-column service-only">${item.priceBefDi != null ? OptimizedUtils.formatCurrencyIDR(item.priceBefDi) : ''}</td>
-        <td class="p-2 line-total-column service-only">${item.lineTotal != null ? OptimizedUtils.formatCurrencyIDR(item.lineTotal) : ''}</td>
-    `;
-        return row;
-    }
 
     tableBody.appendChild(fragment);
 }
@@ -1369,7 +1416,7 @@ function createOptimizedItemRow(item, index) {
     if (AppState.docType === 'S') {
         cellData.push(
             { class: 'wtax-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.wtLiable || 'N'}" />` },
-            { class: 'account-name-column service-only', content: `<textarea class="w-full bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.freeTxt || ''}</textarea>` }
+            { class: 'account-name-column service-only', content: `<textarea class="w-full bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.text || item.freeTxt || item.freeText || item.remarks || ''}</textarea>` }
         );
     }
 
