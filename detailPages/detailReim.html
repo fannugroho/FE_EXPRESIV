@@ -74,9 +74,11 @@
                     <input type="text" id="voucherNo" placeholder="Voucher no" class="w-full p-2 border rounded"
                         disabled>
 
-                    <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
-                    <input type="text" id="requesterNameSearch" placeholder="Search name..."
-                        class="w-full p-2 border rounded" disabled>
+                                         <h3 class="text-lg font-semibold mb-2">Requester Name</h3>
+                     <div class="relative">
+                         <input type="text" id="requesterNameSearch" placeholder="Search name..."
+                             class="w-full p-2 border rounded" disabled>
+                     </div>
 
                     <h3 class="text-lg font-semibold mb-2">Department</h3>
                     <select id="department" class="w-full p-2 border rounded" disabled>
@@ -97,9 +99,11 @@
                         <option value="CHF">CHF</option>
                     </select>
 
-                    <h3 class="text-lg font-semibold mb-2">Pay To</h3>
-                    <input type="text" id="payToSearch" placeholder="Search user..." class="w-full p-2 border rounded"
-                        disabled>
+                                         <h3 class="text-lg font-semibold mb-2">Pay To</h3>
+                     <div class="relative">
+                         <input type="text" id="payToSearch" placeholder="Search user..." class="w-full p-2 border rounded"
+                             disabled>
+                     </div>
                 </div>
 
                 <div>
@@ -122,6 +126,10 @@
                     <!-- Container untuk menampilkan daftar attachment -->
                     <h3 class="text-lg font-semibold mb-2">Attachments</h3>
                     <div id="attachmentsList" class="mt-2"></div>
+
+                    <!-- Attach Doc (visible in Draft) -->
+                    <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
+                    <input type="file" id="filePath" accept="application/pdf,image/*" class="w-full p-2 border rounded" multiple onchange="uploadAttachmentsHandler(event)">
 
                     <h3 class="text-lg font-semibold mb-2">Reference Doc</h3>
                     <input type="text" id="referenceDoc" placeholder="No.Invoice" class="w-full p-2 border rounded"
@@ -189,30 +197,86 @@
 
             <!-- Approval section -->
             <div class="grid grid-cols-2 gap-4 text-sm mt-4">
-                <div>
-                    <label id="preparedBy" class="mr-1"><strong>Prepared by :</strong></label>
-                    <input type="text" id="preparedBySearch" placeholder="Search name..."
-                        class="w-full p-2 border rounded" disabled>
-                </div>
-                <div>
-                    <label id="acknowledgeBy" class="mr-1"><strong>Acknowledge by :</strong></label>
-                    <input type="text" id="acknowledgeBySearch" placeholder="Search name..."
-                        class="w-full p-2 border rounded" disabled>
-                </div>
-                <div>
-                    <label id="checkedBy" class="mr-1"><strong>Checked by :</strong></label>
-                    <input type="text" id="checkedBySearch" placeholder="Search name..."
-                        class="w-full p-2 border rounded" disabled>
-                </div>
-                <div>
-                    <label id="approvedBy" class="mr-1"><strong>Approved by :</strong></label>
-                    <input type="text" id="approvedBySearch" placeholder="Search name..."
-                        class="w-full p-2 border rounded" disabled>
-                </div>
-                <div>
-                    <label id="receivedBy" class="mr-1"><strong>Received by :</strong></label>
-                    <input type="text" id="receivedBySearch" placeholder="Search name..."
-                        class="w-full p-2 border rounded" disabled>
+                                 <div>
+                     <label id="preparedBy" class="mr-1"><strong>Prepared by :</strong></label>
+                     <div class="relative">
+                         <input type="text" id="preparedBySearch" placeholder="Search name..."
+                             class="w-full p-2 border rounded" disabled>
+                     </div>
+                 </div>
+                 <div>
+                     <label id="acknowledgeBy" class="mr-1"><strong>Acknowledge by :</strong></label>
+                     <div class="relative">
+                         <input type="text" id="acknowledgeBySearch" placeholder="Search name..."
+                             class="w-full p-2 border rounded" disabled>
+                     </div>
+                 </div>
+                 <div>
+                     <label id="checkedBy" class="mr-1"><strong>Checked by :</strong></label>
+                     <div class="relative">
+                         <input type="text" id="checkedBySearch" placeholder="Search name..."
+                             class="w-full p-2 border rounded" disabled>
+                     </div>
+                 </div>
+                 <div>
+                     <label id="approvedBy" class="mr-1"><strong>Approved by :</strong></label>
+                     <div class="relative">
+                         <input type="text" id="approvedBySearch" placeholder="Search name..."
+                             class="w-full p-2 border rounded" disabled>
+                     </div>
+                 </div>
+                 <div>
+                     <label id="receivedBy" class="mr-1"><strong>Received by :</strong></label>
+                     <div class="relative">
+                         <input type="text" id="receivedBySearch" placeholder="Search name..."
+                             class="w-full p-2 border rounded" disabled>
+                     </div>
+                 </div>
+            </div>
+
+            <!-- Action Buttons Section -->
+            <div class="action-buttons-section mt-6">
+                <div class="text-center">
+                    <!-- 
+                        Note: When submitting a document with "Draft" status, 
+                        the system will automatically:
+                        1. Change status from "Draft" to "Prepared"
+                        2. Set preparedDate to current timestamp
+                        3. Send both values to the API
+                    -->
+                    <div class="flex items-center justify-start gap-4 flex-wrap">
+                        <!-- Delete Button -->
+                        <button id="deleteButton" onclick="deleteReimbursement()"
+                            class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-300 disabled:opacity-50 disabled:cursor-not-allowed text-base"
+                            style="display: none;">
+                            <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                            Delete
+                        </button>
+                        
+                        <!-- Update Button -->
+                        <button id="updateButton" onclick="updateReimbursement()"
+                            class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed text-base"
+                            style="display: none;">
+                            <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                            Update
+                        </button>
+                        
+                        <!-- Submit Button -->
+                        <button id="submitButton" onclick="submitReimbursement()"
+                            class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300 disabled:opacity-50 disabled:cursor-not-allowed text-base"
+                            disabled>
+                            <span id="submitButtonText">Submit to Prepared</span>
+                            <div id="submitSpinner" class="hidden inline-block ml-2">
+                                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                            </div>
+                        </button>
+                        
+
+                    </div>
                 </div>
             </div>
         </div>

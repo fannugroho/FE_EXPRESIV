@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settlement Voucher - Print</title>
+    <link rel="stylesheet" href="settlePrint.css">
+</head>
+<body>
+    <div class="print-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="company-info">
+                <h2>PT KANSAI PAINT INDONESIA</h2>
+                <p>Blok DD-7 & DD-6 Kawasan Industri MM2100 Danau indah Cikarang Barat<br>
+                Kab. Bekasi Jawa Barat 17530</p>
+            </div>
+            <div class="voucher-details">
+                <div class="detail-row">
+                    <label>Batch No:</label>
+                    <span id="batchNo">-</span>
+                </div>
+                <div class="detail-row">
+                    <label>Voucher No:</label>
+                    <span id="voucherNo">-</span>
+                </div>
+                <div class="detail-row">
+                    <label>Submission date:</label>
+                    <span id="submissionDate">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Title -->
+        <div class="main-title">
+            <h1>SETTLEMENT VOUCHER</h1>
+        </div>
+        
+        <!-- Department Selection -->
+        <div class="department-section">
+            <div class="department-title">Department/Category:</div>
+            <div class="department-field">
+                <span id="departmentName">-</span>
+            </div>
+        </div>
+        
+        <!-- Recipient Section -->
+        <div class="recipient-section">
+            <label>Settlement is for:</label>
+            <div class="recipient-name" id="recipientName">-</div>
+        </div>
+        
+        <!-- Settlement Table -->
+        <div class="settlement-section">
+            <div class="table-title">Settlement Details:</div>
+            <table class="settlement-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Debit</th>
+                        <th>Credit</th>
+                    </tr>
+                </thead>
+                <tbody id="settlementTableBody">
+                    <!-- Rows will be populated by JavaScript -->
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td><strong>Total</strong></td>
+                        <td id="totalDebit">-</td>
+                        <td id="totalCredit">-</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        
+        <!-- Cost and Purpose -->
+        <div class="cost-purpose-section">
+            <div class="cost-row">
+                <label>Total Settlement Amount:</label>
+                <div class="cost-amount">
+                    <span class="currency" id="currency">Rp</span>
+                    <span class="amount" id="totalAmount">-</span>
+                </div>
+            </div>
+            <div class="cost-words">
+                <label>in words:</label>
+                <div class="words-content" id="amountInWords">-</div>
+            </div>
+            <div class="purpose-row">
+                <label>Purpose of Settlement:</label>
+                <div class="purpose-content" id="purpose">-</div>
+            </div>
+        </div>
+        
+        <!-- Approval Boxes -->
+        <div class="approval-section">
+            <div class="approval-box">
+                <div class="box-title">Proposed by:</div>
+                <div class="approval-content">
+                    <div class="approval-name" id="proposedByName">-</div>
+                    <div class="approval-date" id="proposedDate">-</div>
+                </div>
+            </div>
+            <div class="approval-box">
+                <div class="box-title">Checked by:</div>
+                <div class="approval-content">
+                    <div class="approval-name" id="checkedByName">-</div>
+                    <div class="approval-date" id="checkedDate">-</div>
+                </div>
+            </div>
+            <div class="approval-box">
+                <div class="box-title">Acknowledged by:</div>
+                <div class="approval-content">
+                    <div class="approval-name" id="acknowledgedByName">-</div>
+                    <div class="approval-date" id="acknowledgedDate">-</div>
+                </div>
+            </div>
+            <div class="approval-box">
+                <div class="box-title">Approved by:</div>
+                <div class="approval-content">
+                    <div class="approval-name" id="approvedByName">-</div>
+                    <div class="approval-date" id="approvedDate">-</div>
+                </div>
+            </div>
+            <div class="approval-box">
+                <div class="box-title">Received by:</div>
+                <div class="approval-content">
+                    <div class="approval-name" id="receivedByName">-</div>
+                    <div class="approval-date" id="receivedDate">-</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Settlement Details -->
+        <div class="settlement-details-section">
+            <div class="settlement-row">
+                <label>Original Cash Advance Amount:</label>
+                <div class="settlement-amount">
+                    <span class="currency" id="originalCurrency">Rp</span>
+                    <span class="amount" id="originalAmount">-</span>
+                </div>
+            </div>
+            <div class="settlement-row">
+                <label>Amount Used:</label>
+                <div class="settlement-amount">
+                    <span class="currency" id="usedCurrency">Rp</span>
+                    <span class="amount" id="usedAmount">-</span>
+                </div>
+            </div>
+            <div class="settlement-row">
+                <label>Amount to be Returned:</label>
+                <div class="settlement-amount">
+                    <span class="currency" id="returnCurrency">Rp</span>
+                    <span class="amount" id="returnAmount">-</span>
+                </div>
+            </div>
+            <div class="settlement-words">
+                <label>Return amount in words:</label>
+                <div class="words-content" id="returnAmountInWords">-</div>
+            </div>
+            <div class="settlement-date">
+                <label>Settlement Date:</label>
+                <span id="settlementDate">-</span>
+            </div>
+        </div>
+        
+        <!-- Important Notes -->
+        <div class="notes-section">
+            <div class="note">
+                <strong>Note:</strong> This settlement voucher must be completed and signed by all parties involved.
+            </div>
+            <div class="note">
+                <strong>Important:</strong> All supporting documents must be attached to this voucher for proper accounting records.
+            </div>
+        </div>
+        
+        <!-- Print Button -->
+        <div class="print-actions">
+            <button onclick="window.print()" class="print-btn">Print Voucher</button>
+            <button onclick="window.close()" class="close-btn">Close</button>
+        </div>
+    </div>
+
+    <script src="settlePrint.js"></script>
+</body>
+</html>

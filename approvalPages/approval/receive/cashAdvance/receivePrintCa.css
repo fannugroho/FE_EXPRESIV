@@ -1,0 +1,531 @@
+/* Cash Advance Voucher Print Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Times New Roman', serif;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #000;
+    background: #fff;
+}
+
+.print-container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    background: #fff;
+}
+
+/* Header Styles */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #000;
+    padding-bottom: 15px;
+    position: relative;
+    min-height: 80px;
+}
+
+.company-info {
+    flex: 1;
+    align-self: flex-start;
+    max-width: 60%;
+}
+
+.company-info h2 {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #000;
+}
+
+.company-info p {
+    font-size: 11px;
+    line-height: 1.3;
+}
+
+.voucher-details {
+    flex: 0 0 auto;
+    text-align: right;
+    font-size: 11px;
+    margin-left: 20px;
+    align-self: flex-start;
+    padding-top: 0;
+    position: relative;
+    top: 0;
+    min-width: 200px;
+    max-width: 35%;
+}
+
+.detail-row {
+    margin-bottom: 3px;
+}
+
+.detail-row label {
+    font-weight: bold;
+    margin-right: 5px;
+}
+
+/* Main Title */
+.main-title {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.main-title h1 {
+    font-size: 20px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Department Section */
+.department-section {
+    margin-bottom: 20px;
+}
+
+.department-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 12px;
+}
+
+.department-field {
+    border-bottom: 1px solid #000;
+    min-height: 20px;
+    padding: 2px 5px;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+/* Recipient Section */
+.recipient-section {
+    margin-bottom: 20px;
+}
+
+.recipient-section label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.recipient-name {
+    border-bottom: 1px solid #000;
+    min-height: 20px;
+    padding: 2px 5px;
+    font-weight: bold;
+}
+
+/* Approval Section */
+.approval-section {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin-bottom: 20px;
+}
+
+.approval-box {
+    border: 1px solid #000;
+    padding: 5px;
+    text-align: center;
+    min-height: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.box-title {
+    font-weight: bold;
+    font-size: 10px;
+    margin-bottom: 3px;
+    text-align: center;
+}
+
+.approval-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.approval-name {
+    font-weight: bold;
+    font-size: 10px;
+    margin-bottom: 3px;
+    min-height: 10px;
+    border-bottom: 1px solid #ccc;
+    padding: 1px;
+}
+
+.approval-date {
+    font-size: 10px;
+    min-height: 10px;
+    border-bottom: 1px solid #ccc;
+    padding: 1px;
+}
+
+/* Cost and Purpose Section */
+.cost-purpose-section {
+    margin-bottom: 25px;
+}
+
+.cost-row, .cost-words, .purpose-row, .remarks-row {
+    margin-bottom: 15px;
+}
+
+.cost-row label, .cost-words label, .purpose-row label, .remarks-row label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.cost-amount {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.currency {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.amount {
+    font-weight: bold;
+    font-size: 16px;
+    border-bottom: 1px solid #000;
+    min-width: 150px;
+    padding: 2px 5px;
+}
+
+.words-content {
+    border-bottom: 1px solid #000;
+    min-height: 20px;
+    padding: 2px 5px;
+    font-style: italic;
+}
+
+.purpose-content, .remarks-content {
+    border-bottom: 1px solid #000;
+    min-height: 20px;
+    padding: 2px 5px;
+}
+
+/* Settlement Table */
+.settlement-section {
+    margin-bottom: 25px;
+}
+
+.table-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 12px;
+}
+
+.settlement-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #000;
+}
+
+.settlement-table th,
+.settlement-table td {
+    border: 1px solid #000;
+    padding: 8px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.settlement-table th {
+    background-color: #f0f0f0;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* Set specific column widths for better layout */
+.settlement-table th:nth-child(1), /* Category */
+.settlement-table td:nth-child(1) {
+    width: 15%;
+    min-width: 80px;
+}
+
+.settlement-table th:nth-child(2), /* Account Name */
+.settlement-table td:nth-child(2) {
+    width: 20%;
+    min-width: 100px;
+}
+
+.settlement-table th:nth-child(3), /* GL Account (COA) */
+.settlement-table td:nth-child(3) {
+    width: 15%;
+    min-width: 80px;
+}
+
+.settlement-table th:nth-child(4), /* Description */
+.settlement-table td:nth-child(4) {
+    width: 25%;
+    min-width: 120px;
+}
+
+.settlement-table th:nth-child(5), /* Debit */
+.settlement-table td:nth-child(5) {
+    width: 12.5%;
+    min-width: 80px;
+    text-align: right;
+}
+
+.settlement-table th:nth-child(6), /* Credit */
+.settlement-table td:nth-child(6) {
+    width: 12.5%;
+    min-width: 80px;
+    text-align: right;
+}
+
+.settlement-table tbody tr {
+    min-height: 30px;
+}
+
+.settlement-table tfoot {
+    font-weight: bold;
+}
+
+.settlement-table tfoot td {
+    background-color: #f0f0f0;
+}
+
+/* Total row alignment */
+.settlement-table tfoot td:last-child,
+.settlement-table tfoot td:nth-last-child(2) {
+    text-align: right;
+}
+
+/* Watermark Section */
+.watermark-section {
+    text-align: center;
+    margin: 20px 0 15px 0;
+    opacity: 0.4;
+}
+
+.watermark-text {
+    font-size: 9px;
+    font-style: italic;
+    color: #666;
+    font-family: 'Arial', sans-serif;
+}
+
+/* Print Actions */
+.print-actions {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #ccc;
+}
+
+.print-btn, .close-btn {
+    padding: 10px 20px;
+    margin: 0 10px;
+    font-size: 14px;
+    cursor: pointer;
+    border: 1px solid #333;
+    background: #fff;
+    color: #333;
+}
+
+.print-btn:hover, .close-btn:hover {
+    background: #f0f0f0;
+}
+
+/* Print Media Styles */
+@media print {
+    .print-actions {
+        display: none;
+    }
+    
+    .print-container {
+        border: none;
+        margin: 0;
+        padding: 15px;
+    }
+    
+    body {
+        background: #fff;
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+    
+    .header {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: flex-start !important;
+        margin-bottom: 20px !important;
+        border-bottom: 2px solid #000 !important;
+        padding-bottom: 15px !important;
+        position: relative !important;
+        min-height: 80px !important;
+        flex-direction: row !important;
+        gap: 0 !important;
+    }
+    
+    .company-info {
+        flex: 1 !important;
+        align-self: flex-start !important;
+        max-width: 60% !important;
+        position: relative !important;
+        top: 0 !important;
+    }
+    
+    .voucher-details {
+        flex: 0 0 auto !important;
+        text-align: right !important;
+        font-size: 11px !important;
+        margin-left: 20px !important;
+        align-self: flex-start !important;
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+        position: relative !important;
+        top: 0 !important;
+        min-width: 200px !important;
+        max-width: 35% !important;
+        transform: none !important;
+    }
+    
+    .approval-box {
+        break-inside: avoid;
+        padding: 5px !important;
+        min-height: 50px !important;
+    }
+    
+    .box-title {
+        font-size: 10px !important;
+        margin-bottom: 3px !important;
+    }
+    
+    .approval-name, .approval-date {
+        font-size: 10px !important;
+        min-height: 10px !important;
+        padding: 1px !important;
+    }
+    
+    .settlement-table {
+        break-inside: avoid;
+    }
+    
+    /* Watermark print styles */
+    .watermark-section {
+        opacity: 0.3 !important;
+        margin: 15px 0 10px 0 !important;
+    }
+    
+    .watermark-text {
+        font-size: 8px !important;
+        color: #999 !important;
+    }
+    
+    /* Prevent any unwanted transformations */
+    * {
+        transform: none !important;
+        transition: none !important;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .print-container {
+        margin: 10px;
+        padding: 15px;
+    }
+    
+    .header {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .approval-section {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        margin-bottom: 20px;
+    }
+    
+    .approval-box {
+        padding: 5px;
+        min-height: 50px;
+    }
+    
+    .box-title {
+        font-size: 10px;
+        margin-bottom: 3px;
+    }
+    
+    .approval-name, .approval-date {
+        font-size: 10px;
+        min-height: 10px;
+        padding: 1px;
+    }
+    
+    .final-approval-section {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    /* Responsive table adjustments */
+    .settlement-table {
+        font-size: 10px;
+    }
+    
+    .settlement-table th,
+    .settlement-table td {
+        padding: 4px 6px;
+    }
+    
+    /* Adjust column widths for mobile */
+    .settlement-table th:nth-child(1),
+    .settlement-table td:nth-child(1) {
+        width: 12%;
+        min-width: 60px;
+    }
+    
+    .settlement-table th:nth-child(2),
+    .settlement-table td:nth-child(2) {
+        width: 18%;
+        min-width: 80px;
+    }
+    
+    .settlement-table th:nth-child(3),
+    .settlement-table td:nth-child(3) {
+        width: 12%;
+        min-width: 60px;
+    }
+    
+    .settlement-table th:nth-child(4),
+    .settlement-table td:nth-child(4) {
+        width: 28%;
+        min-width: 100px;
+    }
+    
+    .settlement-table th:nth-child(5),
+    .settlement-table td:nth-child(5) {
+        width: 15%;
+        min-width: 60px;
+    }
+    
+    .settlement-table th:nth-child(6),
+    .settlement-table td:nth-child(6) {
+        width: 15%;
+        min-width: 60px;
+    }
+}
+
+/* Ensure print layout overrides responsive design */
+@media print {
+    .header {
+        flex-direction: row !important;
+        gap: 0 !important;
+    }
+}
