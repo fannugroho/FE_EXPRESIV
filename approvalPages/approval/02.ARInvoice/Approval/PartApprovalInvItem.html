@@ -149,51 +149,59 @@
             gap: 32px;
         }
 
-        /* Clean table styling with horizontal scroll */
+        /* Enhanced table styling with horizontal scroll - matching receiveInvItem */
         .table-container {
             background: white;
             border-radius: 8px;
             overflow-x: auto;
             overflow-y: visible;
             margin-top: 16px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             max-width: 100%;
+            max-height: none !important;
         }
 
         #arInvTable {
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
-            min-width: 1200px;
-            /* Force horizontal scroll when needed */
+            min-width: 1100px;
+            table-layout: fixed;
             border: none;
         }
 
         #arInvTable thead {
-            background: #f8fafc;
+            background: #f3f4f6;
             position: sticky;
             top: 0;
             z-index: 10;
         }
 
         #arInvTable th {
-            padding: 14px 12px;
+            padding: 8px 4px !important;
             text-align: left;
             font-weight: 600;
             font-size: 13px;
             color: #374151;
             border: none;
             border-bottom: 2px solid #e5e7eb;
-            background: #f8fafc;
+            background: #f3f4f6;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            vertical-align: middle !important;
         }
 
         #arInvTable td {
-            padding: 12px;
+            padding: 8px 4px !important;
             border: none;
             border-bottom: 1px solid #f1f5f9;
             font-size: 13px;
-            vertical-align: middle;
+            vertical-align: middle !important;
             background: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         #arInvTable tbody tr {
@@ -208,100 +216,189 @@
             background-color: #f8fafc;
         }
 
-        /* Clean scrollbar styling - minimal and neutral */
+        /* Enhanced scrollbar styling - matching receiveInvItem */
         .table-container::-webkit-scrollbar {
             height: 8px;
             width: 8px;
         }
 
         .table-container::-webkit-scrollbar-track {
-            background: #f1f5f9;
+            background: #f1f1f1;
             border-radius: 4px;
         }
 
         .table-container::-webkit-scrollbar-thumb {
-            background: #d1d5db;
+            background: #c1c1c1;
             border-radius: 4px;
         }
 
         .table-container::-webkit-scrollbar-thumb:hover {
-            background: #9ca3af;
+            background: #a8a8a8;
         }
 
         .table-container::-webkit-scrollbar-corner {
-            background: #f1f5f9;
+            background: #f1f1f1;
         }
 
-        /* Column widths - proportional for many items */
+        /* Enhanced Column widths and styling - matching receiveInvItem */
+
+        /* No. column */
         .no-column {
-            width: 60px;
-            min-width: 60px;
+            width: 60px !important;
+            min-width: 60px !important;
             text-align: center;
         }
 
+        .no-column input {
+            width: 50px !important;
+            text-align: center !important;
+            font-weight: 500 !important;
+            color: #374151 !important;
+            background-color: #f9fafb !important;
+            border: 1px solid #d1d5db !important;
+        }
+
+        /* Item Code column */
         .item-code-column {
-            width: 140px;
-            min-width: 140px;
+            width: 140px !important;
+            min-width: 140px !important;
         }
 
+        .item-code-column input {
+            width: 120px !important;
+            text-align: left !important;
+        }
+
+        /* BP Catalog column */
         .bp-catalog-column {
-            width: 140px;
-            min-width: 140px;
+            width: 120px !important;
+            min-width: 120px !important;
         }
 
+        .bp-catalog-column input {
+            width: 100px !important;
+            text-align: left !important;
+        }
+
+        /* Description column */
         .description-column {
-            width: 300px;
-            min-width: 250px;
-            white-space: normal;
+            width: 250px !important;
+            min-width: 250px !important;
+        }
+
+        .description-column textarea {
+            text-align: left !important;
+            white-space: pre-wrap;
             word-wrap: break-word;
             line-height: 1.4;
+            vertical-align: top !important;
         }
 
+        /* UoM column */
         .uom-column {
-            width: 80px;
-            min-width: 80px;
-            text-align: center;
+            width: 80px !important;
+            min-width: 80px !important;
         }
 
+        /* Packing Size column */
         .packing-size-column {
-            width: 100px;
-            min-width: 100px;
-            text-align: center;
+            width: 100px !important;
+            min-width: 100px !important;
         }
 
+        .packing-size-column textarea {
+            text-align: center !important;
+        }
+
+        /* Quantity column */
         .quantity-column {
-            width: 100px;
-            min-width: 100px;
-            text-align: center;
+            width: 100px !important;
+            min-width: 100px !important;
         }
 
+        .quantity-column textarea {
+            width: 80px !important;
+            text-align: center !important;
+            font-family: inherit !important;
+            font-size: 14px !important;
+        }
+
+        /* Price column */
         .price-column {
-            width: 130px;
-            min-width: 130px;
-            text-align: right;
+            width: 180px !important;
+            min-width: 180px !important;
         }
 
+        .price-column textarea {
+            width: 160px !important;
+            text-align: right !important;
+            overflow-x: hidden;
+            white-space: nowrap;
+        }
+
+        /* Line total column */
         .line-total-column {
-            width: 130px;
-            min-width: 130px;
-            text-align: right;
+            width: 180px !important;
+            min-width: 180px !important;
         }
 
+        .line-total-column textarea {
+            width: 160px !important;
+            text-align: right !important;
+            overflow-x: hidden;
+            white-space: nowrap;
+        }
+
+        /* Tax Code column */
         .tax-code-column {
-            width: 100px;
-            min-width: 100px;
-            text-align: center;
+            width: 80px !important;
+            min-width: 80px !important;
         }
 
+        .tax-code-column input {
+            text-align: center !important;
+        }
+
+        /* WTax column */
         .wtax-column {
-            width: 80px;
-            min-width: 80px;
-            text-align: center;
+            width: 80px !important;
+            min-width: 80px !important;
         }
 
+        /* Account Name column */
         .account-name-column {
-            width: 200px;
-            min-width: 180px;
+            width: 200px !important;
+            min-width: 200px !important;
+        }
+
+        /* Account Code column */
+        .account-code-column {
+            width: 120px !important;
+            min-width: 120px !important;
+        }
+
+        .account-code-column input {
+            text-align: left !important;
+        }
+
+        /* Base columns */
+        .base-column {
+            width: 80px !important;
+            min-width: 80px !important;
+        }
+
+        .base-column input {
+            text-align: center !important;
+        }
+
+        /* Control Account column */
+        .control-account-column {
+            width: 120px !important;
+            min-width: 120px !important;
+        }
+
+        .control-account-column input {
+            text-align: left !important;
         }
 
         /* Clean currency formatting */
@@ -311,7 +408,7 @@
             font-weight: 500;
         }
 
-        /* Remove all input/form styling inside table */
+        /* Enhanced input/textarea styling inside table - matching receiveInvItem */
         #arInvTable input,
         #arInvTable textarea,
         #arInvTable select {
@@ -320,9 +417,11 @@
             padding: 4px !important;
             margin: 0 !important;
             width: 100% !important;
-            font-size: 13px !important;
+            font-size: 14px !important;
             box-shadow: none !important;
             outline: none !important;
+            vertical-align: middle;
+            font-family: inherit;
         }
 
         #arInvTable input:focus,
@@ -332,27 +431,86 @@
             border-radius: 3px !important;
         }
 
-        /* Responsive table */
+        /* Enhanced textarea specific styling */
+        #arInvTable textarea {
+            overflow-y: auto;
+            overflow-x: auto;
+            resize: none;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.4;
+            vertical-align: top !important;
+            padding-top: 8px !important;
+        }
+
+        /* Table cells with textarea alignment */
+        td:has(textarea) {
+            vertical-align: top !important;
+        }
+
+        /* Custom scrollbar for textarea elements */
+        #arInvTable textarea::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        #arInvTable textarea::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
+
+        #arInvTable textarea::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 2px;
+        }
+
+        #arInvTable textarea::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* Conditional scrollbar for price and amount columns */
+        .price-column textarea.has-scroll,
+        .line-total-column textarea.has-scroll {
+            overflow-x: auto !important;
+            white-space: nowrap !important;
+        }
+
+        /* Enhanced responsive table styling - matching receiveInvItem */
         @media (max-width: 768px) {
             .table-container {
                 margin: 0 -16px;
                 border-radius: 0;
+                overflow-x: auto;
+                max-width: 100%;
             }
 
             #arInvTable {
                 min-width: 1000px;
-                /* Still scrollable on mobile */
                 font-size: 12px;
+                table-layout: fixed;
             }
 
             #arInvTable th,
             #arInvTable td {
-                padding: 8px 6px;
+                padding: 6px 4px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
 
             .description-column {
                 width: 250px;
                 min-width: 200px;
+            }
+
+            /* Mobile specific column adjustments */
+            .quantity-column textarea {
+                width: 60px !important;
+            }
+
+            .price-column textarea,
+            .line-total-column textarea {
+                width: 140px !important;
             }
         }
 
@@ -541,6 +699,30 @@
             }
         }
 
+        /* Enhanced dropdown and search styling - matching receiveInvItem */
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+
+        .search-dropdown {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+        }
+
+        .search-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+
         /* E-signing section styling */
         .esign-upload-area {
             border: 2px dashed #d1d5db;
@@ -560,6 +742,39 @@
         .esign-upload-area.dragover {
             border-color: #1d4ed8;
             background-color: #dbeafe;
+        }
+
+        /* Progress step styling */
+        .progress-step {
+            transition: all 0.3s ease;
+        }
+
+        .progress-step.active .w-8 {
+            background-color: #2563eb !important;
+            color: white !important;
+        }
+
+        .progress-step.completed .w-8 {
+            background-color: #16a34a !important;
+            color: white !important;
+        }
+
+        .progress-step.processing .w-8 {
+            background-color: #f59e0b !important;
+            color: white !important;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
         }
 
         /* Mode-specific visibility */
@@ -835,22 +1050,28 @@
             min-height: 60px;
         }
 
-        /* Custom scrollbar */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
+        /* Enhanced custom scrollbar styling - matching receiveInvItem */
+        .custom-scrollbar::-webkit-scrollbar,
+        textarea::-webkit-scrollbar {
+            height: 4px;
+            width: 4px;
         }
 
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f5f9;
+        .custom-scrollbar::-webkit-scrollbar-track,
+        textarea::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
         }
 
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
+        .custom-scrollbar::-webkit-scrollbar-thumb,
+        textarea::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
         }
 
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover,
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
 
         /* Responsive Design - exact match to detailINVservice */
@@ -1088,7 +1309,7 @@
 
                         <div class="form-field service-only">
                             <h3>Control Account</h3>
-                            <input type="text" id="U_BSI_UDF3" placeholder="Control Account" class="bg-gray-100"
+                            <input type="text" id="u_bsi_udf3" placeholder="Control Account" class="bg-gray-100"
                                 disabled autocomplete="off">
                         </div>
                     </div>
@@ -1106,36 +1327,29 @@
                                 <!-- Item Only Columns -->
                                 <th class="p-2 item-code-column item-only">Item Code</th>
                                 <th class="p-2 bp-catalog-column item-only">Part Number</th>
-                                <th class="p-2 description-column">
-                                    <span class="item-only">Item Name</span>
-                                    <span class="service-only">Description</span>
-                                </th>
+                                <th class="p-2 description-column item-only">Item Name</th>
                                 <th class="p-2 uom-column item-only">UoM</th>
                                 <th class="p-2 packing-size-column item-only">Packing Size</th>
                                 <th class="p-2 quantity-column item-only">Sales Qty</th>
-                                <th class="p-2 quantity-column">
-                                    <span class="item-only">Inv. Qty</span>
-                                    <span class="service-only">Quantity</span>
-                                </th>
-                                <th class="p-2 uom-column hidden">UoM</th>
+                                <th class="p-2 quantity-column item-only">Inv. Qty</th>
                                 <th class="p-2 price-column item-only">Price per UoM</th>
-                                <th class="p-2 price-column">
-                                    <span class="item-only">Price per Unit</span>
-                                    <span class="service-only">Price</span>
-                                </th>
-                                <th class="p-2 tax-code-column">
-                                    <span class="item-only">VAT Code</span>
-                                    <span class="service-only">VAT Group</span>
-                                </th>
-                                <!-- Service Only Columns -->
-                                <th class="p-2 wtax-column service-only">WTax</th>
+                                <th class="p-2 price-column item-only">Price per Unit</th>
+                                <th class="p-2 tax-code-column item-only">VAT Code</th>
+                                <th class="p-2 wtax-column item-only">WTax</th>
+                                <th class="p-2 account-name-column item-only">Account Name</th>
+                                <th class="p-2 line-total-column item-only">Amount</th>
+
+                                <!-- Service Only Columns, urutan sesuai permintaan -->
+                                <th class="p-2 description-column service-only">Description</th>
+                                <th class="p-2 account-code-column service-only">GL Account</th>
                                 <th class="p-2 account-name-column service-only">Account Name</th>
-                                <th class="p-2 line-total-column">Amount</th>
-                                <th class="p-2 account-code-column hidden">Account Code</th>
-                                <th class="p-2 base-column hidden">BaseType</th>
-                                <th class="p-2 base-column hidden">BaseEntry</th>
-                                <th class="p-2 base-column hidden">BaseLine</th>
-                                <th class="p-2 base-column hidden">LineType</th>
+                                <th class="p-2 control-account-column service-only">Control Account</th>
+                                <th class="p-2 tax-code-column service-only">VAT Code</th>
+                                <th class="p-2 wtax-column service-only">Wtax</th>
+                                <th class="p-2 uom-column service-only">unit</th>
+                                <th class="p-2 quantity-column service-only">qty</th>
+                                <th class="p-2 price-column service-only">Price</th>
+                                <th class="p-2 line-total-column service-only">Amount</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody">
@@ -1317,7 +1531,10 @@
 
                 <div class="mb-6">
                     <div class="flex items-center justify-between mb-4">
-                        <button onclick="downloadPdfDocument()" class="btn-base btn-primary">
+
+                        <!-- Download PDF button will be shown only if status=Approved in URL -->
+                        <button onclick="downloadPdfDocument()" id="downloadPdfBtn" class="btn-base btn-primary"
+                            style="display:none;">
                             Download PDF
                         </button>
                         <button onclick="refreshDocumentList()" class="btn-base bg-gray-500 text-white">
@@ -1356,6 +1573,68 @@
                         </div>
                     </div>
 
+                    <!-- Progress Bar Section -->
+                    <div id="eSignProgressContainer" class="mt-6 hidden">
+                        <div class="bg-white border border-gray-200 rounded-lg p-6">
+                            <h4 class="text-lg font-semibold text-gray-800 mb-4 text-center">E-Signing Progress</h4>
+
+                            <!-- Progress Bar -->
+                            <div class="mb-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm text-gray-600">Progress</span>
+                                    <span id="progressPercentage" class="text-sm font-semibold text-blue-600">0%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div id="progressBar"
+                                        class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                        style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Status Message -->
+                            <div class="text-center">
+                                <div class="flex items-center justify-center mb-3">
+                                    <div id="progressSpinner" class="loading-spinner mr-3"></div>
+                                    <span id="progressStatus" class="text-gray-700">Initializing...</span>
+                                </div>
+
+                                <!-- Progress Steps -->
+                                <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mt-4">
+                                    <div id="step1" class="progress-step active">
+                                        <div
+                                            class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold mx-auto mb-2">
+                                            1</div>
+                                        <p class="text-xs text-gray-600 text-center">Upload</p>
+                                    </div>
+                                    <div id="step2" class="progress-step">
+                                        <div
+                                            class="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center text-sm font-semibold mx-auto mb-2">
+                                            2</div>
+                                        <p class="text-xs text-gray-600 text-center">Processing</p>
+                                    </div>
+                                    <div id="step3" class="progress-step">
+                                        <div
+                                            class="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center text-sm font-semibold mx-auto mb-2">
+                                            3</div>
+                                        <p class="text-xs text-gray-600 text-center">Signing</p>
+                                    </div>
+                                    <div id="step4" class="progress-step">
+                                        <div
+                                            class="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center text-sm font-semibold mx-auto mb-2">
+                                            4</div>
+                                        <p class="text-xs text-gray-600 text-center">Complete</p>
+                                    </div>
+                                </div>
+
+                                <!-- Cancel Button -->
+                                <button onclick="cancelESigningProcess()" id="cancelESignBtn"
+                                    class="btn-base bg-red-600 text-white mt-4">
+                                    Cancel Process
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Action Buttons -->
                     <div class="mt-6 text-center">
                         <button onclick="startESigningProcess()" id="startESignBtn" disabled
@@ -1383,6 +1662,51 @@
                         </div>
                         <div id="existingStampedDocs" class="custom-scrollbar">
                             <!-- Documents akan di-load secara dinamis -->
+                        </div>
+
+                        <!-- E-Stamp Progress Section -->
+                        <div id="stampingSection" class="mt-4 hidden">
+                            <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                <h5 class="text-lg font-semibold text-purple-800 mb-3 text-center">E-Stamping Progress</h5>
+                                
+                                <!-- Progress Bar -->
+                                <div class="mb-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-sm text-gray-600">Progress</span>
+                                        <span id="stampPercentage" class="text-sm font-semibold text-purple-600">0%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div id="stampProgressBar"
+                                            class="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                                            style="width: 0%"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Status Message -->
+                                <div class="text-center">
+                                    <div class="flex items-center justify-center mb-3">
+                                        <div class="loading-spinner mr-3"></div>
+                                        <span id="stampStatus" class="text-gray-700">Preparing...</span>
+                                    </div>
+                                    <div id="stampTimeRemaining" class="text-xs text-gray-500">Estimated time: calculating...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- E-Stamp Completion Section -->
+                        <div id="completionSection" class="mt-4 hidden">
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <div class="text-center">
+                                    <div class="text-green-600 text-2xl mb-2">✅</div>
+                                    <h5 class="text-lg font-semibold text-green-800 mb-2">E-Stamping Completed!</h5>
+                                    <p class="text-sm text-green-600 mb-3">Your document has been successfully e-stamped.</p>
+                                    <div class="space-x-2">
+                                        <button onclick="refreshStampedDocumentList()" class="btn-base bg-green-600 text-white text-sm">
+                                            View Stamped Document
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1450,11 +1774,18 @@
                         class="btn-base bg-purple-600 text-white px-8 py-3 hidden">
                         E-Sign Document
                     </button>
+
+                    <button onclick="printInvItem()" id="printButton"
+                        class="btn-base bg-blue-600 text-white px-8 py-3 hidden">
+                        Print Document
+                    </button>
+
                 </div>
 
                 <!-- Environment Switcher -->
-                <div class="flex items-center justify-center mt-6 space-x-2">
-                    <span class="text-sm text-gray-600">Kasbo Environment:</span>
+                <div id="envSwitcherWrapper" class="flex items-center justify-center mt-6 space-x-2"
+                    style="display:none;">
+                    <span class="text-sm text-gray-600"> VIDA-EXP Environment:</span>
                     <span id="kasboEnvBadge"
                         class="text-xs px-2 py-1 rounded bg-green-100 text-green-800">Sandbox</span>
                     <select id="kasboEnvSelect" class="border rounded px-2 py-1 text-sm">
@@ -1478,6 +1809,32 @@
 
         // Simple integration script
         document.addEventListener('DOMContentLoaded', function () {
+            // Show/hide Download PDF button if status=Approved or Received in URL
+            (function showDownloadPdfIfApprovedOrReceived() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const status = urlParams.get('status');
+                const downloadBtn = document.getElementById('downloadPdfBtn');
+                if (downloadBtn) {
+                    if (status && ['approved', 'received'].includes(String(status).trim().toLowerCase())) {
+                        downloadBtn.style.display = 'inline-flex';
+                    } else {
+                        downloadBtn.style.display = 'none';
+                    }
+                }
+            })();
+            // Show/hide environment switcher only if status=Received in URL
+            (function showEnvSwitcherIfReceived() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const status = urlParams.get('status');
+                const envSwitcher = document.getElementById('envSwitcherWrapper');
+                if (envSwitcher) {
+                    if (status && status.toLowerCase() === 'received') {
+                        envSwitcher.style.display = 'flex';
+                    } else {
+                        envSwitcher.style.display = 'none';
+                    }
+                }
+            })();
             console.log('Loading styled AR Invoice interface...');
 
             // Simple check for main JavaScript
