@@ -10,6 +10,11 @@ let stampedDocumentUrl = null;
 let statusCheckInterval = null;
 let documentTrackingData = [];
 
+// Progress tracking variables
+let currentProgress = 0;
+let currentStep = 1;
+let progressInterval = null;
+
 // Kasbo service environment and base URL configuration (switchable at runtime)
 const KASBO_KNOWN_ENV_URLS = {
     sandbox: 'https://dentsu-kansai-expressiv.idsdev.site',
@@ -200,6 +205,358 @@ function generateUUID() {
         var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });
+}
+
+// Progress tracking functions
+function showProgressContainer() {
+    const progressContainer = document.getElementById('eSignProgressContainer');
+    if (progressContainer) {
+        progressContainer.classList.remove('hidden');
+    }
+}
+
+function hideProgressContainer() {
+    const progressContainer = document.getElementById('eSignProgressContainer');
+    if (progressContainer) {
+        progressContainer.classList.add('hidden');
+    }
+}
+
+function updateProgressBar(percentage) {
+    const progressBar = document.getElementById('progressBar');
+    const progressPercentage = document.getElementById('progressPercentage');
+    
+    if (progressBar) {
+        progressBar.style.width = percentage + '%';
+    }
+    
+    if (progressPercentage) {
+        progressPercentage.textContent = Math.round(percentage) + '%';
+    }
+    
+    currentProgress = percentage;
+}
+
+function updateProgressStatus(message) {
+    const progressStatus = document.getElementById('progressStatus');
+    if (progressStatus) {
+        progressStatus.textContent = message;
+    }
+    console.log('📊 Progress:', message);
+}
+
+function updateProgressStep(stepNumber) {
+    currentStep = stepNumber;
+    
+    // Reset all steps
+    for (let i = 1; i <= 4; i++) {
+        const step = document.getElementById(`step${i}`);
+        if (step) {
+            step.classList.remove('active', 'completed', 'processing');
+            const circle = step.querySelector('.w-8');
+            if (circle) {
+                circle.classList.remove('bg-blue-600', 'bg-green-600', 'bg-yellow-500');
+                circle.classList.add('bg-gray-300');
+            }
+        }
+    }
+    
+    // Update steps based on current step
+    for (let i = 1; i <= 4; i++) {
+        const step = document.getElementById(`step${i}`);
+        const circle = step?.querySelector('.w-8');
+        
+        if (i < stepNumber) {
+            // Completed step
+            step?.classList.add('completed');
+            if (circle) {
+                circle.classList.remove('bg-gray-300', 'bg-blue-600', 'bg-yellow-500');
+                circle.classList.add('bg-green-600');
+            }
+        } else if (i === stepNumber) {
+            // Current/active step
+            step?.classList.add('processing');
+            if (circle) {
+                circle.classList.remove('bg-gray-300', 'bg-green-600', 'bg-blue-600');
+                circle.classList.add('bg-yellow-500');
+            }
+        }
+    }
+}
+
+function simulateProgressUpdate(targetPercentage, duration, callback) {
+    const startPercentage = currentProgress;
+    const progressDiff = targetPercentage - startPercentage;
+    const updateInterval = 50; // Update every 50ms
+    const steps = duration / updateInterval;
+    const stepIncrement = progressDiff / steps;
+    
+    let currentUpdate = 0;
+    
+    if (progressInterval) {
+        clearInterval(progressInterval);
+    }
+    
+    progressInterval = setInterval(() => {
+        currentUpdate++;
+        const newProgress = startPercentage + (stepIncrement * currentUpdate);
+        
+        if (currentUpdate >= steps) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+            updateProgressBar(targetPercentage);
+            if (callback) callback();
+        } else {
+            updateProgressBar(newProgress);
+        }
+    }, updateInterval);
+}
+
+function cancelESigningProcess() {
+    // Clear any ongoing intervals
+    if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+    }
+    
+    if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+        statusCheckInterval = null;
+    }
+    
+    // Reset progress
+    currentProgress = 0;
+    currentStep = 1;
+    
+    // Hide progress container
+    hideProgressContainer();
+    
+    // Reset UI
+    updateProgressBar(0);
+    updateProgressStatus('Process cancelled');
+    updateProgressStep(1);
+    
+    // Show upload section again
+    const uploadArea = document.getElementById('eSignUploadArea');
+    if (uploadArea) {
+        uploadArea.style.display = 'block';
+    }
+    
+    console.log('🚫 E-signing process cancelled');
+    
+    // Show cancellation message
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'info',
+            title: 'Process Cancelled',
+            text: 'The e-signing process has been cancelled.',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    }
+}
+
+// Show success popup with download and view options
+function showSuccessPopup(documentUrl, jobData) {
+    console.log('📄 Showing success popup for document:', documentUrl);
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const stagingId = urlParams.get('stagingID');
+    const docNum = document.getElementById('DocNum')?.value || 'Document';
+    
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'success',
+            title: '🎉 E-Signing Completed!',
+            html: `
+                <div class="text-left space-y-4">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="font-semibold text-green-800">Document Successfully Signed</span>
+                        </div>
+                        <p class="text-green-700 text-sm">Document: <strong>${docNum}</strong></p>
+                        <p class="text-green-700 text-sm">Staging ID: <strong>${stagingId}</strong></p>
+                        <p class="text-green-700 text-sm">Status: <strong>Signed & Ready</strong></p>
+                    </div>
+                    
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 class="font-semibold text-blue-800 mb-3">📋 Available Actions:</h4>
+                        <div class="space-y-3">
+                            <button onclick="viewSignedDocument('${documentUrl}', '${jobData?.id || currentJobId}')" 
+                                    class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                <span>👁️ View Signed Document</span>
+                            </button>
+                            
+                            <button onclick="downloadSignedDocumentFromPopup('${documentUrl}', 'signed_${docNum}.pdf')" 
+                                    class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <span>💾 Download Document</span>
+                            </button>
+                            
+                            <button onclick="refreshDocumentList()" 
+                                    class="w-full bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center space-x-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                <span>🔄 Refresh Document List</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <div class="flex items-start space-x-2">
+                            <svg class="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div class="text-sm">
+                                <p class="text-yellow-800 font-medium">💡 Next Steps:</p>
+                                <p class="text-yellow-700">• Document is now digitally signed</p>
+                                <p class="text-yellow-700">• Available in the "Signed Documents" section</p>
+                                <p class="text-yellow-700">• Consider applying E-Stamp if required</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `,
+            width: '600px',
+            showCancelButton: false,
+            confirmButtonText: '✅ Close',
+            confirmButtonColor: '#059669',
+            customClass: {
+                popup: 'text-left'
+            }
+        });
+    }
+}
+
+// View signed document function
+function viewSignedDocument(documentUrl, jobId) {
+    console.log('👁️ Viewing document:', documentUrl, 'Job ID:', jobId);
+    
+    if (!documentUrl) {
+        // Fallback: try to get document from job ID
+        if (jobId) {
+            getDocumentByJobId(jobId).then(url => {
+                if (url) {
+                    openDocumentViewer(url);
+                } else {
+                    showDocumentNotFoundError('view');
+                }
+            }).catch(error => {
+                console.error('Error getting document:', error);
+                showDocumentNotFoundError('view');
+            });
+        } else {
+            showDocumentNotFoundError('view');
+        }
+        return;
+    }
+    
+    openDocumentViewer(documentUrl);
+}
+
+// Download signed document function
+function downloadSignedDocumentFromPopup(documentUrl, fileName) {
+    console.log('💾 Downloading document:', documentUrl, 'as:', fileName);
+    
+    if (!documentUrl) {
+        showDocumentNotFoundError('download');
+        return;
+    }
+    
+    // Create download link
+    const link = document.createElement('a');
+    link.href = documentUrl;
+    link.download = fileName || `signed_document_${Date.now()}.pdf`;
+    link.target = '_blank';
+    
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Show success message
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'success',
+            title: 'Download Started',
+            text: 'Your signed document download has started.',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    }
+}
+
+// Get document by job ID
+async function getDocumentByJobId(jobId) {
+    try {
+        const response = await fetch(kasboUrl(`/jobs/${jobId}/document`));
+        if (response.ok) {
+            const result = await response.json();
+            return result.url || result.document_url || result.signed_url;
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching document by job ID:', error);
+        return null;
+    }
+}
+
+// Open document viewer
+function openDocumentViewer(url) {
+    // Try to open in new window first
+    const newWindow = window.open(url, '_blank', 'width=1000,height=700,scrollbars=yes,resizable=yes');
+    
+    if (!newWindow) {
+        // Fallback: show modal with iframe
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: '📄 Signed Document Viewer',
+                html: `
+                    <div class="h-96">
+                        <iframe src="${url}" 
+                                class="w-full h-full border rounded" 
+                                frameborder="0">
+                        </iframe>
+                    </div>
+                `,
+                width: '800px',
+                showCancelButton: true,
+                confirmButtonText: 'Open in New Tab',
+                cancelButtonText: 'Close',
+                confirmButtonColor: '#3b82f6'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.open(url, '_blank');
+                }
+            });
+        } else {
+            // Last resort: direct navigation
+            window.location.href = url;
+        }
+    }
+}
+
+// Show document not found error
+function showDocumentNotFoundError(action) {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'error',
+            title: `Cannot ${action} Document`,
+            text: `The signed document URL is not available. Please check the document list or contact support.`,
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#dc2626'
+        });
+    }
 }
 
 // Initialize E-Signing features
@@ -681,13 +1038,32 @@ async function startESigningProcess() {
         const confirmed = await confirmProductionAction('an E-Sign operation');
         if (!confirmed) { return; }
 
-        // Update UI to processing state
-        updateStepProgress(2);
-        showProcessingSection();
-        hideUploadSection();
+        // Show progress container and start Step 1
+        showProgressContainer();
+        updateProgressStep(1);
+        updateProgressStatus('Starting e-signing process...');
+        updateProgressBar(0);
+        
+        // Hide upload area
+        const uploadArea = document.getElementById('eSignUploadArea');
+        if (uploadArea) {
+            uploadArea.style.display = 'none';
+        }
 
-        // Convert PDF to base64
-        updateProcessStatus('Converting document to base64...', 10);
+        // Step 1: File validation and preparation
+        simulateProgressUpdate(15, 1000, () => {
+            updateProgressStatus('Validating file...');
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Move to Step 2: Processing
+        updateProgressStep(2);
+        updateProgressStatus('Converting document to base64...');
+        simulateProgressUpdate(35, 1500, () => {
+            updateProgressStatus('Preparing document for signing...');
+        });
+        
         const documentBase64 = await fileToBase64(selectedESignFile);
 
         // Get document details
@@ -707,10 +1083,13 @@ async function startESigningProcess() {
             signerEmail = currentUser.email || currentUser.username + "@company.com";
         }
         
-        // Try to get approvedByName from current invoice data
-        if (typeof currentInvItemData !== 'undefined' && currentInvItemData && currentInvItemData.arInvoiceApprovalSummary) {
-            signerName = currentInvItemData.arInvoiceApprovalSummary.approvedByName || signerName;
-            console.log('🔍 Found approvedByName from currentInvItemData:', signerName);
+        // Try to get approvedByName from current invoice data - FIX: Use AppState
+        const invData = (typeof AppState !== 'undefined' && AppState?.currentInvItemData) || 
+                       (typeof currentInvItemData !== 'undefined' && currentInvItemData);
+        
+        if (invData && invData.arInvoiceApprovalSummary) {
+            signerName = invData.arInvoiceApprovalSummary.approvedByName || signerName;
+            console.log('🔍 Found approvedByName from invoice data:', signerName);
         } else {
             // Fallback: try to get from HTML element if exists
             const approvedByNameElement = document.getElementById('approvedByName') || document.getElementById('approvedBySearch');
@@ -737,8 +1116,11 @@ async function startESigningProcess() {
             signer_email: signerEmail || undefined
         };
 
-        // Call Enhanced E-Sign API
-        updateProcessStatus('Sending document for e-signing...', 30);
+        // Move to Step 3: API Call and Signing
+        updateProgressStep(3);
+        updateProgressStatus('Sending document for e-signing...');
+        simulateProgressUpdate(55, 2000, null);
+        
         console.log('📝 Enhanced E-Sign API payload:', {
             ...apiPayload,
             document_base64: '[BASE64_DATA]' // Don't log the actual base64
@@ -774,10 +1156,16 @@ async function startESigningProcess() {
 
         console.log('📝 E-Sign Job/Transaction ID:', currentJobId);
 
-        updateProcessStatus('Document submitted for e-signing...', 50);
+        // Update progress to 70%
+        simulateProgressUpdate(70, 1000, () => {
+            updateProgressStatus('Document submitted successfully!');
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Start checking job status immediately
-        updateProcessStatus('Processing e-signature...', 60);
+        // Start checking job status
+        updateProgressStatus('Processing e-signature...');
+        simulateProgressUpdate(85, 2000, null);
         await checkESignJobStatus();
 
     } catch (error) {
@@ -816,9 +1204,22 @@ async function checkESignJobStatus() {
         
         if (result.success !== false && jobData) {
             if (jobData.status === 'completed' || jobData.status === 'success') {
+                // Move to Step 4: Complete
+                updateProgressStep(4);
+                updateProgressStatus('E-signature completed successfully!');
+                simulateProgressUpdate(100, 1000, () => {
+                    // Hide spinner once complete
+                    const spinner = document.getElementById('progressSpinner');
+                    if (spinner) {
+                        spinner.style.display = 'none';
+                    }
+                    
+                    // Show success message
+                    updateProgressStatus('✅ Document signed successfully!');
+                });
+                
                 // E-Signing completed
                 signedDocumentUrl = extractSignedUrl(jobData.result || jobData.signed_url || jobData.message);
-                updateProcessStatus('E-signature completed successfully!', 100);
                 
                 // Refresh the existing documents list
                 setTimeout(() => loadExistingSignedDocuments(), 2000);
@@ -828,15 +1229,23 @@ async function checkESignJobStatus() {
                 if (enableEStamp) {
                     await startEStampProcess();
                 } else {
-                    showCompletionSection(false);
-                    showEStampingOption();
+                    // Show success popup with download and view options
+                    setTimeout(() => {
+                        showSuccessPopup(signedDocumentUrl, jobData);
+                        hideProgressContainer();
+                        // Show upload area again
+                        const uploadArea = document.getElementById('eSignUploadArea');
+                        if (uploadArea) {
+                            uploadArea.style.display = 'block';
+                        }
+                    }, 2000);
                 }
                 
             } else if (jobData.status === 'failed' || jobData.status === 'error') {
                 throw new Error(jobData.error || jobData.message || 'E-signing failed');
             } else {
                 // Still processing, check again immediately
-                updateProcessStatus('E-signature in progress...', 75);
+                updateProgressStatus('E-signature in progress...');
                 setTimeout(() => checkESignJobStatus(), 500);
             }
         } else {
@@ -876,13 +1285,16 @@ async function startEStampProcess() {
             throw new Error('Staging ID not found');
         }
 
-        // Check if there's a QR code source from the invoice data
+        // Check if there's a QR code source from the invoice data - FIX: Use AppState
         let qrcodeSrc = '';
         let hasQrCode = false;
         
         // Try to get QR code from current invoice data
-        if (typeof currentInvItemData !== 'undefined' && currentInvItemData && currentInvItemData.qrCodeSrc) {
-            qrcodeSrc = currentInvItemData.qrCodeSrc;
+        const invDataForQR = (typeof AppState !== 'undefined' && AppState?.currentInvItemData) || 
+                            (typeof currentInvItemData !== 'undefined' && currentInvItemData);
+        
+        if (invDataForQR && invDataForQR.qrCodeSrc) {
+            qrcodeSrc = invDataForQR.qrCodeSrc;
             console.log('🔍 QR Code from invoice data:', qrcodeSrc);
         } else {
             // Fallback to HTML element if exists
@@ -1140,15 +1552,64 @@ function updateProcessStatus(status, percentage) {
 
 // Show error state
 function showErrorState(errorMessage) {
-    const uploadSection = document.getElementById('uploadSection');
-    const processingSection = document.getElementById('processingSection');
-    const completionSection = document.getElementById('completionSection');
+    // Stop any progress animations
+    if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+    }
     
-    if (uploadSection) uploadSection.classList.remove('hidden');
-    if (processingSection) processingSection.classList.add('hidden');
-    if (completionSection) completionSection.classList.add('hidden');
+    // Update progress bar to show error state
+    const progressBar = document.getElementById('progressBar');
+    const progressPercentage = document.getElementById('progressPercentage');
+    const progressStatus = document.getElementById('progressStatus');
+    const progressSpinner = document.getElementById('progressSpinner');
     
-    updateStepProgress(1);
+    if (progressBar) {
+        progressBar.style.backgroundColor = '#dc2626'; // Red color for error
+        progressBar.style.width = '100%';
+    }
+    if (progressPercentage) {
+        progressPercentage.textContent = 'Error';
+        progressPercentage.style.color = '#dc2626';
+    }
+    if (progressStatus) {
+        progressStatus.textContent = '❌ ' + (errorMessage || 'An error occurred');
+        progressStatus.style.color = '#dc2626';
+    }
+    if (progressSpinner) {
+        progressSpinner.style.display = 'none';
+    }
+    
+    // Update current step to show error
+    const currentStepElement = document.getElementById(`step${currentStep}`);
+    if (currentStepElement) {
+        const circle = currentStepElement.querySelector('.w-8');
+        if (circle) {
+            circle.classList.remove('bg-yellow-500', 'bg-blue-600', 'bg-green-600');
+            circle.classList.add('bg-red-600');
+        }
+    }
+    
+    // Auto-hide progress after 5 seconds and show upload area
+    setTimeout(() => {
+        hideProgressContainer();
+        // Reset progress bar color
+        if (progressBar) {
+            progressBar.style.backgroundColor = '#2563eb';
+            progressBar.style.width = '0%';
+        }
+        if (progressPercentage) {
+            progressPercentage.style.color = '#2563eb';
+        }
+        if (progressStatus) {
+            progressStatus.style.color = '#374151';
+        }
+        // Show upload area again
+        const uploadArea = document.getElementById('eSignUploadArea');
+        if (uploadArea) {
+            uploadArea.style.display = 'block';
+        }
+    }, 5000);
     
     Swal.fire({
         icon: 'error',
@@ -1704,8 +2165,11 @@ async function startEStampingProcess() {
         }
         
         // Show stamping section
-        document.getElementById('completionSection').classList.add('hidden');
-        document.getElementById('stampingSection').classList.remove('hidden');
+        const completionSection = document.getElementById('completionSection');
+        const stampingSection = document.getElementById('stampingSection');
+        
+        if (completionSection) completionSection.classList.add('hidden');
+        if (stampingSection) stampingSection.classList.remove('hidden');
         
         updateStampStatus('Preparing document for e-stamping...', 10);
         
@@ -1896,8 +2360,11 @@ async function startEStampingProcess() {
         }
         
         // Show completion section again
-        document.getElementById('stampingSection').classList.add('hidden');
-        document.getElementById('completionSection').classList.remove('hidden');
+        const stampingSection = document.getElementById('stampingSection');
+        const completionSection = document.getElementById('completionSection');
+        
+        if (stampingSection) stampingSection.classList.add('hidden');
+        if (completionSection) completionSection.classList.remove('hidden');
     }
 }
 
@@ -1936,7 +2403,8 @@ async function checkEStampJobStatus() {
                         await downloadStampedDocument(job.ref_num, `${job.ref_num}_stamped.pdf`);
                         
                         // Show final completion
-                        document.getElementById('stampingSection').classList.add('hidden');
+                        const stampingSection = document.getElementById('stampingSection');
+                        if (stampingSection) stampingSection.classList.add('hidden');
                         showStampingCompleted(job.ref_num);
                         
                         // Refresh the stamped documents list
@@ -2118,35 +2586,93 @@ async function processManualEStamping(file) {
         const urlParams = new URLSearchParams(window.location.search);
         const stagingId = urlParams.get('stagingID');
         
+        console.log('🔍 Validating e-stamp prerequisites...');
+        console.log('📋 URL Params:', Object.fromEntries(urlParams));
+        console.log('🆔 Staging ID:', stagingId);
+        console.log('📁 File:', file ? `${file.name} (${file.size} bytes)` : 'No file');
+        
         if (!stagingId) {
-            throw new Error('No staging ID found');
+            console.error('❌ Missing staging ID from URL');
+            throw new Error('Staging ID not found in URL parameters. Please refresh the page and try again.');
         }
         
+        if (!file) {
+            console.error('❌ No file provided');
+            throw new Error('No file provided for e-stamping');
+        }
+        
+        if (file.type !== 'application/pdf') {
+            console.error('❌ Invalid file type:', file.type);
+            throw new Error('Only PDF files are supported for e-stamping');
+        }
+        
+        console.log('✅ Prerequisites validation passed');
+        
         // Show stamping section
-        document.getElementById('completionSection').classList.add('hidden');
-        document.getElementById('stampingSection').classList.remove('hidden');
+        const completionSection = document.getElementById('completionSection');
+        const stampingSection = document.getElementById('stampingSection');
+        
+        if (completionSection) completionSection.classList.add('hidden');
+        if (stampingSection) stampingSection.classList.remove('hidden');
         
         updateStampStatus('Preparing document for e-stamping...', 10);
         
-        // Convert file to base64
-        const signedBase64 = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-                const base64 = reader.result.split(',')[1];
-                resolve(base64);
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
+        // Convert file to base64 with error handling
+        console.log('📄 Converting file to base64...');
+        let signedBase64;
+        try {
+            signedBase64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    try {
+                        const result = reader.result;
+                        if (!result || typeof result !== 'string') {
+                            reject(new Error('Failed to read file: Invalid result'));
+                            return;
+                        }
+                        
+                        const base64Parts = result.split(',');
+                        if (base64Parts.length !== 2) {
+                            reject(new Error('Failed to read file: Invalid data URL format'));
+                            return;
+                        }
+                        
+                        const base64 = base64Parts[1];
+                        if (!base64) {
+                            reject(new Error('Failed to read file: No base64 data'));
+                            return;
+                        }
+                        
+                        console.log('✅ File converted to base64 successfully');
+                        resolve(base64);
+                    } catch (e) {
+                        reject(new Error(`Failed to process file: ${e.message}`));
+                    }
+                };
+                reader.onerror = () => {
+                    reject(new Error('Failed to read file: FileReader error'));
+                };
+                reader.onabort = () => {
+                    reject(new Error('File reading was aborted'));
+                };
+                reader.readAsDataURL(file);
+            });
+        } catch (fileError) {
+            console.error('❌ File conversion failed:', fileError);
+            throw new Error(`File processing failed: ${fileError.message}`);
+        }
         
         updateStampStatus('Sending document for e-stamping...', 30);
 
-        // Detect QR code presence to inform stamping API
+        // Detect QR code presence to inform stamping API - FIX: Use AppState
         let qrcodeSrcManual = '';
         let hasQrCodeManual = false;
         try {
-            if (typeof currentInvItemData !== 'undefined' && currentInvItemData && currentInvItemData.qrCodeSrc) {
-                qrcodeSrcManual = currentInvItemData.qrCodeSrc;
+            const invDataManual = (typeof AppState !== 'undefined' && AppState?.currentInvItemData) || 
+                                 (typeof currentInvItemData !== 'undefined' && currentInvItemData);
+            
+            if (invDataManual && invDataManual.qrCodeSrc) {
+                qrcodeSrcManual = invDataManual.qrCodeSrc;
             } else {
                 const qrElement = document.getElementById('qrcodeSrc');
                 if (qrElement) {
@@ -2183,17 +2709,28 @@ async function processManualEStamping(file) {
             document_base64: '[BASE64_DATA]'
         });
         
-        const stampResponse = await fetch(kasboUrl('/emeterai/stamp-document'), {
+        const apiUrl = kasboUrl('/emeterai/stamp-document');
+        const userEmail = getCaptureUserEmail();
+        
+        console.log('🔗 E-Stamp API URL:', apiUrl);
+        console.log('👤 User Email:', userEmail);
+        console.log('📤 Making API request...');
+        
+        const stampResponse = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-User-Email': getCaptureUserEmail()
+                'X-User-Email': userEmail
             },
             body: JSON.stringify(stampPayload)
         });
         
+        console.log('📡 API Response Status:', stampResponse.status);
+        console.log('📡 API Response Headers:', Object.fromEntries(stampResponse.headers.entries()));
+        
         if (!stampResponse.ok) {
             const errorText = await stampResponse.text();
+            console.error('❌ API Error Response:', errorText);
             throw new Error(`E-stamp API error: ${stampResponse.status} - ${errorText}`);
         }
         
@@ -2213,18 +2750,56 @@ async function processManualEStamping(file) {
         
     } catch (error) {
         console.error('❌ Manual E-Stamping process failed:', error);
+        console.error('❌ Error stack:', error.stack);
+        console.error('❌ Error type:', error.constructor.name);
+        console.error('❌ Error details:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack
+        });
+        
         updateStampStatus('E-stamping failed', 0);
+        
+        // More detailed error message
+        let errorMessage = 'An unexpected error occurred during e-stamping.';
+        
+        if (error.message.includes('fetch')) {
+            errorMessage = 'Network error: Unable to connect to e-stamp service. Please check your internet connection.';
+        } else if (error.message.includes('API error')) {
+            errorMessage = `API Error: ${error.message}`;
+        } else if (error.message.includes('staging ID')) {
+            errorMessage = 'Missing staging ID. Please refresh the page and try again.';
+        } else if (error.message.includes('JSON')) {
+            errorMessage = 'Invalid server response. Please try again or contact support.';
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        console.error('🚨 Final error message:', errorMessage);
         
         Swal.fire({
             icon: 'error',
             title: 'E-Stamping Failed',
-            text: error.message,
-            confirmButtonText: 'OK'
+            html: `
+                <div class="text-left">
+                    <p class="mb-3">${errorMessage}</p>
+                    <div class="bg-gray-100 p-3 rounded text-xs font-mono">
+                        <strong>Technical Details:</strong><br>
+                        ${error.message || 'Unknown error'}<br>
+                        <strong>Error Type:</strong> ${error.constructor.name}
+                    </div>
+                </div>
+            `,
+            confirmButtonText: 'OK',
+            width: '500px'
         });
         
         // Show completion section again
-        document.getElementById('stampingSection').classList.add('hidden');
-        document.getElementById('completionSection').classList.remove('hidden');
+        const stampingSection = document.getElementById('stampingSection');
+        const completionSection = document.getElementById('completionSection');
+        
+        if (stampingSection) stampingSection.classList.add('hidden');
+        if (completionSection) completionSection.classList.remove('hidden');
     }
 }
 
@@ -2315,6 +2890,16 @@ window.handleFileSelection = handleFileSelection;
 window.validateAndSetFile = validateAndSetFile;
 window.removeSelectedFile = removeSelectedFile;
 window.startESigningProcess = startESigningProcess;
+window.cancelESigningProcess = cancelESigningProcess;
+window.showProgressContainer = showProgressContainer;
+window.hideProgressContainer = hideProgressContainer;
+window.updateProgressBar = updateProgressBar;
+window.updateProgressStatus = updateProgressStatus;
+window.updateProgressStep = updateProgressStep;
+window.showSuccessPopup = showSuccessPopup;
+window.viewSignedDocument = viewSignedDocument;
+window.downloadSignedDocumentFromPopup = downloadSignedDocumentFromPopup;
+window.openDocumentViewer = openDocumentViewer;
 window.downloadSignedDocument = downloadSignedDocument;
 window.downloadStampedDocument = downloadStampedDocument;
 window.getDocumentByTransactionId = getDocumentByTransactionId;

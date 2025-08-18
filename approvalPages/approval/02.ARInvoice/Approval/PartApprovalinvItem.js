@@ -1,5 +1,44 @@
-// ===== FLEXIBLE AR INVOICE JAVASCRIPT =====
+// ===== ENHANCED AR INVOICE JAVASCRIPT =====
 // Supports both Item (I) and Service (S) document types with multi-approval functionality
+// 
+// ✨ IMPROVED MAINTAINABILITY FEATURES:
+// 
+// 🔧 CONFIGURATION-BASED SYSTEM:
+// - BUTTON_CONFIG: Centralized button behavior and visibility rules
+// - STATUS_CONFIG: Enhanced with order property for flexible status management  
+// - UI_CONFIG: Flexible templates for titles, status boxes, and progress indicators
+// - DOC_TYPE_CONFIG: Document type specific configurations
+//
+// 📋 ENHANCED MANAGERS:
+// - TitleManager: Handles all title-related operations with templates
+// - StatusBoxManager: Manages status display and progress indicators
+// - ButtonManager: Centralized button visibility logic using configurations
+//
+// 🎯 BUTTON VISIBILITY SYSTEM:
+// - Configuration-driven visibility rules
+// - Special logic handling for print, eSign, and reject buttons
+// - Standard approval workflow buttons with reusable conditions
+// - Easy to modify by updating BUTTON_CONFIG without touching logic
+//
+// 🏷️ TITLE MANAGEMENT:
+// - Template-based title generation
+// - Flexible source and status mapping
+// - Centralized browser and main title updates
+// - Backward compatibility maintained
+//
+// 📊 STATUS BOX & PROGRESS:
+// - Template-driven status box styling
+// - Configurable progress step visualization
+// - Consistent status indicator management
+// 
+// 💡 USAGE EXAMPLES:
+// - Add new button: Update BUTTON_CONFIG with visibility rules
+// - Change title format: Modify UI_CONFIG.title.templates
+// - Add status: Update STATUS_CONFIG with color and description
+// - Modify progress: Update UI_CONFIG.progress.templates
+//
+// 🔄 BACKWARD COMPATIBILITY:
+// All existing function calls continue to work through delegation to new managers
 
 // Global variables - Application State
 const AppState = {
@@ -19,28 +58,27 @@ function getUrlParameter(name) {
     const urlParams = new URLSearchParams(window.location.search);
     const paramValue = urlParams.get(name);
     console.log(`🔍 URL Parameter '${name}':`, paramValue);
+    console.log(`🔍 Full URL:`, window.location.href);
+    console.log(`🔍 Search params:`, window.location.search);
+    console.log(`🔍 All params:`, Object.fromEntries(urlParams));
     return paramValue;
 }
 
 // =========================
-// === JUDUL SETUP BLOCK ===
+// === ENHANCED TITLE MANAGEMENT ===
 // =========================
 
-// Fungsi utama untuk setup judul halaman AR Invoice
-function setupARInvoiceTitle({ status, source, docType } = {}) {
-    // Ambil status/source dari URL jika tidak diberikan
-    if (!status) status = getUrlParameter('status');
-    if (!source) source = getUrlParameter('source');
-    if (!docType) docType = AppState.docType;
-
-    // Mapping status/source ke teks user-friendly
-    const sourceMap = {
+// Enhanced Title Manager using configuration
+const TitleManager = {
+    // Source and status mapping for user-friendly text
+    sourceMap: {
         'check': 'Check',
         'acknowledge': 'Acknowledge',
         'approve': 'Approve',
         'receive': 'Receive'
-    };
-    const statusMap = {
+    },
+
+    statusMap: {
         'checked': 'Checked',
         'acknowledged': 'Acknowledged',
         'approved': 'Approved',
@@ -48,129 +86,128 @@ function setupARInvoiceTitle({ status, source, docType } = {}) {
         'prepared': 'Prepared',
         'draft': 'Draft',
         'rejected': 'Rejected'
-    };
-    const sourceText = sourceMap[source] || source || '';
-    const statusText = statusMap[(status || '').toLowerCase()] || status || '';
-    const docTypeName = docType === 'S' ? 'Service' : 'Item';
+    },
 
-    // Simpan pendingTitle untuk update judul utama setelah docType diketahui
-    AppState.pendingTitle = statusText ? `${statusText} AR Invoice` : `AR Invoice`;
+    // Main title setup function using UI_CONFIG
+    setupTitle: ({ status, source, docType } = {}) => {
+        // Get parameters from URL if not provided
+        if (!status) status = getUrlParameter('status');
+        if (!source) source = getUrlParameter('source');
+        if (!docType) docType = AppState.docType;
 
-    // Update <title> browser
-    document.title = statusText ? `${statusText} AR Invoice - ${sourceText}` : `AR Invoice`;
+        const sourceText = TitleManager.sourceMap[source] || source || '';
+        const statusText = TitleManager.statusMap[(status || '').toLowerCase()] || status || '';
 
-    // Update judul utama (mainTitle)
-    const mainTitle = document.getElementById('mainTitle');
-    if (mainTitle) {
-        mainTitle.textContent = `${AppState.pendingTitle} (${docTypeName})`;
-    }
+        // Save pending title for later updates
+        AppState.pendingTitle = statusText ? `${statusText} AR Invoice` : 'AR Invoice';
 
-    // Update status badge
-    const statusBadge = document.getElementById('statusBadge');
-    if (statusBadge) {
-        statusBadge.textContent = statusText;
-        updateStatusBadgeClass(statusText);
-    }
+        // Update browser title using template
+        document.title = UI_CONFIG.title.templates.browserTitle(statusText, sourceText);
 
-    // Update current status text
-    const currentStatusText = document.getElementById('currentStatusText');
-    if (currentStatusText) {
-        currentStatusText.textContent = statusText;
-    }
+        // Update main title using template
+        TitleManager.updateMainTitle(statusText, docType);
 
-    // Update status description
-    const statusDescription = document.getElementById('statusDescription');
-    if (statusDescription) {
-        statusDescription.textContent = statusText ? `This document is currently in ${statusText} status and requires your ${sourceText?.toLowerCase() || ''} action.` : '';
-    }
-}
+        // Update status badge and description
+        TitleManager.updateStatusElements(statusText, sourceText);
+    },
 
-// Fungsi lama tetap dipanggil, tapi hanya untuk backward compatibility
-function updatePageTitleFromURL() {
-    setupARInvoiceTitle();
-}
-
-// Fungsi update judul utama setelah docType diketahui
-function updateFinalTitleWithDocType() {
-    // Gunakan pendingTitle dan docType terbaru
-    const docTypeName = AppState.docType === 'S' ? 'Service' : 'Item';
-    const mainTitle = document.getElementById('mainTitle');
-    if (mainTitle) {
-        mainTitle.textContent = `${AppState.pendingTitle} (${docTypeName})`;
-    }
-}
-
-// Fungsi update judul dinamis saat status berubah
-function updateMainTitleWithStatus(status) {
-    const config = DOC_TYPE_CONFIG[AppState.docType];
-    const mainTitle = OptimizedUtils.safeGetElement('mainTitle');
-    if (mainTitle) {
-        mainTitle.textContent = `${status} AR Invoice ${config.name}`;
-    }
-}
-// =========================
-// === END JUDUL BLOCK  ===
-// =========================
-
-// Function to update status badge class
-function updateStatusBadgeClass(status) {
-    const statusBadge = document.getElementById('statusBadge');
-    if (!statusBadge) return;
-
-    // Remove all existing status classes
-    statusBadge.classList.remove('status-prepared', 'status-checked', 'status-acknowledged', 'status-approved', 'status-received', 'status-rejected', 'status-draft');
-
-    // Add appropriate class based on status
-    switch (status.toLowerCase()) {
-        case 'prepared':
-            statusBadge.classList.add('status-prepared');
-            break;
-        case 'checked':
-            statusBadge.classList.add('status-checked');
-            break;
-        case 'acknowledged':
-            statusBadge.classList.add('status-acknowledged');
-            break;
-        case 'approved':
-            statusBadge.classList.add('status-approved');
-            break;
-        case 'received':
-            statusBadge.classList.add('status-received');
-            break;
-        case 'rejected':
-            statusBadge.classList.add('status-rejected');
-            break;
-        case 'draft':
-            statusBadge.classList.add('status-draft');
-            break;
-        default:
-            statusBadge.classList.add('status-prepared');
-    }
-}
-
-// Function to update final title with document type
-function updateFinalTitleWithDocType() {
-    console.log('🔧 updateFinalTitleWithDocType called with:', {
-        pendingTitle: AppState.pendingTitle,
-        docType: AppState.docType
-    });
-
-    if (AppState.pendingTitle && AppState.docType) {
-        const mainTitle = document.getElementById('mainTitle');
-        if (mainTitle) {
-            const docTypeName = AppState.docType === 'S' ? 'Service' : 'Item';
-            const finalTitle = `${AppState.pendingTitle} (${docTypeName})`;
-            mainTitle.textContent = finalTitle;
-            console.log('✅ Final title updated:', finalTitle);
-        } else {
-            console.log('❌ mainTitle element not found');
+    // Update main title with flexible template
+    updateMainTitle: (status, docType) => {
+        const mainTitle = OptimizedUtils.safeGetElement(UI_CONFIG.title.elements.mainTitle);
+        if (mainTitle && docType) {
+            mainTitle.textContent = UI_CONFIG.title.templates.mainTitle(AppState.pendingTitle, docType);
         }
-    } else {
-        console.log('⚠️ Missing data for final title:', {
+    },
+
+    // Update status-related elements
+    updateStatusElements: (statusText, sourceText) => {
+        // Update status badge
+        const statusBadge = OptimizedUtils.safeGetElement(UI_CONFIG.title.elements.statusBadge);
+        if (statusBadge) {
+            statusBadge.textContent = statusText;
+            TitleManager.updateStatusBadgeClass(statusText);
+        }
+
+        // Update current status text
+        const currentStatusText = OptimizedUtils.safeGetElement(UI_CONFIG.title.elements.currentStatusText);
+        if (currentStatusText) {
+            currentStatusText.textContent = statusText;
+        }
+
+        // Update status description using template
+        const statusDescription = OptimizedUtils.safeGetElement(UI_CONFIG.title.elements.statusDescription);
+        if (statusDescription) {
+            statusDescription.textContent = UI_CONFIG.title.templates.statusDescription(statusText, sourceText);
+        }
+    },
+
+    // Update status badge CSS classes using STATUS_CONFIG
+    updateStatusBadgeClass: (status) => {
+        const statusBadge = OptimizedUtils.safeGetElement(UI_CONFIG.title.elements.statusBadge);
+        if (!statusBadge) return;
+
+        // Remove all existing status classes
+        Object.values(STATUS_CONFIG).forEach(config => {
+            statusBadge.classList.remove(config.className);
+        });
+
+        // Add appropriate class based on status
+        const statusConfig = STATUS_CONFIG[status];
+        if (statusConfig) {
+            statusBadge.classList.add(statusConfig.className);
+        } else {
+            statusBadge.classList.add(STATUS_CONFIG['Draft'].className);
+        }
+    },
+
+    // Update final title after docType is determined
+    updateFinalTitleWithDocType: () => {
+        console.log('🔧 updateFinalTitleWithDocType called with:', {
             pendingTitle: AppState.pendingTitle,
             docType: AppState.docType
         });
+
+        if (AppState.pendingTitle && AppState.docType) {
+            TitleManager.updateMainTitle(AppState.pendingTitle, AppState.docType);
+            console.log('✅ Final title updated using TitleManager');
+        } else {
+            console.log('⚠️ Missing data for final title:', {
+                pendingTitle: AppState.pendingTitle,
+                docType: AppState.docType
+            });
+        }
+    },
+
+    // Dynamic title update when status changes
+    updateMainTitleWithStatus: (status) => {
+        const config = DOC_TYPE_CONFIG[AppState.docType];
+        const mainTitle = OptimizedUtils.safeGetElement(UI_CONFIG.title.elements.mainTitle);
+        if (mainTitle && config) {
+            mainTitle.textContent = `${status} AR Invoice ${config.name}`;
+        }
     }
+};
+
+// Backward compatibility functions
+function setupARInvoiceTitle(params = {}) {
+    return TitleManager.setupTitle(params);
+}
+
+// Backward compatibility functions
+function updatePageTitleFromURL() {
+    return TitleManager.setupTitle();
+}
+
+function updateFinalTitleWithDocType() {
+    return TitleManager.updateFinalTitleWithDocType();
+}
+
+function updateMainTitleWithStatus(status) {
+    return TitleManager.updateMainTitleWithStatus(status);
+}
+
+function updateStatusBadgeClass(status) {
+    return TitleManager.updateStatusBadgeClass(status);
 }
 
 // API Configuration
@@ -202,37 +239,166 @@ const STATUS_CONFIG = {
     'Draft': {
         color: 'bg-gray-500',
         className: 'status-draft',
-        description: 'Document is in draft state'
+        description: 'Document is in draft state',
+        order: 0
     },
     'Prepared': {
         color: 'bg-yellow-500',
         className: 'status-prepared',
-        description: 'Document has been prepared and ready for checking'
+        description: 'Document has been prepared and ready for checking',
+        order: 1
     },
     'Checked': {
         color: 'bg-blue-500',
         className: 'status-checked',
-        description: 'Document has been checked and ready for acknowledgment'
+        description: 'Document has been checked and ready for acknowledgment',
+        order: 2
     },
     'Acknowledged': {
         color: 'bg-purple-500',
         className: 'status-acknowledged',
-        description: 'Document has been acknowledged and ready for approval'
+        description: 'Document has been acknowledged and ready for approval',
+        order: 3
     },
     'Approved': {
         color: 'bg-green-500',
         className: 'status-approved',
-        description: 'Document has been approved and ready to be received'
+        description: 'Document has been approved and ready to be received',
+        order: 4
     },
     'Received': {
         color: 'bg-green-600',
         className: 'status-received',
-        description: 'Document has been received and processed'
+        description: 'Document has been received and processed',
+        order: 5
     },
     'Rejected': {
         color: 'bg-red-500',
         className: 'status-rejected',
-        description: 'Document has been rejected'
+        description: 'Document has been rejected',
+        order: -1
+    }
+};
+
+// Enhanced Button Configuration for better maintainability
+const BUTTON_CONFIG = {
+    checkButton: {
+        id: 'checkButton',
+        label: 'Check',
+        requiredStatus: 'Prepared',
+        nextStatus: 'Checked',
+        kansaiIdField: 'checkedByKansaiId',
+        fallbackIdField: 'checkedBy',
+        dateField: 'checkedDate',
+        previousDateField: 'preparedDate',
+        visibilityRules: {
+            hideOnStatus: ['Received', 'Rejected'],
+            showConditions: ['previousStepCompleted', 'currentStepNotCompleted', 'userAuthorized']
+        }
+    },
+    acknowledgeButton: {
+        id: 'acknowledgeButton',
+        label: 'Acknowledge',
+        requiredStatus: 'Checked',
+        nextStatus: 'Acknowledged',
+        kansaiIdField: 'acknowledgedByKansaiId',
+        fallbackIdField: 'acknowledgedBy',
+        dateField: 'acknowledgedDate',
+        previousDateField: 'checkedDate',
+        visibilityRules: {
+            hideOnStatus: ['Received', 'Rejected'],
+            showConditions: ['previousStepCompleted', 'currentStepNotCompleted', 'userAuthorized']
+        }
+    },
+    approveButton: {
+        id: 'approveButton',
+        label: 'Approve',
+        requiredStatus: 'Acknowledged',
+        nextStatus: 'Approved',
+        kansaiIdField: 'approvedByKansaiId',
+        fallbackIdField: 'approvedBy',
+        dateField: 'approvedDate',
+        previousDateField: 'acknowledgedDate',
+        visibilityRules: {
+            hideOnStatus: ['Received', 'Rejected'],
+            showConditions: ['previousStepCompleted', 'currentStepNotCompleted', 'userAuthorized']
+        }
+    },
+    receiveButton: {
+        id: 'receiveButton',
+        label: 'Receive',
+        requiredStatus: 'Approved',
+        nextStatus: 'Received',
+        kansaiIdField: 'receivedByKansaiId',
+        fallbackIdField: 'receivedBy',
+        dateField: 'receivedDate',
+        previousDateField: 'approvedDate',
+        visibilityRules: {
+            hideOnStatus: ['Received', 'Rejected'],
+            showConditions: ['previousStepCompleted', 'currentStepNotCompleted', 'userAuthorized']
+        }
+    },
+    rejectButton: {
+        id: 'rejectButton',
+        label: 'Reject',
+        visibilityRules: {
+            hideOnStatus: ['Received', 'Rejected'],
+            showConditions: ['userAuthorized', 'currentStepNotCompleted'],
+            specialLogic: true
+        }
+    },
+    printButton: {
+        id: 'printButton',
+        label: 'Print',
+        visibilityRules: {
+            showOnUrlStatus: ['approved', 'received'],
+            specialLogic: true
+        }
+    },
+    eSignButton: {
+        id: 'eSignButton',
+        label: 'E-Sign',
+        visibilityRules: {
+            showOnApiAndUrlStatus: 'received',
+            specialLogic: true
+        }
+    }
+};
+
+// Enhanced UI Configuration for flexible title and status box management
+const UI_CONFIG = {
+    title: {
+        elements: {
+            mainTitle: 'mainTitle',
+            statusBadge: 'statusBadge',
+            currentStatusText: 'currentStatusText',
+            statusDescription: 'statusDescription'
+        },
+        templates: {
+            mainTitle: (status, docType) => `${status} AR Invoice (${DOC_TYPE_CONFIG[docType]?.name || 'Unknown'})`,
+            browserTitle: (status, source) => status ? `${status} AR Invoice - ${source || ''}` : 'AR Invoice',
+            statusDescription: (status, source) => status ? `This document is currently in ${status} status and requires your ${source?.toLowerCase() || ''} action.` : ''
+        }
+    },
+    statusBox: {
+        elements: {
+            statusIndicator: 'statusIndicator',
+            currentStatusDisplay: 'currentStatusDisplay'
+        },
+        templates: {
+            statusText: (apiStatus) => `Current Status: ${apiStatus}`,
+            statusClass: (statusConfig) => `mb-6 p-4 rounded-lg ${statusConfig.className}`,
+            indicatorClass: (statusConfig) => `w-3 h-3 rounded-full ${statusConfig.color}`
+        }
+    },
+    progress: {
+        steps: ['Prepared', 'Checked', 'Acknowledged', 'Approved', 'Received'],
+        templates: {
+            completedStep: 'w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-semibold',
+            futureStep: 'w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold',
+            completedText: 'text-sm font-medium text-green-600',
+            futureText: 'text-sm font-medium text-gray-500'
+        }
     }
 };
 
@@ -451,6 +617,7 @@ async function initializePage() {
         console.log(`Tindakan yang harus dilakukan user ini: ${action}`);
         console.log('==============================');
 
+
         // 5. Inisialisasi lain (users, event, summary, populate data, attachment)
         await Promise.allSettled([
             fetchUsers(),
@@ -460,9 +627,29 @@ async function initializePage() {
             loadAttachments(stagingId)
         ]);
 
+        // Hide status box under the title
+        const statusBadge = OptimizedUtils.safeGetElement('statusBadge');
+        if (statusBadge) {
+            statusBadge.style.display = 'none';
+        }
+
+        // 6. Ensure print button is properly hidden initially
+        const printBtn = OptimizedUtils.safeGetElement('printButton');
+        if (printBtn) {
+            printBtn.classList.add('hidden');
+            printBtn.disabled = true;
+            console.log('🔒 Print button initially hidden during initialization');
+        }
+
         AppState.initialized = true;
         Swal.close();
         console.log('✅ Page initialized successfully for docType:', AppState.docType);
+
+        // CRITICAL: Force print button check after initialization
+        console.log('🔧 Post-initialization - Force checking print button');
+        setTimeout(() => {
+            handlePrintButtonVisibility();
+        }, 200);
     } catch (error) {
         Swal.close();
         console.error('❌ Initialization error:', error);
@@ -528,60 +715,87 @@ function updatePageTitleAndStatus(status) {
 // === END KHUSUS JUDUL ===
 // =========================
 
-// Update approval progress visualization
+// Backward compatibility function for approval progress
 function updateApprovalProgress(status) {
-    const steps = ['Prepared', 'Checked', 'Acknowledged', 'Approved', 'Received'];
-    const currentIndex = steps.indexOf(status);
-
-    steps.forEach((step, index) => {
-        const stepElement = OptimizedUtils.safeGetElement(`step-${step.toLowerCase()}`);
-        const progressElement = OptimizedUtils.safeGetElement(`progress-${index + 1}`);
-
-        if (stepElement) {
-            const circle = stepElement.querySelector('.w-8');
-            const text = stepElement.querySelector('span');
-
-            if (index <= currentIndex) {
-                // Completed or current step
-                circle.className = 'w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-semibold';
-                text.className = 'text-sm font-medium text-green-600';
-                stepElement.classList.add('completed');
-            } else {
-                // Future step
-                circle.className = 'w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-semibold';
-                text.className = 'text-sm font-medium text-gray-500';
-                stepElement.classList.remove('completed');
-            }
-        }
-
-        if (progressElement) {
-            progressElement.style.width = index <= currentIndex ? '100%' : '0%';
-        }
-    });
+    return StatusBoxManager.updateApprovalProgress(status);
 }
 
 
 
-// Update current status display in the action section
+// Enhanced Status Box Manager using UI_CONFIG
+const StatusBoxManager = {
+    // Update current status display using configuration
+    updateCurrentStatusDisplay: (status) => {
+        // Always use API status for current status display
+        let apiStatus = 'Draft';
+        if (AppState.currentInvItemData) {
+            apiStatus = getStatusFromInvoice(AppState.currentInvItemData);
+        }
+
+        const statusConfig = STATUS_CONFIG[apiStatus] || STATUS_CONFIG['Draft'];
+
+        // Get elements using UI_CONFIG
+        const statusIndicator = OptimizedUtils.safeGetElement(UI_CONFIG.statusBox.elements.statusIndicator);
+        const currentStatusText = OptimizedUtils.safeGetElement(UI_CONFIG.title.elements.currentStatusText);
+        const statusDescription = OptimizedUtils.safeGetElement(UI_CONFIG.title.elements.statusDescription);
+        const currentStatusDisplay = OptimizedUtils.safeGetElement(UI_CONFIG.statusBox.elements.currentStatusDisplay);
+
+        // Update elements using templates
+        if (statusIndicator) {
+            statusIndicator.className = UI_CONFIG.statusBox.templates.indicatorClass(statusConfig);
+        }
+
+        if (currentStatusText) {
+            currentStatusText.textContent = UI_CONFIG.statusBox.templates.statusText(apiStatus);
+        }
+
+        if (statusDescription) {
+            statusDescription.textContent = statusConfig.description;
+        }
+
+        if (currentStatusDisplay) {
+            currentStatusDisplay.className = UI_CONFIG.statusBox.templates.statusClass(statusConfig);
+        }
+    },
+
+    // Update approval progress with enhanced configuration
+    updateApprovalProgress: (status) => {
+        const steps = UI_CONFIG.progress.steps;
+        const currentIndex = steps.indexOf(status);
+
+        steps.forEach((step, index) => {
+            const stepElement = OptimizedUtils.safeGetElement(`step-${step.toLowerCase()}`);
+            const progressElement = OptimizedUtils.safeGetElement(`progress-${index + 1}`);
+
+            if (stepElement) {
+                const circle = stepElement.querySelector('.w-8');
+                const text = stepElement.querySelector('span');
+
+                if (circle && text) {
+                    if (index <= currentIndex) {
+                        // Completed or current step
+                        circle.className = UI_CONFIG.progress.templates.completedStep;
+                        text.className = UI_CONFIG.progress.templates.completedText;
+                        stepElement.classList.add('completed');
+                    } else {
+                        // Future step
+                        circle.className = UI_CONFIG.progress.templates.futureStep;
+                        text.className = UI_CONFIG.progress.templates.futureText;
+                        stepElement.classList.remove('completed');
+                    }
+                }
+            }
+
+            if (progressElement) {
+                progressElement.style.width = index <= currentIndex ? '100%' : '0%';
+            }
+        });
+    }
+};
+
+// Backward compatibility function
 function updateCurrentStatusDisplay(status) {
-    // Always use API status for current status display
-    let apiStatus = 'Draft';
-    if (AppState.currentInvItemData) {
-        apiStatus = getStatusFromInvoice(AppState.currentInvItemData);
-    }
-    const statusConfig = STATUS_CONFIG[apiStatus] || STATUS_CONFIG['Draft'];
-
-    const statusIndicator = OptimizedUtils.safeGetElement('statusIndicator');
-    const currentStatusText = OptimizedUtils.safeGetElement('currentStatusText');
-    const statusDescription = OptimizedUtils.safeGetElement('statusDescription');
-    const currentStatusDisplay = OptimizedUtils.safeGetElement('currentStatusDisplay');
-
-    if (statusIndicator && currentStatusText && statusDescription && currentStatusDisplay) {
-        statusIndicator.className = `w-3 h-3 rounded-full ${statusConfig.color}`;
-        currentStatusText.textContent = `Current Status: ${apiStatus}`;
-        statusDescription.textContent = statusConfig.description;
-        currentStatusDisplay.className = `mb-6 p-4 rounded-lg ${statusConfig.className}`;
-    }
+    return StatusBoxManager.updateCurrentStatusDisplay(status);
 }
 
 // Optimized user fetching
@@ -680,6 +894,12 @@ async function loadInvItemFromAPI(stagingId) {
             console.log('✅ Invoice item data loaded');
             console.log('🔍 FULL API RESPONSE DATA:', JSON.stringify(result.data, null, 2));
 
+            // CRITICAL: Force print button check after data load
+            console.log('🔧 Post-data-load - Force checking print button');
+            setTimeout(() => {
+                handlePrintButtonVisibility();
+            }, 100);
+
             // Process data in parallel
             await Promise.allSettled([
                 populateInvItemData(AppState.currentInvItemData),
@@ -741,11 +961,19 @@ function populateInvItemData(data) {
             'U_BSI_Expressiv_IsTransfered': data.u_BSI_Expressiv_IsTransfered || 'N',
             'U_BSI_UDF1': data.u_bsi_udf1 || data.suratJalan || data.deliveryNote || '',
             'U_BSI_UDF2': data.u_bsi_udf2 || data.poNumber || data.purchaseOrder || '',
+            'u_bsi_udf3': data.u_bsi_udf3 || data.controlAccount || '',
             'account': data.account || data.accountCode || '',
             'acctName': data.acctName || data.accountName || ''
         };
 
         console.log('📋 HEADER FIELDS TO POPULATE:', headerFields);
+        
+        // Debug: specifically check u_bsi_udf3 field
+        console.log('🔍 DEBUG u_bsi_udf3:', {
+            raw: data.u_bsi_udf3,
+            fallback: data.controlAccount,
+            final: headerFields.u_bsi_udf3
+        });
 
         // Batch update fields for better performance
         Object.entries(headerFields).forEach(([id, value]) => {
@@ -1035,9 +1263,36 @@ function populateItemsTable(items) {
     const fragment = document.createDocumentFragment();
 
     items.forEach((item, index) => {
-        const row = createOptimizedItemRow(item, index);
+        let row;
+        if (AppState.docType === 'S') {
+            row = createServiceRow(item, index);
+        } else {
+            row = createOptimizedItemRow(item, index);
+        }
         fragment.appendChild(row);
     });
+    // Service row creation for docType 'S' with correct order and mapping
+    function createServiceRow(item, index) {
+        const row = document.createElement('tr');
+        row.className = 'border-b';
+        // Map: No. | Description | GL Account | Account Name | Control Account | VAT Code | Wtax | unit | qty | Price | Amount
+        const acctName = AppState.currentInvItemData?.acctName || '';
+        const controlAccount = AppState.currentInvItemData?.u_bsi_udf3 || '';
+        row.innerHTML = `
+        <td class="p-2">${index + 1}</td>
+        <td class="p-2 description-column service-only">${item.dscription || ''}</td>
+        <td class="p-2 account-code-column service-only">${item.acctCode || ''}</td>
+        <td class="p-2 account-name-column service-only">${acctName}</td>
+        <td class="p-2 control-account-column service-only">${controlAccount}</td>
+        <td class="p-2 tax-code-column service-only">${item.vatgroup || ''}</td>
+        <td class="p-2 wtax-column service-only">${item.wtLiable || ''}</td>
+        <td class="p-2 uom-column service-only">${item.unitMsr || ''}</td>
+        <td class="p-2 quantity-column service-only">${item.invQty != null ? item.invQty : ''}</td>
+        <td class="p-2 price-column service-only">${item.priceBefDi != null ? OptimizedUtils.formatCurrencyIDR(item.priceBefDi) : ''}</td>
+        <td class="p-2 line-total-column service-only">${item.lineTotal != null ? OptimizedUtils.formatCurrencyIDR(item.lineTotal) : ''}</td>
+    `;
+        return row;
+    }
 
     tableBody.appendChild(fragment);
 }
@@ -1366,7 +1621,7 @@ function extractFormData() {
 
     // Add service-specific fields
     if (AppState.docType === 'S') {
-        formFields.push('U_BSI_UDF3', 'WTSum', 'WTSumFC');
+        formFields.push('u_bsi_udf3', 'WTSum', 'WTSumFC');
     }
 
     const data = {};
@@ -1850,7 +2105,22 @@ function showESigningSection() {
 
 // DOMContentLoaded event listener
 document.addEventListener('DOMContentLoaded', function () {
+    console.log('🚀 DOM Content Loaded - initializing page');
     initializePage();
+
+    // CRITICAL: Force print button check on DOM ready
+    setTimeout(() => {
+        console.log('🔧 DOM Ready - Force checking print button');
+        handlePrintButtonVisibility();
+    }, 500);
+});
+
+// Backup: Window onload event
+window.addEventListener('load', function () {
+    console.log('🚀 Window fully loaded - final print button check');
+    setTimeout(() => {
+        handlePrintButtonVisibility();
+    }, 1000);
 });
 
 // Global function exports for backward compatibility
@@ -1865,6 +2135,25 @@ window.goToMenuReceiveInvItem = goToMenuReceiveInvItem;
 window.saveInvoiceDataToStorage = saveInvoiceDataToStorage;
 window.clearInvoiceDataFromStorage = clearInvoiceDataFromStorage;
 window.showESigningSection = showESigningSection;
+
+// Debug functions for print button
+window.handlePrintButtonVisibility = handlePrintButtonVisibility;
+window.debugPrintButton = () => {
+    console.log('🔧 DEBUG: Manual print button check');
+    handlePrintButtonVisibility();
+};
+window.forcePrintButton = () => {
+    console.log('🔧 FORCE: Forcing print button to show');
+    const printBtn = document.getElementById('printButton');
+    if (printBtn) {
+        printBtn.classList.remove('hidden');
+        printBtn.disabled = false;
+        printBtn.style.display = 'inline-block';
+        console.log('✅ Print button forced to show');
+    } else {
+        console.error('❌ Print button not found');
+    }
+};
 
 // Export attachment functions
 window.loadAttachments = loadAttachments;
@@ -1889,6 +2178,63 @@ window.validateApprovalWorkflow = validateApprovalWorkflow;
 window.getNextActionRequired = getNextActionRequired;
 window.getCurrentUserActionInfo = getCurrentUserActionInfo;
 window.displayApprovalWorkflowInfo = displayApprovalWorkflowInfo;
+
+// Debug function to test print button visibility
+// Debug function to test print button visibility
+window.debugPrintButtonVisibility = function () {
+    console.log('🔍 DEBUGGING PRINT BUTTON VISIBILITY');
+
+    const printBtn = document.getElementById('printButton');
+    if (!printBtn) {
+        console.log('❌ Print button element not found');
+        return;
+    }
+
+    // Get URL parameters using existing function
+    const urlStatus = getUrlParameter('status');
+    const urlSource = getUrlParameter('source');
+
+    const isHidden = printBtn.classList.contains('hidden');
+    const isDisabled = printBtn.disabled;
+
+    console.log('📊 Print Button Status:');
+    console.log('   Element exists:', true);
+    console.log('   Has hidden class:', isHidden);
+    console.log('   Is disabled:', isDisabled);
+    console.log('   URL status:', urlStatus);
+    console.log('   URL source:', urlSource);
+
+    // Check URL conditions for print button
+    const statusIsReceived = urlStatus && urlStatus.toLowerCase() === 'received';
+    const statusIsApproved = urlStatus && urlStatus.toLowerCase() === 'approved';
+    const shouldBeVisible = statusIsReceived || statusIsApproved;
+
+    console.log('🔍 URL Conditions Check:');
+    console.log('   Status is Received:', statusIsReceived);
+    console.log('   Status is Approved:', statusIsApproved);
+    console.log('   Should be visible:', shouldBeVisible);
+
+    // Test visibility logic based on URL
+    if (shouldBeVisible) {
+        console.log('✅ Print button SHOULD be visible');
+        if (isHidden) {
+            console.log('⚠️ But it\'s currently hidden - forcing visibility');
+            printBtn.classList.remove('hidden');
+            printBtn.disabled = false;
+        }
+    } else {
+        console.log('❌ Print button SHOULD be hidden');
+        console.log('   Reason: URL status is not Received or Approved');
+        if (!isHidden) {
+            console.log('⚠️ But it\'s currently visible - forcing hidden');
+            printBtn.classList.add('hidden');
+            printBtn.disabled = true;
+        }
+    }
+
+    console.log('=== END PRINT BUTTON DEBUG ===');
+};
+
 
 // Debug utility: check all fields after population
 window.debugAllFieldsAfterPopulation = function () {
@@ -2607,281 +2953,235 @@ function debugCheckButtonVisibility() {
     console.log('=== END DEBUG ===');
 }
 
-function updateActionButtons(status) {
-    console.log('🔄 Updating action buttons for status:', status);
-    // Hide all action buttons first
-    const allButtons = ['checkButton', 'acknowledgeButton', 'approveButton', 'receiveButton', 'rejectButton', 'eSignButton', 'printButton'];
-    allButtons.forEach(buttonId => {
-        const button = OptimizedUtils.safeGetElement(buttonId);
-        if (button) {
-            button.classList.add('hidden');
-            button.disabled = true;
-        }
-    });
-
-
-    // Get current user and approval data using improved functions
-    const currentKansaiId = normalizeKansaiId(getCurrentUserKansaiEmployeeId());
-    const currentFullName = getCurrentUserFullName();
-    const currentUsername = currentUser?.username || '-';
-    const currentRole = currentUser?.role || '-';
-    if (!currentKansaiId) {
-        console.warn('Cannot determine current user kansaiEmployeeId');
-        updateCurrentStatusDisplay(status);
-        return;
-    }
-
-    const approval = AppState.currentInvItemData?.arInvoiceApprovalSummary || {};
-    // Log approval summary for debugging
-    logApprovalSummary();
-
-    // Get detailed action information for current user
-    const userActionInfo = getCurrentUserActionInfo();
-    console.log('👤 User action capabilities:', userActionInfo);
-
-    // Cek peran user pada approval summary untuk status saat ini
-    let registeredAs = '-';
-    let registeredKansaiId = '-';
-    let registeredName = '-';
-    switch (status) {
-        case 'Prepared':
-            registeredAs = 'Checker';
-            registeredKansaiId = approval.checkedByKansaiId || approval.checkedBy || '-';
-            registeredName = approval.checkedByName || '-';
-            break;
-        case 'Checked':
-            registeredAs = 'Acknowledger';
-            registeredKansaiId = approval.acknowledgedByKansaiId || approval.acknowledgedBy || '-';
-            registeredName = approval.acknowledgedByName || '-';
-            break;
-        case 'Acknowledged':
-            registeredAs = 'Approver';
-            registeredKansaiId = approval.approvedByKansaiId || approval.approvedBy || '-';
-            registeredName = approval.approvedByName || '-';
-            break;
-        case 'Approved':
-            registeredAs = 'Receiver';
-            registeredKansaiId = approval.receivedByKansaiId || approval.receivedBy || '-';
-            registeredName = approval.receivedByName || '-';
-            break;
-        default:
-            registeredAs = '-';
-            registeredKansaiId = '-';
-            registeredName = '-';
-    }
-
-    const stagingId = AppState.currentInvItemData?.stagingID || '-';
-    console.log('==== USER LOGIN INFO ====');
-    console.log('AR Invoice StagingID:', stagingId);
-    console.log('Login as:', {
-        kansaiEmployeeId: currentKansaiId,
-        fullName: currentFullName,
-        username: currentUsername,
-        role: currentRole
-    });
-    console.log('Current Status:', status);
-    console.log('Registered as:', registeredAs);
-    console.log('Registered KansaiId:', registeredKansaiId);
-    console.log('Registered Name:', registeredName);
-    console.log('Approval Summary:', approval);
-    console.log('========================');
-
-    // Always get API status for button logic
-    let apiStatus = 'Draft';
-    if (AppState.currentInvItemData) {
-        apiStatus = getStatusFromInvoice(AppState.currentInvItemData);
-    }
-    const urlStatus = getUrlParameter('status');
-
-    // Special cases first
-    // E-Sign button: ONLY if BOTH API status and URL param are 'Received'
-    if (apiStatus === 'Received' && (urlStatus && urlStatus.toLowerCase() === 'received')) {
-        const eSignBtn = OptimizedUtils.safeGetElement('eSignButton');
-        if (eSignBtn) {
-            eSignBtn.classList.remove('hidden');
-            eSignBtn.disabled = false;
-        }
-    }
-    // Print button: ONLY if API status is 'Approved' or 'Received'
-    if (apiStatus === 'Approved' || apiStatus === 'Received') {
-        const printBtn = OptimizedUtils.safeGetElement('printButton');
-        if (printBtn) {
-            printBtn.classList.remove('hidden');
-            printBtn.disabled = false;
-        }
-    }
-    // Hide all buttons for rejected status
-    if (apiStatus === 'Rejected') {
-        updateCurrentStatusDisplay(status);
-        return;
-    }
-
-    // Define approval workflow steps
-    const approvalSteps = [
-        {
-            currentStatus: 'Prepared',
-            nextStatus: 'Checked',
-            buttonId: 'checkButton',
-            requiredKansaiIdField: 'checkedByKansaiId',
-            fallbackIdField: 'checkedBy',
-            dateField: 'checkedDate',
-            previousDateField: 'preparedDate'
-        },
-        {
-            currentStatus: 'Checked',
-            nextStatus: 'Acknowledged',
-            buttonId: 'acknowledgeButton',
-            requiredKansaiIdField: 'acknowledgedByKansaiId',
-            fallbackIdField: 'acknowledgedBy',
-            dateField: 'acknowledgedDate',
-            previousDateField: 'checkedDate'
-        },
-        {
-            currentStatus: 'Acknowledged',
-            nextStatus: 'Approved',
-            buttonId: 'approveButton',
-            requiredKansaiIdField: 'approvedByKansaiId',
-            fallbackIdField: 'approvedBy',
-            dateField: 'approvedDate',
-            previousDateField: 'acknowledgedDate'
-        },
-        {
-            currentStatus: 'Approved',
-            nextStatus: 'Received',
-            buttonId: 'receiveButton',
-            requiredKansaiIdField: 'receivedByKansaiId',
-            fallbackIdField: 'receivedBy',
-            dateField: 'receivedDate',
-            previousDateField: 'approvedDate'
-        }
-    ];
-
-    // Find the current step
-    const currentStep = approvalSteps.find(step => step.currentStatus === status);
-
-    if (currentStep) {
-        // Check if previous step is completed
-        const previousDateFilled = !!approval[currentStep.previousDateField];
-        // Check if current step is not yet completed
-        const currentDateNotFilled = !approval[currentStep.dateField];
-        // Get the required kansaiEmployeeId for this step
-        let requiredKansaiId = approval[currentStep.requiredKansaiIdField] || approval[currentStep.fallbackIdField];
-        requiredKansaiId = normalizeKansaiId(requiredKansaiId);
-        // Check if current user is authorized for this step
-        const userAuthorized = requiredKansaiId && requiredKansaiId === currentKansaiId;
-        console.log('🔍 Step Analysis:', {
-            currentStep: currentStep.currentStatus + ' → ' + currentStep.nextStatus,
-            previousDateField: currentStep.previousDateField,
-            previousDateFilled: previousDateFilled,
-            currentDateField: currentStep.dateField,
-            currentDateNotFilled: currentDateNotFilled,
-            requiredKansaiIdField: currentStep.requiredKansaiIdField,
-            requiredKansaiId: requiredKansaiId,
-            currentUserKansaiId: currentKansaiId,
-            userAuthorized: userAuthorized
+// Enhanced Button Manager using BUTTON_CONFIG for better maintainability
+const ButtonManager = {
+    // Hide all buttons first
+    hideAllButtons: () => {
+        Object.values(BUTTON_CONFIG).forEach(config => {
+            // Exclude print button from auto-hide - it has special logic
+            if (config.id !== 'printButton') {
+                const button = OptimizedUtils.safeGetElement(config.id);
+                if (button) {
+                    button.classList.add('hidden');
+                    button.disabled = true;
+                }
+            }
         });
-        // Show the approval button if all conditions are met
-        if (previousDateFilled && currentDateNotFilled && userAuthorized) {
-            const button = OptimizedUtils.safeGetElement(currentStep.buttonId);
-            if (button) {
-                button.classList.remove('hidden');
-                button.disabled = false;
-                console.log('✅ Showing button:', currentStep.buttonId);
-            }
-        } else {
-            console.log('❌ Button not shown because:', {
-                previousDateFilled,
-                currentDateNotFilled,
-                userAuthorized,
-                reason: !previousDateFilled ? 'Previous step not completed' :
-                    !currentDateNotFilled ? 'Current step already completed' :
-                        !userAuthorized ? 'User not authorized for this step' : 'Unknown'
-            });
+    },
+
+    // Check if button should be visible based on its configuration
+    shouldShowButton: (buttonConfig, context) => {
+        const { status, apiStatus, urlStatus, approval, currentKansaiId } = context;
+
+        // Handle special logic buttons separately
+        if (buttonConfig.visibilityRules?.specialLogic) {
+            return ButtonManager.handleSpecialLogic(buttonConfig, context);
         }
+
+        // Check hide conditions
+        if (buttonConfig.visibilityRules?.hideOnStatus?.includes(apiStatus)) {
+            return false;
+        }
+
+        // Check standard approval buttons
+        if (buttonConfig.requiredStatus && buttonConfig.requiredStatus === status) {
+            return ButtonManager.checkApprovalConditions(buttonConfig, approval, currentKansaiId);
+        }
+
+        return false;
+    },
+
+    // Check approval conditions for standard buttons
+    checkApprovalConditions: (buttonConfig, approval, currentKansaiId) => {
+        const previousDateFilled = !!approval[buttonConfig.previousDateField];
+        const currentDateNotFilled = !approval[buttonConfig.dateField];
+
+        let requiredKansaiId = approval[buttonConfig.kansaiIdField] || approval[buttonConfig.fallbackIdField];
+        requiredKansaiId = normalizeKansaiId(requiredKansaiId);
+
+        const userAuthorized = requiredKansaiId && requiredKansaiId === currentKansaiId;
+
+        console.log(`🔍 ${buttonConfig.label} Button Analysis:`, {
+            previousDateFilled,
+            currentDateNotFilled,
+            userAuthorized,
+            requiredKansaiId,
+            currentKansaiId
+        });
+
+        return previousDateFilled && currentDateNotFilled && userAuthorized;
+    },
+
+    // Handle special logic for print, eSign, and reject buttons
+    handleSpecialLogic: (buttonConfig, context) => {
+        const { apiStatus, urlStatus, approval, currentKansaiId, status } = context;
+
+        switch (buttonConfig.id) {
+            case 'printButton':
+                const urlStatusLower = urlStatus ? urlStatus.toLowerCase() : '';
+                return buttonConfig.visibilityRules.showOnUrlStatus.includes(urlStatusLower);
+
+            case 'eSignButton':
+                return apiStatus === 'Received' &&
+                    urlStatus && urlStatus.toLowerCase() === 'received';
+
+            case 'rejectButton':
+                if (buttonConfig.visibilityRules.hideOnStatus.includes(apiStatus)) {
+                    return false;
+                }
+
+                // Find current step for reject button
+                const approvalSteps = Object.values(BUTTON_CONFIG).filter(config =>
+                    config.requiredStatus && !config.visibilityRules?.specialLogic
+                );
+
+                const currentStep = approvalSteps.find(step => step.requiredStatus === status);
+                if (currentStep) {
+                    let requiredKansaiId = approval[currentStep.kansaiIdField] || approval[currentStep.fallbackIdField];
+                    requiredKansaiId = normalizeKansaiId(requiredKansaiId);
+                    const currentDateNotFilled = !approval[currentStep.dateField];
+                    const userAuthorized = requiredKansaiId && requiredKansaiId === currentKansaiId;
+                    return userAuthorized && currentDateNotFilled;
+                }
+                return false;
+
+            default:
+                return false;
+        }
+    },
+
+    // Main function to update button visibility
+    updateButtons: (status) => {
+        console.log('🔄 ButtonManager: Updating action buttons for status:', status);
+
+        // Hide all buttons first
+        ButtonManager.hideAllButtons();
+
+        // Get current user and approval data
+        const currentKansaiId = normalizeKansaiId(getCurrentUserKansaiEmployeeId());
+        if (!currentKansaiId) {
+            console.warn('ButtonManager: Cannot determine current user kansaiEmployeeId');
+            StatusBoxManager.updateCurrentStatusDisplay(status);
+            ButtonManager.handlePrintButton();
+            return;
+        }
+
+        const approval = AppState.currentInvItemData?.arInvoiceApprovalSummary || {};
+        const urlStatus = getUrlParameter('status');
+
+        // Get API status
+        let apiStatus = 'Draft';
+        if (AppState.currentInvItemData) {
+            apiStatus = getStatusFromInvoice(AppState.currentInvItemData);
+        }
+
+        // Create context for button visibility decisions
+        const context = {
+            status,
+            apiStatus,
+            urlStatus,
+            approval,
+            currentKansaiId
+        };
+
+        // Check each button and show if conditions are met
+        Object.values(BUTTON_CONFIG).forEach(buttonConfig => {
+            if (ButtonManager.shouldShowButton(buttonConfig, context)) {
+                const button = OptimizedUtils.safeGetElement(buttonConfig.id);
+                if (button) {
+                    button.classList.remove('hidden');
+                    button.disabled = false;
+                    console.log(`✅ ButtonManager: Showing ${buttonConfig.label} button`);
+                }
+            }
+        });
+
+        // CRITICAL: Handle print button FIRST and ALWAYS
+        console.log('🖨️ ButtonManager: Handling print button...');
+        ButtonManager.handlePrintButton();
+
+        // Update current status display
+        StatusBoxManager.updateCurrentStatusDisplay(apiStatus);
+    },
+
+    // Handle print button with existing logic
+    handlePrintButton: () => {
+        return handlePrintButtonVisibility();
+    }
+};
+
+// Legacy function for backward compatibility - now uses ButtonManager
+function updateActionButtons(status) {
+    console.log('🔄 Legacy updateActionButtons called, delegating to ButtonManager');
+    return ButtonManager.updateButtons(status);
+}
+
+// Separate function to handle print button visibility
+function handlePrintButtonVisibility() {
+    console.log('🔍 handlePrintButtonVisibility() called');
+
+    const printBtn = OptimizedUtils.safeGetElement('printButton');
+    if (!printBtn) {
+        console.error('❌ CRITICAL: Print button element not found!');
+        // Try direct getElementById as backup
+        const printBtnDirect = document.getElementById('printButton');
+        console.log('🔍 Direct getElementById result:', printBtnDirect);
+        return;
     }
 
-    // Improved reject button logic: only show if API status is not 'Received'/'Rejected' AND user is authorized for current step and step belum selesai
-    const rejectBtn = OptimizedUtils.safeGetElement('rejectButton');
-    if (rejectBtn) {
-        // Always hide by default
-        rejectBtn.classList.add('hidden');
-        rejectBtn.disabled = true;
-        rejectBtn.title = '';
+    console.log('✅ Print button element found:', printBtn);
 
-        // Only show if API status is not 'Received' or 'Rejected'
-        if (status !== 'Received' && status !== 'Rejected') {
-            // Find current approval step
-            const approvalSteps = [
-                {
-                    currentStatus: 'Prepared',
-                    requiredKansaiIdField: 'checkedByKansaiId',
-                    fallbackIdField: 'checkedBy',
-                    dateField: 'checkedDate'
-                },
-                {
-                    currentStatus: 'Checked',
-                    requiredKansaiIdField: 'acknowledgedByKansaiId',
-                    fallbackIdField: 'acknowledgedBy',
-                    dateField: 'acknowledgedDate'
-                },
-                {
-                    currentStatus: 'Acknowledged',
-                    requiredKansaiIdField: 'approvedByKansaiId',
-                    fallbackIdField: 'approvedBy',
-                    dateField: 'approvedDate'
-                },
-                {
-                    currentStatus: 'Approved',
-                    requiredKansaiIdField: 'receivedByKansaiId',
-                    fallbackIdField: 'receivedBy',
-                    dateField: 'receivedDate'
-                }
-            ];
-            const currentStep = approvalSteps.find(step => step.currentStatus === status);
-            if (currentStep) {
-                let requiredKansaiId = approval[currentStep.requiredKansaiIdField] || approval[currentStep.fallbackIdField];
-                requiredKansaiId = normalizeKansaiId(requiredKansaiId);
-                const currentDateNotFilled = !approval[currentStep.dateField];
-                const userAuthorized = requiredKansaiId && requiredKansaiId === currentKansaiId;
-                if (userAuthorized && currentDateNotFilled) {
-                    rejectBtn.classList.remove('hidden');
-                    rejectBtn.disabled = false;
-                    rejectBtn.title = 'Reject this document';
-                    console.log('✅ Showing reject button (authorized & step belum selesai)');
-                } else {
-                    rejectBtn.classList.add('hidden');
-                    rejectBtn.disabled = true;
-                    rejectBtn.title = '';
-                    console.log('❌ Hiding reject button (not authorized or step sudah selesai)');
-                }
-            } else {
-                // Not a valid approval step, always hide
-                rejectBtn.classList.add('hidden');
-                rejectBtn.disabled = true;
-                rejectBtn.title = '';
-            }
-        } else {
-            // Status is Received/Rejected, always hide
-            rejectBtn.classList.add('hidden');
-            rejectBtn.disabled = true;
-            rejectBtn.title = '';
-        }
+    // Get URL parameter with extra debugging
+    const urlStatus = getUrlParameter('status');
+    const urlStatusLower = urlStatus ? urlStatus.toLowerCase() : '';
+
+    console.log('🔍 Current URL:', window.location.href);
+    console.log('🔍 URL Search Params:', window.location.search);
+
+    // Show print button if URL status is 'approved' or 'received'
+    const showPrintByUrl = urlStatusLower === 'approved' || urlStatusLower === 'received';
+
+    console.log('🖨️ ===== PRINT BUTTON LOGIC DEBUGGING =====');
+    console.log('- Original URL status:', urlStatus);
+    console.log('- URL status (lowercase):', urlStatusLower);
+    console.log('- Should show print button:', showPrintByUrl);
+    console.log('- Check approved:', urlStatusLower === 'approved');
+    console.log('- Check received:', urlStatusLower === 'received');
+    console.log('- Current button classes:', printBtn.className);
+    console.log('- Current button disabled:', printBtn.disabled);
+
+    if (showPrintByUrl) {
+        console.log('🎯 EXECUTING: Show print button');
+        printBtn.classList.remove('hidden');
+        printBtn.disabled = false;
+        printBtn.style.display = ''; // Remove any inline display:none
+        console.log('✅ PRINT BUTTON SHOWN for URL status:', urlStatus);
+        console.log('✅ New button classes:', printBtn.className);
+        console.log('✅ New button disabled:', printBtn.disabled);
+    } else {
+        console.log('🎯 EXECUTING: Hide print button');
+        printBtn.classList.add('hidden');
+        printBtn.disabled = true;
+        console.log('❌ PRINT BUTTON HIDDEN for URL status:', urlStatus);
     }
 
-    // Show print button if status is Approved or Received
-    if (status === 'Approved' || status === 'Received') {
-        const printBtn = OptimizedUtils.safeGetElement('printButton');
-        if (printBtn) {
+    console.log('🖨️ ===== END PRINT BUTTON LOGIC =====');
+
+    // Force refresh button visibility after short delay
+    setTimeout(() => {
+        const currentlyHidden = printBtn.classList.contains('hidden');
+        console.log('🔍 Print button status after timeout - Hidden:', currentlyHidden);
+        if (showPrintByUrl && currentlyHidden) {
+            console.log('⚠️ FORCING print button visibility');
             printBtn.classList.remove('hidden');
             printBtn.disabled = false;
+            printBtn.style.display = 'inline-block';
         }
-    }
+    }, 100);
 
-    // Update current status display (always by API status)
-    updateCurrentStatusDisplay(apiStatus);
-
-    // Display approval workflow information
-    // displayApprovalWorkflowInfo();
+    // Log final state
+    console.log('- Final print button state - hidden:', printBtn.classList.contains('hidden'));
+    console.log('- Final print button state - disabled:', printBtn.disabled);
 }
 
 // Fixed build approval request data function
