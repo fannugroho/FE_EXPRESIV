@@ -1220,7 +1220,7 @@ function populateInvItemData(data) {
         const summaryFields = {
             'docTotal': OptimizedUtils.formatCurrencyIDR(data.docTotal || 0),
             'discSum': OptimizedUtils.formatCurrencyIDR(data.discSum || 0),
-            'netPriceAfterDiscount': OptimizedUtils.formatCurrencyIDR(data.netPriceAfterDisc || 0),
+            'netPriceAfterDiscount': OptimizedUtils.formatCurrencyIDR(data.netPriceAfterDiscount || 0),
             'dpp1112': OptimizedUtils.formatCurrencyIDR(data.dpp1112 || 0),
             'vatSum': OptimizedUtils.formatCurrencyIDR(data.vatSum || 0),
             'wtSum': OptimizedUtils.formatCurrencyIDR(data.wtSum || 0),
