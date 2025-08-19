@@ -1048,27 +1048,7 @@ function populateInvoiceData(invoice) {
         console.log('✅ INVOICE DATA POPULATION COMPLETED SUCCESSFULLY');
         console.log('================================================');
         
-        // Ensure signature data is populated for approved status
-        if (isStatusApproved()) {
-            console.log('🔄 Ensuring signature population after data load...');
-            setTimeout(() => {
-                isSignatureProcessed = false; // Reset flag to allow re-population
-                populateSignatureSync(invoice);
-                
-                // Double check after additional delay
-                setTimeout(() => {
-                    const nameElement = document.getElementById('signatureName');
-                    const hasSignatureName = nameElement && nameElement.textContent.trim();
-                    const hasSignatureImage = document.querySelector('.signature-space img');
-                    
-                    if (!hasSignatureName || !hasSignatureImage) {
-                        console.log('⚠️ Signature still missing, trying once more...');
-                        isSignatureProcessed = false;
-                        populateSignatureSync(invoice);
-                    }
-                }, 500);
-            }, 200);
-        }
+        // Signature will be handled by coordinated loading function
         
     } catch (error) {
         console.error('❌ ERROR IN POPULATE INVOICE DATA:', error);
