@@ -65,7 +65,6 @@
             
             paginatedDocuments.forEach((doc, index) => {
                 const row = `<tr class='border-b'>
-                    <td class='p-2 text-left'><input type="checkbox" class="rowCheckbox"></td>
                     <td class='p-2'>${startIndex + index + 1}</td>
                     <td class='p-2'>${doc.cashAdvanceNo ? doc.cashAdvanceNo : ''}</td>
                     <td class='p-2'>${doc.requesterName}</td>
@@ -161,12 +160,7 @@
             }
         }
 
-        document.getElementById("selectAll").addEventListener("change", function () {
-            let checkboxes = document.querySelectorAll(".rowCheckbox");
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-            });
-        });
+        // Select-all checkbox removed; no selection controls present
         
         // Event listener untuk search input
         document.getElementById('searchInput').addEventListener('input', function(e) {
