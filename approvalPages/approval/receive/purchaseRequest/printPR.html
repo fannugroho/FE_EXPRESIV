@@ -333,7 +333,7 @@
             const urlParams = new URLSearchParams(window.location.search);
             
             // Set values from URL parameters
-            document.getElementById('dateIssued').textContent = urlParams.get('receivedDateFormatted') || '';
+            document.getElementById('dateIssued').textContent = urlParams.get('submissionDate') || '';
             document.getElementById('requestedDepartment').textContent = urlParams.get('department') || '';
             document.getElementById('purchaseRequestNo').textContent = urlParams.get('purchaseRequestNo') || '';
             document.getElementById('classification').textContent = urlParams.get('classification') || '';

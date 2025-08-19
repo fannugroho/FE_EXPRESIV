@@ -23,7 +23,7 @@ function populateFromApiData(apiData) {
     if (!apiData) return;
 
     // Header fields
-    document.getElementById('dateIssued').textContent = apiData.approvedDateFormatted || formatDateToDDMMYYYY(apiData.submissionDate) || '';
+    document.getElementById('dateIssued').textContent = formatDateToDDMMYYYY(apiData.submissionDate) || '';
     document.getElementById('requestedDepartment').textContent = apiData.departmentName || '';
     document.getElementById('purchaseRequestNo').textContent = apiData.purchaseRequestNo || '';
     document.getElementById('classification').textContent = apiData.classification || '';
