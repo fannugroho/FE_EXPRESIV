@@ -146,7 +146,7 @@
                         <input type="text" class="description w-full" maxlength="200" />
                     </td>
                     <td class="p-2 border">
-                        <input type="number" class="total w-full" maxlength="10" required step="0.01" oninput="calculateTotalAmount()"/>
+                        <input type="text" class="total w-full" maxlength="10" required oninput="calculateTotalAmount()"/>
                     </td>
                     <td class="p-2 border text-center">
                         <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -331,72 +331,47 @@
     </script>
 
     <script>
-        // Simple number formatting with .00 decimal places
+        // Format with thousand separators and 2 decimals on blur
         function formatNumberWithDecimals(input) {
-            // Get the numeric value
-            let value = input.value.replace(/[^\d.]/g, '');
-            
-            // If empty, set to 0.00
-            if (!value) {
+            let value = (input.value || '').toString().replace(/,/g, '').replace(/[^\d.]/g, '');
+            if (!value || value === '.') {
                 input.value = '0.00';
                 return;
             }
-            
-            // Parse as float
-            let num = parseFloat(value);
+            const num = parseFloat(value);
             if (isNaN(num)) {
                 input.value = '0.00';
                 return;
             }
-            
-            // Format with 2 decimal places
-            input.value = num.toFixed(2);
+            input.value = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
-        
-        // Real-time formatting as user types
+
+        // Real-time formatting with thousand separators; preserve typed decimals
         function formatNumberAsYouType(input) {
-            // Get the numeric value
-            let value = input.value.replace(/[^\d.]/g, '');
-            
-            // If empty, set to 0.00
-            if (!value) {
+            let raw = (input.value || '').toString();
+            raw = raw.replace(/,/g, '').replace(/[^\d.]/g, '');
+            if (!raw) {
                 input.value = '0.00';
                 return;
             }
-            
-            // Parse as float
-            let num = parseFloat(value);
-            if (isNaN(num)) {
-                input.value = '0.00';
-                return;
-            }
-            
-            // Check if user has typed a decimal point
-            const hasDecimal = input.value.includes('.');
-            
-            if (hasDecimal) {
-                // User is typing decimals, preserve their input
-                // Just ensure it's a valid number
-                input.value = num.toString();
-            } else {
-                // User typed a whole number, add .00
-                input.value = num.toFixed(2);
-            }
+            const parts = raw.split('.');
+            const intPart = parts[0] || '0';
+            const decPart = parts.length > 1 ? parts[1] : '';
+            const formattedInt = Number(intPart).toLocaleString('en-US');
+            input.value = decPart !== '' ? `${formattedInt}.${decPart}` : formattedInt;
         }
-        
+
         function calculateTotalAmount() {
             const amountInputs = document.querySelectorAll('.total');
             let total = 0;
-            
             amountInputs.forEach(input => {
-                const value = parseFloat(input.value.replace(/[^\d.]/g, '')) || 0;
+                const cleaned = (input.value || '').toString().replace(/,/g, '').replace(/[^\d.]/g, '');
+                const value = parseFloat(cleaned) || 0;
                 total += value;
             });
-            
-            // Display total with 2 decimal places
             const totalDisplay = document.getElementById('totalAmountDisplay');
             if (totalDisplay) {
-                totalDisplay.textContent = total.toFixed(2);
+                totalDisplay.textContent = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             }
         }
         

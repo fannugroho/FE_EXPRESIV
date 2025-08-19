@@ -225,62 +225,60 @@
         </div>
     </div>
     <script>
-    // Simple number formatting with .00 decimal places
+    // Format with thousand separators and 2 decimals on blur
     function formatNumberWithDecimals(input) {
-        // Get the numeric value
-        let value = input.value.replace(/[^\d.]/g, '');
-        
-        // If empty, set to 0.00
-        if (!value) {
+        let value = (input.value || '').toString().replace(/,/g, '').replace(/[^\d.]/g, '');
+        if (!value || value === '.') {
             input.value = '0.00';
+            calculateTotalAmount();
             return;
         }
-        
-        // Parse as float
-        let num = parseFloat(value);
+        const num = parseFloat(value);
         if (isNaN(num)) {
             input.value = '0.00';
+            calculateTotalAmount();
             return;
         }
-        
-        // Format with 2 decimal places
-        input.value = num.toFixed(2);
-        
-        // Calculate total
+        input.value = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         calculateTotalAmount();
     }
-    
-    // Real-time formatting as user types
+
+    // Real-time formatting with thousand separators; preserve caret position
     function formatNumberAsYouType(input) {
-        // Get the numeric value
-        let value = input.value.replace(/[^\d.]/g, '');
-        
-        // If empty, set to 0.00
-        if (!value) {
+        const oldValue = (input.value || '').toString();
+        const selectionStart = input.selectionStart || 0;
+        const digitsBeforeCaret = oldValue.slice(0, selectionStart).replace(/[^0-9]/g, '').length;
+
+        let raw = oldValue.replace(/,/g, '');
+        const firstDot = raw.indexOf('.');
+        if (firstDot !== -1) raw = raw.slice(0, firstDot + 1) + raw.slice(firstDot + 1).replace(/\./g, '');
+        raw = raw.replace(/[^0-9.]/g, '');
+
+        if (!raw) {
             input.value = '0.00';
+            try { input.setSelectionRange(1, 1); } catch (e) {}
+            calculateTotalAmount();
             return;
         }
-        
-        // Parse as float
-        let num = parseFloat(value);
-        if (isNaN(num)) {
-            input.value = '0.00';
-            return;
+
+        const parts = raw.split('.');
+        let intPart = parts[0] || '0';
+        intPart = intPart.replace(/^0+(?=\d)/, '');
+        const decPart = parts.length > 1 ? parts[1] : '';
+        const formattedInt = (intPart ? Number(intPart) : 0).toLocaleString('en-US');
+        const newValue = decPart !== '' ? `${formattedInt}.${decPart}` : formattedInt;
+        input.value = newValue;
+
+        // Restore caret based on digit count before caret
+        let newPos = 0;
+        let seen = 0;
+        for (let i = 0; i < newValue.length; i++) {
+            if (/\d/.test(newValue[i])) seen++;
+            if (seen >= digitsBeforeCaret) { newPos = i + 1; break; }
+            if (i === newValue.length - 1) newPos = newValue.length;
         }
-        
-        // Check if user has typed a decimal point
-        const hasDecimal = input.value.includes('.');
-        
-        if (hasDecimal) {
-            // User is typing decimals, preserve their input
-            // Just ensure it's a valid number
-            input.value = num.toString();
-        } else {
-            // User typed a whole number, add .00
-            input.value = num.toFixed(2);
-        }
-        
-        // Calculate total
+        try { input.setSelectionRange(newPos, newPos); } catch (e) {}
+
         calculateTotalAmount();
     }
     
@@ -289,19 +287,14 @@
         let sum = 0;
         
         totalInputs.forEach(input => {
-            const value = input.value.trim();
-            if (value && !isNaN(parseFloat(value))) {
-                sum += parseFloat(value);
-            }
+            const cleaned = (input.value || '').toString().replace(/,/g, '').replace(/[^\d.]/g, '');
+            const value = parseFloat(cleaned) || 0;
+            sum += value;
         });
         
-        // Format the sum with 2 decimal places
-        const formattedSum = sum.toFixed(2);
-        
-        // Update the total amount display
         const totalAmountDisplay = document.getElementById('totalAmountDisplay');
         if (totalAmountDisplay) {
-            totalAmountDisplay.textContent = formattedSum;
+            totalAmountDisplay.textContent = sum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
     }
     

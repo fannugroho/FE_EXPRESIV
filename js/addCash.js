@@ -119,27 +119,60 @@ function removeTransactionTypeEmphasis() {
     }
 }
 
-// Function to calculate total amount from all rows
+// Function to calculate total amount from all rows (with thousand separators)
 function calculateTotalAmount() {
     const totalInputs = document.querySelectorAll('.total');
     let sum = 0;
     
     totalInputs.forEach(input => {
-        // Only add to sum if the input has a valid numeric value
-        const value = input.value.trim();
-        if (value && !isNaN(parseFloat(value))) {
-            sum += parseFloat(value);
-        }
+        const cleaned = (input.value || '').toString().replace(/,/g, '').replace(/[^\d.]/g, '');
+        const value = parseFloat(cleaned) || 0;
+        sum += value;
     });
     
-    // Format the sum with 2 decimal places (no thousands separator to avoid confusion)
-    const formattedSum = sum.toFixed(2);
-    
-    // Update the total amount display
     const totalAmountDisplay = document.getElementById('totalAmountDisplay');
     if (totalAmountDisplay) {
-        totalAmountDisplay.textContent = formattedSum;
+        totalAmountDisplay.textContent = sum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
+}
+
+// Caret-preserving formatter reused in JS context
+function formatNumberAsYouTypeCaret(input) {
+    const oldValue = (input.value || '').toString();
+    const selectionStart = input.selectionStart || 0;
+    const digitsBeforeCaret = oldValue.slice(0, selectionStart).replace(/[^0-9]/g, '').length;
+
+    let raw = oldValue.replace(/,/g, '');
+    const firstDot = raw.indexOf('.');
+    if (firstDot !== -1) raw = raw.slice(0, firstDot + 1) + raw.slice(firstDot + 1).replace(/\./g, '');
+    raw = raw.replace(/[^0-9.]/g, '');
+
+    if (!raw) {
+        input.value = '0.00';
+        try { input.setSelectionRange(1, 1); } catch (e) {}
+        calculateTotalAmount();
+        return;
+    }
+
+    const parts = raw.split('.');
+    let intPart = parts[0] || '0';
+    intPart = intPart.replace(/^0+(?=\d)/, '');
+    const decPart = parts.length > 1 ? parts[1] : '';
+    const formattedInt = (intPart ? Number(intPart) : 0).toLocaleString('en-US');
+    const newValue = decPart !== '' ? `${formattedInt}.${decPart}` : formattedInt;
+    input.value = newValue;
+
+    // Restore caret based on digit count before caret
+    let newPos = 0;
+    let seen = 0;
+    for (let i = 0; i < newValue.length; i++) {
+        if (/\d/.test(newValue[i])) seen++;
+        if (seen >= digitsBeforeCaret) { newPos = i + 1; break; }
+        if (i === newValue.length - 1) newPos = newValue.length;
+    }
+    try { input.setSelectionRange(newPos, newPos); } catch (e) {}
+
+    calculateTotalAmount();
 }
 
 // Function to update field states based on prerequisites
@@ -493,7 +526,7 @@ async function saveDocument(isSubmit = false) {
             const accountName = row.querySelector('.account-name').value;
             const coa = row.querySelector('.coa').value;
             const description = row.querySelector('.description').value;
-            const amount = row.querySelector('.total').value;
+            const amount = (row.querySelector('.total').value || '').toString().replace(/,/g, '');
             
             if (description && amount) {
                 formData.append(`CashAdvanceDetails[${detailIndex}][Category]`, category || '');
@@ -619,7 +652,7 @@ function validateFormFields(isSubmit) {
         const accountName = row.querySelector('.account-name').value;
         const coa = row.querySelector('.coa').value;
         const description = row.querySelector('.description').value;
-        const amount = row.querySelector('.total').value;
+        const amount = (row.querySelector('.total').value || '').toString().replace(/,/g, '');
 
         if (description && amount) {
             hasValidDetails = true;
@@ -652,7 +685,7 @@ function validateRow(row, rowIndex) {
     const category = row.querySelector('.category-input')?.value.trim();
     const accountName = row.querySelector('.account-name')?.value.trim();
     const coa = row.querySelector('.coa')?.value.trim();
-    const amount = row.querySelector('.total')?.value.trim();
+    const amount = (row.querySelector('.total')?.value || '').toString().replace(/,/g, '').trim();
     // Details/description is optional
 
     let missing = [];
@@ -774,11 +807,6 @@ function goToMenuCash() {
 
 function previewPDF(event) {
 const files = event.target.files;
-if (files.length + uploadedFiles.length > 5) {
-alert('Maximum 5 PDF files are allowed.');
-event.target.value = ''; // Reset file input
-return;
-}
 
 for (let i = 0; i < files.length; i++) {
     const file = files[i];
@@ -922,7 +950,7 @@ async function addRow() {
             <input type="text" class="description w-full" maxlength="200" />
         </td>
         <td class="p-2 border">
-            <input type="number" class="total w-full" maxlength="10" required step="0.01" oninput="calculateTotalAmount()"/>
+            <input type="text" class="total w-full" maxlength="10" required oninput="calculateTotalAmount()"/>
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -935,6 +963,14 @@ async function addRow() {
     
     // Setup category dropdown for the new row
     await setupCategoryDropdown(newRow);
+    
+    // Setup amount formatting events with caret preservation
+    const amountInput = newRow.querySelector('.total');
+    if (amountInput) {
+        amountInput.value = '0.00';
+        amountInput.addEventListener('blur', function() { formatNumberWithDecimals(this); });
+        amountInput.addEventListener('input', function() { formatNumberAsYouTypeCaret(this); });
+    }
 }
 
 function deleteRow(button) {
@@ -991,7 +1027,7 @@ function fetchUsers() {
 }
 
 function fetchBusinessPartners() {
-    fetch(`${BASE_URL}/api/business-partners/type/employee`)
+    fetch(`${BASE_URL}/api/business-partners/type/all`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -1008,10 +1044,12 @@ function fetchBusinessPartners() {
 }
 
 function setupBusinessPartnerSearch(businessPartners) {
-    // Store business partners globally for search functionality - only store active employee business partners
+    // Store business partners globally for search functionality - only store active business partners
     window.businessPartners = businessPartners.filter(bp => bp.active).map(bp => ({
+        id: bp.id,
         code: bp.code,
-        name: bp.name
+        name: bp.name,
+        type: bp.type
     }));
 
     // Setup search functionality for paid to
