@@ -1218,13 +1218,13 @@ function populateInvItemData(data) {
         updateCurrencyLabels(currency);
 
         const summaryFields = {
-            'docTotal': OptimizedUtils.formatCurrencyIDR(data.netPrice || data.totalAmount || data.docTotal || 0),
-            'discSum': OptimizedUtils.formatCurrencyIDR(data.discSum || data.discountAmount || 0),
-            'netPriceAfterDiscount': OptimizedUtils.formatCurrencyIDR(data.netPriceAfterDiscount || data.netPriceAfterDisc || data.salesAmount || 0),
-            'dpp1112': OptimizedUtils.formatCurrencyIDR(data.dpp1112 || data.taxBase || 0),
-            'vatSum': OptimizedUtils.formatCurrencyIDR(data.docTax || data.vatAmount || data.vatSum || 0),
-            'wtSum': OptimizedUtils.formatCurrencyIDR(data.wtSum || data.withholdingTax || 0),
-            'grandTotal': OptimizedUtils.formatCurrencyIDR(data.grandTotal || data.totalAmount || 0)
+            'docTotal': OptimizedUtils.formatCurrencyIDR(data.docTotal || 0),
+            'discSum': OptimizedUtils.formatCurrencyIDR(data.discSum || 0),
+            'netPriceAfterDiscount': OptimizedUtils.formatCurrencyIDR(data.netPriceAfterDisc || 0),
+            'dpp1112': OptimizedUtils.formatCurrencyIDR(data.dpp1112 || 0),
+            'vatSum': OptimizedUtils.formatCurrencyIDR(data.vatSum || 0),
+            'wtSum': OptimizedUtils.formatCurrencyIDR(data.wtSum || 0),
+            'grandTotal': OptimizedUtils.formatCurrencyIDR(data.grandTotal || 0)
         };
 
         console.log('💰 SUMMARY FIELDS TO POPULATE:', summaryFields);

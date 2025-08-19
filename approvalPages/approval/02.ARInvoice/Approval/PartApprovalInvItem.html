@@ -818,6 +818,11 @@ This page supports TWO distinct modes for AR Invoice approvals:
             display: table-cell;
         }
 
+        /* Special handling for service-only flex containers */
+        .service-mode .service-only.flex {
+            display: flex !important;
+        }
+
         .item-mode .item-only {
             display: table-cell;
         }
@@ -1673,8 +1678,8 @@ This page supports TWO distinct modes for AR Invoice approvals:
 
                             <div class="form-field">
                                 <h3>Account Name</h3>
-                                <input type="text" id="itemAcctName" placeholder="Account Name" class="bg-gray-100" disabled
-                                    autocomplete="off">
+                                <input type="text" id="itemAcctName" placeholder="Account Name" class="bg-gray-100"
+                                    disabled autocomplete="off">
                             </div>
                         </div>
                     </div>
@@ -1733,8 +1738,7 @@ This page supports TWO distinct modes for AR Invoice approvals:
                 <!-- Total -->
                 <div class="mt-4 flex justify-end items-center space-x-2">
                     <label class="font-semibold text-gray-700 w-48 text-right">Total :</label>
-                    <span id="docCurLabel"
-                        class="w-12 text-center font-medium text-gray-600 bg-gray-50 px-2 py-1 rounded text-sm border">IDR</span>
+                    <span id="docCurLabel" class="mr-2 text-gray-600 text-sm align-middle"></span>
                     <input type="text" id="docTotal"
                         class="w-64 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 currency-input-idr text-right"
                         readonly autocomplete="off">
@@ -1743,8 +1747,7 @@ This page supports TWO distinct modes for AR Invoice approvals:
                 <!-- Discounted -->
                 <div class="mt-4 flex justify-end items-center space-x-2">
                     <label class="font-semibold text-gray-700 w-48 text-right">Discounted :</label>
-                    <span id="discCurLabel"
-                        class="w-12 text-center font-medium text-gray-600 bg-gray-50 px-2 py-1 rounded text-sm border">IDR</span>
+                    <span id="discCurLabel" class="mr-2 text-gray-600 text-sm align-middle"></span>
                     <input type="text" id="discSum"
                         class="w-64 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 currency-input-idr text-right"
                         readonly autocomplete="off">
@@ -1753,8 +1756,7 @@ This page supports TWO distinct modes for AR Invoice approvals:
                 <!-- Sales Amount -->
                 <div class="mt-4 flex justify-end items-center space-x-2">
                     <label class="font-semibold text-gray-700 w-48 text-right">Sales Amount :</label>
-                    <span id="salesCurLabel"
-                        class="w-12 text-center font-medium text-gray-600 bg-gray-50 px-2 py-1 rounded text-sm border">IDR</span>
+                    <span id="salesCurLabel" class="mr-2 text-gray-600 text-sm align-middle"></span>
                     <input type="text" id="netPriceAfterDiscount"
                         class="w-64 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 currency-input-idr text-right"
                         readonly autocomplete="off">
@@ -1763,8 +1765,7 @@ This page supports TWO distinct modes for AR Invoice approvals:
                 <!-- Tax Base Other Value -->
                 <div class="mt-4 flex justify-end items-center space-x-2">
                     <label class="font-semibold text-gray-700 w-48 text-right">Tax Base Other Value :</label>
-                    <span id="dppCurLabel"
-                        class="w-12 text-center font-medium text-gray-600 bg-gray-50 px-2 py-1 rounded text-sm border">IDR</span>
+                    <span id="dppCurLabel" class="mr-2 text-gray-600 text-sm align-middle"></span>
                     <input type="text" id="dpp1112"
                         class="w-64 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 currency-input-idr text-right"
                         readonly autocomplete="off">
@@ -1773,18 +1774,16 @@ This page supports TWO distinct modes for AR Invoice approvals:
                 <!-- VAT 12% -->
                 <div class="mt-4 flex justify-end items-center space-x-2">
                     <label class="font-semibold text-gray-700 w-48 text-right">VAT 12% :</label>
-                    <span id="vatCurLabel"
-                        class="w-12 text-center font-medium text-gray-600 bg-gray-50 px-2 py-1 rounded text-sm border">IDR</span>
+                    <span id="vatCurLabel" class="mr-2 text-gray-600 text-sm align-middle"></span>
                     <input type="text" id="vatSum"
                         class="w-64 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 currency-input-idr text-right"
                         readonly autocomplete="off">
                 </div>
 
-                <!-- Withholding Tax -->
-                <div class="mt-4 flex justify-end items-center space-x-2">
+                <!-- Withholding Tax - Service Mode Only -->
+                <div class="mt-4 flex justify-end items-center space-x-2 service-only">
                     <label class="font-semibold text-gray-700 w-48 text-right">Withholding Tax :</label>
-                    <span id="wtCurLabel"
-                        class="w-12 text-center font-medium text-gray-600 bg-gray-50 px-2 py-1 rounded text-sm border">IDR</span>
+                    <span id="wtCurLabel" class="mr-2 text-gray-600 text-sm align-middle"></span>
                     <input type="text" id="wtSum"
                         class="w-64 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 currency-input-idr text-right"
                         readonly autocomplete="off">
@@ -1793,8 +1792,7 @@ This page supports TWO distinct modes for AR Invoice approvals:
                 <!-- GRAND TOTAL -->
                 <div class="mt-6 pt-4 border-t border-gray-300 flex justify-end items-center space-x-2">
                     <label class="font-bold text-gray-800 text-lg w-48 text-right">GRAND TOTAL :</label>
-                    <span id="grandCurLabel"
-                        class="w-12 text-center font-bold text-gray-800 bg-blue-50 px-2 py-1 rounded text-sm border border-blue-200">IDR</span>
+                    <span id="grandCurLabel" class="mr-2 text-gray-800 text-sm font-bold align-middle"></span>
                     <input type="text" id="grandTotal"
                         class="w-64 p-2 border-2 border-gray-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 font-bold currency-input-idr text-right"
                         readonly autocomplete="off">
@@ -2213,6 +2211,50 @@ This page supports TWO distinct modes for AR Invoice approvals:
             </div>
         </div>
     </div>
+    <script>
+        // Dynamic currency label update for summary/footer section
+        function updateCurrencyLabels() {
+            // Detect mode
+            const isServiceMode = document.body.classList.contains('service-mode');
+            const isItemMode = document.body.classList.contains('item-mode');
+            let currency = '';
+            if (isServiceMode) {
+                const curInput = document.getElementById('DocCur');
+                if (curInput) currency = curInput.value;
+            } else if (isItemMode) {
+                const curInput = document.getElementById('itemDocCur');
+                if (curInput) currency = curInput.value;
+            }
+            // Fallback if not found
+            if (!currency) currency = 'IDR';
+            // List of label IDs
+            const labelIds = [
+                'docCurLabel',
+                'discCurLabel',
+                'salesCurLabel',
+                'dppCurLabel',
+                'vatCurLabel',
+                'wtCurLabel',
+                'grandCurLabel'
+            ];
+            labelIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = currency;
+            });
+        }
+        // Call on DOMContentLoaded and after mode/currency changes
+        document.addEventListener('DOMContentLoaded', function () {
+            updateCurrencyLabels();
+            // Optionally, observe changes to currency fields
+            const serviceCur = document.getElementById('DocCur');
+            const itemCur = document.getElementById('itemDocCur');
+            if (serviceCur) serviceCur.addEventListener('input', updateCurrencyLabels);
+            if (itemCur) itemCur.addEventListener('input', updateCurrencyLabels);
+            // If mode can change dynamically, also observe body class changes
+            const observer = new MutationObserver(updateCurrencyLabels);
+            observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        });
+    </script>
 
     <!-- Compatibility script -->
     <script>
