@@ -1032,7 +1032,7 @@ function fetchUsers() {
 }
 
 function fetchBusinessPartners() {
-    fetch(`${BASE_URL}/api/business-partners/type/employee`)
+    fetch(`${BASE_URL}/api/business-partners/type/all`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -1049,10 +1049,12 @@ function fetchBusinessPartners() {
 }
 
 function setupBusinessPartnerSearch(businessPartners) {
-    // Store business partners globally for search functionality - only store active employee business partners
+    // Store business partners globally for search functionality - only store active business partners
     window.businessPartners = businessPartners.filter(bp => bp.active).map(bp => ({
+        id: bp.id,
         code: bp.code,
-        name: bp.name
+        name: bp.name,
+        type: bp.type
     }));
 
     // Setup search functionality for paid to
