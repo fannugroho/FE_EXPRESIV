@@ -414,7 +414,7 @@ function showSuccessPopup(documentUrl, jobData) {
                     </div>
                     
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h4 class="font-semibold text-blue-800 mb-3">📋 Available Actions:</h4>
+                        <h4 class="font-semibold text-blue-800 mb-3">Available Actions:</h4>
                         <div class="space-y-3">
                             <button onclick="viewSignedDocument('${documentUrl}', '${jobData?.id || currentJobId}')" 
                                     class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2">
@@ -422,7 +422,7 @@ function showSuccessPopup(documentUrl, jobData) {
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                 </svg>
-                                <span>👁️ View Signed Document</span>
+                                <span> View Signed Document</span>
                             </button>
                             
                             <button onclick="downloadSignedDocumentFromPopup('${documentUrl}', 'signed_${docNum}.pdf')" 
@@ -430,7 +430,7 @@ function showSuccessPopup(documentUrl, jobData) {
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
-                                <span>💾 Download Document</span>
+                                <span> Download Document</span>
                             </button>
                             
                             <button onclick="refreshDocumentList()" 
@@ -438,7 +438,7 @@ function showSuccessPopup(documentUrl, jobData) {
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                                 </svg>
-                                <span>🔄 Refresh Document List</span>
+                                <span>Refresh Document List</span>
                             </button>
                         </div>
                     </div>
@@ -449,7 +449,7 @@ function showSuccessPopup(documentUrl, jobData) {
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             <div class="text-sm">
-                                <p class="text-yellow-800 font-medium">💡 Next Steps:</p>
+                                <p class="text-yellow-800 font-medium">Next Steps:</p>
                                 <p class="text-yellow-700">• Document is now digitally signed</p>
                                 <p class="text-yellow-700">• Available in the "Signed Documents" section</p>
                                 <p class="text-yellow-700">• Consider applying E-Stamp if required</p>

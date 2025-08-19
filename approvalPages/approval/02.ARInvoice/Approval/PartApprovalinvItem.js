@@ -1154,7 +1154,9 @@ function populateInvItemData(data) {
             'itemUDF1': data.u_bsi_sjnum || data.u_bsi_udf1 || '',  // Item mode uses u_bsi_sjnum
             'itemUDF2': data.u_bsi_pono || data.u_bsi_udf2 || '',   // Item mode uses u_bsi_pono
             'itemIsTransfered': data.u_BSI_Expressiv_IsTransfered || 'N',
-            'itemAccount': data.account || ''
+            'itemAccount': data.account || '',
+            'itemAcctName': data.acctName || ''
+
         };
 
         // Combine fields based on current mode
@@ -1798,7 +1800,26 @@ function printInvItem() {
 
         // Save and open print page
         if (saveInvoiceDataToStorage(stagingID, invData)) {
-            const printWindow = window.open(`printARItem.html?stagingID=${stagingID}&docType=${AppState.docType}`, '_blank');
+            // Get URL parameters to pass to print page
+            const urlStatus = getUrlParameter('status');
+            const urlSource = getUrlParameter('source');
+            const statusParam = urlStatus ? `&status=${urlStatus}` : '';
+            const sourceParam = urlSource ? `&source=${urlSource}` : '';
+
+            console.log('🖨️ =================================');
+            console.log('🖨️ PRINT FUNCTION DEBUG');
+            console.log('🖨️ =================================');
+            console.log('🖨️ URL Status from parameter:', urlStatus);
+            console.log('🖨️ URL Source from parameter:', urlSource);
+            console.log('🖨️ Status param for print URL:', statusParam);
+            console.log('🖨️ Source param for print URL:', sourceParam);
+            console.log('🖨️ Current window URL:', window.location.href);
+            console.log('🖨️ =================================');
+
+            const printURL = `printARItem.html?stagingID=${stagingID}&docType=${AppState.docType}${statusParam}${sourceParam}`;
+            console.log('🖨️ Opening print window with URL:', printURL);
+
+            const printWindow = window.open(printURL, '_blank');
 
             if (printWindow) {
                 printWindow.onload = function () {
