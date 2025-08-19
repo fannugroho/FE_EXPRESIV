@@ -807,11 +807,6 @@ function goToMenuCash() {
 
 function previewPDF(event) {
 const files = event.target.files;
-if (files.length + uploadedFiles.length > 5) {
-alert('Maximum 5 PDF files are allowed.');
-event.target.value = ''; // Reset file input
-return;
-}
 
 for (let i = 0; i < files.length; i++) {
     const file = files[i];
