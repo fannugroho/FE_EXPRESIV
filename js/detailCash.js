@@ -32,6 +32,17 @@ if (typeof makeAuthenticatedRequest === 'undefined') {
     };
 }
 
+// Safe JSON parser for fetch responses that may be empty (e.g., 204 No Content)
+async function parseJsonSafe(response) {
+	const text = await response.text();
+	if (!text) return null;
+	try {
+		return JSON.parse(text);
+	} catch (e) {
+		throw new Error('Invalid JSON response');
+	}
+}
+
 // Function to get available categories based on department and transaction type from API
 async function getAvailableCategories(departmentId, transactionType) {
     if (!departmentId || !transactionType) return [];
@@ -41,7 +52,7 @@ async function getAvailableCategories(departmentId, transactionType) {
         if (!response.ok) {
             throw new Error('Failed to fetch categories');
         }
-        const data = await response.json();
+        const data = await parseJsonSafe(response);
         return data.data || data; // Handle both wrapped and direct array responses
     } catch (error) {
         console.error('Error fetching categories:', error);
@@ -58,7 +69,7 @@ async function getAvailableAccountNames(category, departmentId, transactionType)
         if (!response.ok) {
             throw new Error('Failed to fetch account names');
         }
-        const data = await response.json();
+        const data = await parseJsonSafe(response);
         return data.data || data; // Handle both wrapped and direct array responses
     } catch (error) {
         console.error('Error fetching account names:', error);
@@ -75,7 +86,7 @@ async function getCOA(category, accountName, departmentId, transactionType) {
         if (!response.ok) {
             throw new Error('Failed to fetch COA');
         }
-        const data = await response.json();
+        const data = await parseJsonSafe(response);
         return data.data?.coa || data.coa || ''; // Handle different response structures
     } catch (error) {
         console.error('Error fetching COA:', error);
@@ -645,21 +656,17 @@ function fetchDropdownOptions(approvalData = null) {
 }
 
 // Function to fetch departments from API
-function fetchDepartments() {
-    fetch(`${BASE_URL}/api/department`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Department data:", data);
-            populateDepartmentSelect(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching departments:', error);
-        });
+async function fetchDepartments() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/department`);
+        if (!response.ok) throw new Error('Network response was not ok: ' + response.statusText);
+        const data = await parseJsonSafe(response);
+        if (!data) throw new Error('Invalid JSON response for departments');
+        console.log("Department data:", data);
+        populateDepartmentSelect(data.data || data);
+    } catch (error) {
+        console.error('Error fetching departments:', error);
+    }
 }
 
 // Function to populate department select
@@ -690,21 +697,17 @@ function populateDepartmentSelect(departments) {
 }
 
 // Function to fetch users from API
-function fetchUsers(approvalData = null) {
-    fetch(`${BASE_URL}/api/users`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("User data:", data);
-            populateUserSelects(data.data, approvalData);
-        })
-        .catch(error => {
-            console.error('Error fetching users:', error);
-        });
+async function fetchUsers(approvalData = null) {
+    try {
+        const response = await fetch(`${BASE_URL}/api/users`);
+        if (!response.ok) throw new Error('Network response was not ok: ' + response.statusText);
+        const data = await parseJsonSafe(response);
+        if (!data) throw new Error('Invalid JSON response for users');
+        console.log("User data:", data);
+        populateUserSelects(data.data || data, approvalData);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+    }
 }
 
 // Function to populate user selects
@@ -904,21 +907,17 @@ function populateUserSelects(users, caData = null) {
 }
 
 // Function to fetch transaction types from API
-function fetchTransactionType() {
-    fetch(`${BASE_URL}/api/transactiontypes/filter?category=CashAdvance`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Transaction Type data:", data);
-            populateTransactionTypeSelect(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching transaction type:', error);
-        });
+async function fetchTransactionType() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/transactiontypes/filter?category=CashAdvance`);
+        if (!response.ok) throw new Error('Network response was not ok: ' + response.statusText);
+        const data = await parseJsonSafe(response);
+        if (!data) throw new Error('Invalid JSON response for transaction types');
+        console.log("Transaction Type data:", data);
+        populateTransactionTypeSelect(data.data || data);
+    } catch (error) {
+        console.error('Error fetching transaction type:', error);
+    }
 }
 
 // Function to populate transaction type select
@@ -1134,7 +1133,7 @@ async function addRow() {
             <input type="text" class="description w-full" maxlength="200" />
         </td>
         <td class="p-2 border">
-            <input type="number" class="total w-full" maxlength="10" required step="0.01" oninput="calculateTotalAmount()"/>
+            <input type="text" class="total w-full" maxlength="10" required oninput="calculateTotalAmount()"/>
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -1182,72 +1181,51 @@ function calculateTotalAmount() {
         }
     });
     
-    // Format the sum with 2 decimal places
-    const formattedSum = sum.toFixed(2);
-    
-    // Update the total amount display
+    // Update the total amount display with thousand separators and 2 decimals
     const totalAmountDisplay = document.getElementById('totalAmountDisplay');
     if (totalAmountDisplay) {
-        totalAmountDisplay.textContent = formattedSum;
+        totalAmountDisplay.textContent = sum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 }
 
-// Simple number formatting with .00 decimal places
+// Format with thousand separators and 2 decimals on blur
 function formatNumberWithDecimals(input) {
-    // Get the numeric value
-    let value = input.value.replace(/[^\d.]/g, '');
-    
-    // If empty, set to 0.00
-    if (!value) {
+    let value = (input.value || '').toString().replace(/,/g, '').replace(/[^\d.]/g, '');
+    if (!value || value === '.') {
         input.value = '0.00';
+        calculateTotalAmount();
         return;
     }
-    
-    // Parse as float
-    let num = parseFloat(value);
+    const num = parseFloat(value);
     if (isNaN(num)) {
         input.value = '0.00';
+        calculateTotalAmount();
         return;
     }
-    
-    // Format with 2 decimal places
-    input.value = num.toFixed(2);
-    
-    // Calculate total
+    input.value = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     calculateTotalAmount();
 }
 
-// Real-time formatting as user types
+// Real-time formatting with thousand separators; preserve typed decimals
 function formatNumberAsYouType(input) {
-    // Get the numeric value
-    let value = input.value.replace(/[^\d.]/g, '');
-    
-    // If empty, set to 0.00
-    if (!value) {
+    let raw = (input.value || '').toString();
+    raw = raw.replace(/,/g, '');
+    // Keep only digits and one optional decimal point
+    const firstDot = raw.indexOf('.');
+    if (firstDot !== -1) {
+        raw = raw.slice(0, firstDot + 1) + raw.slice(firstDot + 1).replace(/\./g, '');
+    }
+    raw = raw.replace(/[^\d.]/g, '');
+    if (!raw) {
         input.value = '0.00';
+        calculateTotalAmount();
         return;
     }
-    
-    // Parse as float
-    let num = parseFloat(value);
-    if (isNaN(num)) {
-        input.value = '0.00';
-        return;
-    }
-    
-    // Check if user has typed a decimal point
-    const hasDecimal = input.value.includes('.');
-    
-    if (hasDecimal) {
-        // User is typing decimals, preserve their input
-        // Just ensure it's a valid number
-        input.value = num.toString();
-    } else {
-        // User typed a whole number, add .00
-        input.value = num.toFixed(2);
-    }
-    
-    // Calculate total
+    const parts = raw.split('.');
+    const intPart = parts[0] || '0';
+    const decPart = parts.length > 1 ? parts[1] : '';
+    const formattedInt = Number(intPart).toLocaleString('en-US');
+    input.value = decPart !== '' ? `${formattedInt}.${decPart}` : formattedInt;
     calculateTotalAmount();
 }
 
@@ -1293,8 +1271,8 @@ function deleteDocument() {
                         window.history.back();
                     });
             } else if (response.ok) {
-                // If there's a response body, try to parse it
-                return response.json().then(data => {
+                // If there's a response body, try to parse it safely
+                return parseJsonSafe(response).then(data => {
                     if (data.status) {
                         Swal.fire('Terhapus!', 'Dokumen berhasil dihapus.', 'success')
                             .then(() => {
@@ -1963,7 +1941,7 @@ async function populateTable(cashAdvanceDetails) {
                 <input type="text" class="description w-full" maxlength="200" value="${detail.description || ''}" />
             </td>
             <td class="p-2 border">
-                <input type="number" class="total w-full" maxlength="10" value="${detail.amount ? parseFloat(detail.amount).toFixed(2) : '0.00'}" required step="0.01" oninput="calculateTotalAmount()"/>
+                <input type="text" class="total w-full" maxlength="10" value="${detail.amount ? Number(detail.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}" required oninput="calculateTotalAmount()"/>
             </td>
             <td class="p-2 border text-center">
                 <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -2259,7 +2237,9 @@ async function updateCashAdvance(isSubmit = false) {
             formData.append(`CashAdvanceDetails[${index}].AccountName`, row.querySelector('.account-name').value);
             formData.append(`CashAdvanceDetails[${index}].Coa`, row.querySelector('.coa').value);
             formData.append(`CashAdvanceDetails[${index}].Description`, row.querySelector('.description').value);
-            formData.append(`CashAdvanceDetails[${index}].Amount`, row.querySelector('.total').value);
+            const rawAmount = row.querySelector('.total').value || '0';
+            const cleanedAmount = rawAmount.toString().replace(/,/g, '');
+            formData.append(`CashAdvanceDetails[${index}].Amount`, cleanedAmount);
         });
         
         // Handle attachments according to backend logic
@@ -2317,7 +2297,7 @@ async function updateCashAdvance(isSubmit = false) {
                     }
                 });
             } else {
-                return response.json().then(errorData => {
+                return parseJsonSafe(response).then(errorData => {
                     console.log("errorData", errorData);
                     throw new Error(errorData.message || `Failed to ${isSubmit ? 'submit' : 'update'} cash advance. Status: ${response.status}`);
                 });
@@ -2784,21 +2764,17 @@ function displayAttachments(attachments) {
     updateAttachmentsDisplay();
 }
 
-function fetchBusinessPartners() {
-    fetch(`${BASE_URL}/api/business-partners/type/employee`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.statusText);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Business Partners data:", data);
-            setupBusinessPartnerSearch(data.data);
-        })
-        .catch(error => {
-            console.error('Error fetching business partners:', error);
-        });
+async function fetchBusinessPartners() {
+    try {
+        const response = await fetch(`${BASE_URL}/api/business-partners/type/employee`);
+        if (!response.ok) throw new Error('Network response was not ok: ' + response.statusText);
+        const data = await parseJsonSafe(response);
+        if (!data) throw new Error('Invalid JSON response for business partners');
+        console.log("Business Partners data:", data);
+        setupBusinessPartnerSearch(data.data || data);
+    } catch (error) {
+        console.error('Error fetching business partners:', error);
+    }
 }
 
 function setupBusinessPartnerSearch(businessPartners) {
@@ -2932,12 +2908,26 @@ function validateFormFields(isSubmit) {
 
 async function fetchCashAdvanceDetails(cashAdvanceId) {
     try {
-        const response = await makeAuthenticatedRequest(`/api/cash-advance/${cashAdvanceId}`);
+        const response = await makeAuthenticatedRequest(`/api/cash-advance/${encodeURIComponent(cashAdvanceId)}`);
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
+            let message = `HTTP error! Status: ${response.status}`;
+            try {
+                const text = await response.text();
+                if (text) {
+                    try {
+                        const err = JSON.parse(text);
+                        message = err.message || message;
+                    } catch (e) {
+                        message = text;
+                    }
+                }
+            } catch (e) {}
+            throw new Error(message);
         }
-        const responseData = await response.json();
+        const responseData = await parseJsonSafe(response);
+        if (!responseData || typeof responseData !== 'object') {
+            throw new Error('Invalid JSON response');
+        }
         if (responseData.data) {
             console.log("API Response Data:", responseData.data);
             console.log("Requester ID from API:", responseData.data.requesterId);
@@ -3000,7 +2990,7 @@ async function fetchSuperiorEmployees(documentType, transactionType, superiorLev
             throw new Error(`API error: ${response.status}`);
         }
         
-        const result = await response.json();
+        const result = await parseJsonSafe(response);
         console.log('API Response:', result);
         
         if (!result.status || result.code !== 200) {
@@ -3054,7 +3044,7 @@ async function fetchSuperiorEmployees(documentType, transactionType, superiorLev
                     try {
                         const userResponse = await fetch(`${BASE_URL}/api/users/${superior.superiorUserId}`);
                         if (userResponse.ok) {
-                            const userResult = await userResponse.json();
+                            const userResult = await parseJsonSafe(userResponse);
                             if (userResult.status && userResult.data && userResult.data.fullName) {
                                 fullName = userResult.data.fullName;
                                 console.log(`Fetched full name from API for ${superior.superiorUserId}: ${fullName}`);
@@ -3334,7 +3324,7 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
             throw new Error(`API error: ${response.status}`);
         }
         
-        const result = await response.json();
+        const result = await parseJsonSafe(response);
         console.log('API Response:', result);
         
         if (!result.status || result.code !== 200) {

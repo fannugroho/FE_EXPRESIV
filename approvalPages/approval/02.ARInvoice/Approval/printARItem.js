@@ -3,6 +3,51 @@
 // API Configuration
 const API_BASE_URL = `${BASE_URL}/api`;
 
+// Global state management to prevent race conditions
+let isDataLoaded = false;
+let isSignatureProcessed = false;
+let currentInvoiceData = null;
+
+// Utility function to check if current status is "Approved"
+function isStatusApproved() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get('status');
+    const source = urlParams.get('source');
+    const statusLower = status ? status.toLowerCase() : '';
+    const sourceLower = source ? source.toLowerCase() : '';
+    
+    console.log('🔍 isStatusApproved() check:');
+    console.log('   - Original status:', status);
+    console.log('   - Original source:', source);
+    console.log('   - Status (lowercase):', statusLower);
+    console.log('   - Source (lowercase):', sourceLower);
+    
+    // Allow signatures for both "approved" and "received" status (case-insensitive)
+    // Also check source parameter for "approve" action
+    const isApproved = statusLower === 'approved';
+    const isReceived = statusLower === 'received';
+    const isApproveAction = sourceLower === 'approve'; // Check source=approve
+    const shouldShow = isApproved || isReceived || isApproveAction;
+    
+    console.log('   - Is Approved (status):', isApproved);
+    console.log('   - Is Received (status):', isReceived);
+    console.log('   - Is Approve Action (source):', isApproveAction);
+    console.log('   - Should show signature:', shouldShow);
+    
+    return shouldShow;
+}
+
+// Utility function to get current status
+function getCurrentStatus() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('status') || '';
+}
+
+// Utility function to check if signatures should be shown
+function shouldShowSignatures() {
+    return isStatusApproved();
+}
+
 // Function to wrap text at specified character limit
 function wrapText(text, maxLength) {
     if (!text || text.length <= maxLength) {
@@ -79,7 +124,7 @@ function createDONumbersTable(doValues) {
     for (let i = 0; i < doValues.length; i += 2) {
         const firstDO = doValues[i];
         const secondDO = doValues[i + 1];
-        
+
         if (secondDO) {
             // Two DO numbers in this row
             tableHTML += `
@@ -118,13 +163,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const stagingID = urlParams.get('stagingID');
     const docEntry = urlParams.get('docEntry');
     const identifier = stagingID || docEntry;
+    const status = urlParams.get('status'); // Extract status parameter
 
     console.log('=== URL PARAMETERS ANALYSIS ===');
     console.log('🔍 All URL Parameters:', Object.fromEntries(urlParams));
     console.log('🆔 Staging ID:', stagingID);
     console.log('📄 Doc Entry:', docEntry);
     console.log('🎯 Final Identifier:', identifier);
-    console.log('===============================');
+    console.log('📊 Status:', status);
+    console.log('📋 Should Show Signatures:', shouldShowSignatures());
+    console.log('=====================================');
 
     // Check if this is the first load (no refresh flag in sessionStorage)
     const hasRefreshed = sessionStorage.getItem(`refreshed_${identifier}`);
@@ -192,9 +240,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.log('✅ Found cached invoice data in localStorage, checking completeness...');
                 console.log('📋 Stored data keys:', Object.keys(parsedData));
 
-                // Always populate signature information
-                console.log('🖋️ Populating signature information from cache...');
-                populateSignatureInformation(parsedData);
+                // Populate signature information based on status
+                if (isStatusApproved()) {
+                    console.log('🖋️ Status is Approved, populating signature information...');
+                    populateSignatureSync(parsedData);
+                } else {
+                    console.log('🚫 Status is not Approved, hiding signature elements...');
+                    hideSignatureElements();
+                }
 
                 // Debug cached financial data
                 console.log('=== CACHED FINANCIAL DATA ANALYSIS ===');
@@ -229,8 +282,14 @@ document.addEventListener('DOMContentLoaded', function () {
                         console.log('📦 Direct fetch result:', result);
 
                         if (result.status && result.data) {
-                            console.log('✅ Pre-populating signature data from API...');
-                            populateSignatureInformation(result.data);
+                            // Populate signature information based on status
+                            if (isStatusApproved()) {
+                                console.log('✅ Pre-populating signature data from API...');
+                                populateSignatureSync(result.data);
+                            } else {
+                                console.log('🚫 Status is not Approved, hiding signature elements...');
+                                hideSignatureElements();
+                            }
 
                             // Debug API financial data
                             console.log('=== DIRECT FETCH FINANCIAL DATA ===');
@@ -276,16 +335,21 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log('📋 Parent data keys:', Object.keys(parentData));
             console.log('🆔 Parent invoice ID:', parentData.docNum || parentData.u_bsi_invnum);
 
-            // Populate signature first to ensure it's displayed immediately
-            console.log('🖋️ Populating signature information from parent...');
-            populateSignatureInformation(parentData);
+            // Populate signature information based on status
+            if (isStatusApproved()) {
+                console.log('🖋️ Status is Approved, populating signature information from parent...');
+                populateSignatureSync(parentData);
+            } else {
+                console.log('🚫 Status is not Approved, hiding signature elements...');
+                hideSignatureElements();
+            }
 
             // Debug parent window financial data
             console.log('=== PARENT WINDOW FINANCIAL DATA ANALYSIS ===');
             console.log('💵 Parent netPrice:', parentData.netPrice);
             console.log('💰 Parent discSum:', parentData.discSum);
             console.log('💲 Parent netPriceAfterDiscount:', parentData.netPriceAfterDiscount);
-            console.log('📊 Parent dpp1112:', parentData.dpp1112);
+            console.log('📊 Parent dpp1112:', parentData.discSum);
             console.log('🏷️ Parent docTax:', parentData.docTax);
             console.log('🎯 Parent grandTotal:', parentData.grandTotal);
             console.log('🪙 Parent docCur:', parentData.docCur);
@@ -592,6 +656,10 @@ function populateInvoiceData(invoice) {
     console.log('🆔 Invoice ID:', invoice.docNum || invoice.u_bsi_invnum);
     console.log('📅 Date:', invoice.docDate);
     console.log('👤 Customer:', invoice.cardName);
+    
+    // Store data globally for race condition prevention
+    currentInvoiceData = invoice;
+    isDataLoaded = true;
     console.log('💰 Currency:', invoice.docCur);
     console.log('===============================');
 
@@ -606,9 +674,14 @@ function populateInvoiceData(invoice) {
     console.log('🪙 Currency:', invoice.docCur, '(Type:', typeof invoice.docCur, ')');
     console.log('===============================');
 
-    // Populate signature information first
-    console.log('🖋️ Populating signature information...');
-    populateSignatureInformation(invoice);
+    // Populate signature information based on status
+    if (isStatusApproved()) {
+        console.log('🖋️ Status is Approved, populating signature information...');
+        populateSignatureSync(invoice);
+    } else {
+        console.log('🚫 Status is not Approved, hiding signature elements...');
+        hideSignatureElements();
+    }
 
     try {
         console.log('📋 Starting DOM element population...');
@@ -875,9 +948,14 @@ function populateInvoiceData(invoice) {
         console.log('🏦 Populating bank information...');
         populateBankInformation(invoice);
 
-        // Signature information - populate from API data
-        console.log('🖋️ Populating signature information...');
-        populateSignatureInformation(invoice);
+        // Signature information - populate from API data based on status
+        if (isStatusApproved()) {
+            console.log('🖋️ Status is Approved, populating signature information...');
+            populateSignatureSync(invoice);
+        } else {
+            console.log('🚫 Status is not Approved, hiding signature elements...');
+            hideSignatureElements();
+        }
 
         // QR Code information - populate from API data
         console.log('📱 Populating QR code...');
@@ -885,6 +963,15 @@ function populateInvoiceData(invoice) {
 
         console.log('✅ INVOICE DATA POPULATION COMPLETED SUCCESSFULLY');
         console.log('================================================');
+        
+        // Final step: Ensure signature is processed after everything else
+        setTimeout(() => {
+            if (isStatusApproved() && !isSignatureProcessed) {
+                console.log('🔄 Final signature check - populating signature after data load');
+                populateSignatureSync(invoice);
+            }
+        }, 500);
+        
     } catch (error) {
         console.error('❌ ERROR IN POPULATE INVOICE DATA:', error);
         console.error('📍 Error stack:', error.stack);
@@ -1273,20 +1360,142 @@ function populateFinancialSummary(invoice) {
     console.log('Financial summary populated:', financialData);
 }
 
+// Signature Image Mapping - Maps approver names to their signature image files
+const SIGNATURE_IMAGE_MAPPING = {
+    // Exact name matches (case-insensitive)
+    'atsuro suzuki': 'Atsuro Suzuki.jpg',
+    'atsushi hayashida': 'Atsushi Hayashida.jpg',
+    'hirotoshi nishihara': 'Hirotoshi Nishihara.jpg',
+    'nyimas widya': 'Nyimas Widya.jpg',
+    'takahiro kimura': 'Takahiro Kimura.jpg',
+    'yuya eguchi': 'Yuya Eguchi.jpg',
+    'nemit': 'Nyimas Widya.jpg', // Map Nemit to available signature
+
+    // Partial name matches for flexibility
+    'atsuro': 'Atsuro Suzuki.jpg',
+    'suzuki': 'Atsuro Suzuki.jpg',
+    'atsushi': 'Atsushi Hayashida.jpg',
+    'hayashida': 'Atsushi Hayashida.jpg',
+    'hirotoshi': 'Hirotoshi Nishihara.jpg',
+    'nishihara': 'Hirotoshi Nishihara.jpg',
+    'nyimas': 'Nyimas Widya.jpg',
+    'widya': 'Nyimas Widya.jpg',
+    'takahiro': 'Takahiro Kimura.jpg',
+    'kimura': 'Takahiro Kimura.jpg',
+    'yuya': 'Yuya Eguchi.jpg',
+    'eguchi': 'Yuya Eguchi.jpg'
+};
+
+// Function to find signature image for a given name
+function findSignatureImage(approverName) {
+    if (!approverName || typeof approverName !== 'string') {
+        return null;
+    }
+
+    const cleanName = approverName.toLowerCase().trim();
+    console.log('🔍 Looking for signature image for:', cleanName);
+
+    // Try exact match first
+    if (SIGNATURE_IMAGE_MAPPING[cleanName]) {
+        console.log('✅ Found exact match:', SIGNATURE_IMAGE_MAPPING[cleanName]);
+        return SIGNATURE_IMAGE_MAPPING[cleanName];
+    }
+
+    // Try partial matches
+    for (const [key, imagePath] of Object.entries(SIGNATURE_IMAGE_MAPPING)) {
+        if (cleanName.includes(key) || key.includes(cleanName)) {
+            console.log('✅ Found partial match:', imagePath, 'for key:', key);
+            return imagePath;
+        }
+    }
+
+    console.log('❌ No signature image found for:', approverName);
+    return null;
+}
+
+// Synchronized signature population to prevent race conditions
+function populateSignatureSync(invoice) {
+    console.log('🔄 SYNCHRONIZED SIGNATURE POPULATION STARTED');
+    
+    // Prevent multiple executions
+    if (isSignatureProcessed) {
+        console.log('⚠️ Signature already processed, skipping');
+        return;
+    }
+    
+    // Mark as processed immediately
+    isSignatureProcessed = true;
+    
+    // Wait for DOM to be ready
+    const checkDOMReady = () => {
+        const signatureNameElement = document.getElementById('signatureName');
+        const signatureTitleElement = document.getElementById('signatureTitle');
+        const signatureSpaceElement = document.querySelector('.signature-space');
+        
+        return signatureNameElement && signatureTitleElement && signatureSpaceElement;
+    };
+    
+    const populateWhenReady = () => {
+        if (!checkDOMReady()) {
+            console.log('⏳ DOM not ready, retrying in 100ms...');
+            setTimeout(populateWhenReady, 100);
+            return;
+        }
+        
+        console.log('✅ DOM ready, proceeding with signature population');
+        populateSignatureInformation(invoice);
+    };
+    
+    populateWhenReady();
+}
+
 // Function to populate signature information from API data
 function populateSignatureInformation(invoice) {
-    console.log('Populating signature information from invoice:', invoice);
-    console.log('Invoice approval summary:', invoice.arInvoiceApprovalSummary);
-    console.log('Direct approvedByName:', invoice.approvedByName);
-    console.log('Direct preparedByName:', invoice.u_BSI_Expressiv_PreparedByName);
+    console.log('🖋️ =================================');
+    console.log('🖋️ SIGNATURE POPULATION DEBUG START');
+    console.log('🖋️ =================================');
+    console.log('🖋️ Full invoice object:', invoice);
+    console.log('🖋️ Invoice approval summary:', invoice.arInvoiceApprovalSummary);
+    console.log('🖋️ Direct approvedByName:', invoice.approvedByName);
+    console.log('🖋️ Direct preparedByName:', invoice.u_BSI_Expressiv_PreparedByName);
+    console.log('🖋️ Invoice status:', invoice.status);
+    console.log('🖋️ Document status:', invoice.docStatus);
 
     let approvedByName = '';
     let approvedPosition = '';
 
-    // Get signature data ONLY from approval summary's approvedByName field
+    // Enhanced signature data retrieval with multiple fallback sources
     if (invoice.arInvoiceApprovalSummary && invoice.arInvoiceApprovalSummary.approvedByName) {
+        // Primary source: approval summary
         approvedByName = invoice.arInvoiceApprovalSummary.approvedByName;
         approvedPosition = invoice.arInvoiceApprovalSummary.approvedPosition || '';
+        console.log('✅ Using signature from arInvoiceApprovalSummary.approvedByName');
+    } else if (invoice.approvedByName) {
+        // Fallback 1: direct approvedByName field
+        approvedByName = invoice.approvedByName;
+        approvedPosition = invoice.approvedPosition || '';
+        console.log('✅ Using signature from direct approvedByName field');
+    } else if (invoice.arInvoiceApprovalSummary && invoice.arInvoiceApprovalSummary.receivedByName) {
+        // Fallback 2: received by name (for received status)
+        approvedByName = invoice.arInvoiceApprovalSummary.receivedByName;
+        approvedPosition = invoice.arInvoiceApprovalSummary.receivedPosition || 'Receiver';
+        console.log('✅ Using signature from arInvoiceApprovalSummary.receivedByName (fallback)');
+    } else if (invoice.receivedByName) {
+        // Fallback 3: direct receivedByName field
+        approvedByName = invoice.receivedByName;
+        approvedPosition = 'Receiver';
+        console.log('✅ Using signature from direct receivedByName field (fallback)');
+    } else if (invoice.u_BSI_Expressiv_PreparedByName) {
+        // Fallback 4: prepared by name (last resort)
+        approvedByName = invoice.u_BSI_Expressiv_PreparedByName;
+        approvedPosition = 'Prepared By';
+        console.log('⚠️ Using signature from preparedByName (last resort fallback)');
+    } else {
+        console.log('❌ No signature data found in any source');
+        // // FOR TESTING: Add temporary fallback signature for debugging
+        // approvedByName = 'DEBUG: No Signature Data';
+        // approvedPosition = 'DEBUG: Missing Approval Info';
+        // console.log('⚠️ Using DEBUG fallback signature for testing');
     }
 
     console.log('Final signature data:', {
@@ -1315,39 +1524,124 @@ function populateSignatureInformation(invoice) {
     // Populate the DOM elements
     const signatureNameElement = document.getElementById('signatureName');
     const signatureTitleElement = document.getElementById('signatureTitle');
+    const signatureSpaceElement = document.querySelector('.signature-space');
 
     console.log('Looking for signature elements...');
     console.log('signatureNameElement found:', !!signatureNameElement);
     console.log('signatureTitleElement found:', !!signatureTitleElement);
 
+    // Handle signature image based on status
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentStatus = urlParams.get('status');
+    const currentStatusLower = currentStatus ? currentStatus.toLowerCase() : '';
+    
+    console.log('🖼️ Current status for signature image:', currentStatus);
+    console.log('📍 Signature space element:', !!signatureSpaceElement);
+
+    if (signatureSpaceElement) {
+        if (currentStatusLower === 'approved') {
+            // For APPROVED status only - show signature image
+            const signatureImage = findSignatureImage(approvedByName);
+            console.log('🖼️ Signature image lookup for APPROVED status:', signatureImage);
+            
+            if (signatureImage) {
+                // Display signature image
+                const imagePath = `../../../../../image/${signatureImage}`;
+                console.log('✅ Loading signature image from:', imagePath);
+
+                signatureSpaceElement.innerHTML = `
+                    <img src="${imagePath}" alt="Signature of ${approvedByName}" 
+                         style="max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; margin: 0; object-fit: contain;"
+                         onerror="console.error('Failed to load signature image: ${imagePath}'); this.style.display='none';"
+                         onload="console.log('✅ Signature image loaded successfully: ${imagePath}');" />
+                `;
+                console.log('✅ Signature image displayed for APPROVED status');
+            } else {
+                // Clear signature space if no image found for approved
+                signatureSpaceElement.innerHTML = '';
+                console.log('⚠️ No signature image found for APPROVED status');
+            }
+        } else {
+            // For all other statuses (Received, etc.) - clear signature image space
+            signatureSpaceElement.innerHTML = '';
+            console.log('✅ Non-approved status (' + currentStatus + ') - signature image hidden, name and position will still show');
+        }
+    } else {
+        console.error('❌ Signature space element not found!');
+    }
+
     if (signatureNameElement) {
         signatureNameElement.textContent = approvedByName;
-        console.log('Setting signature name to:', approvedByName);
-        console.log('Signature name element found and updated');
-        console.log('Element textContent after update:', signatureNameElement.textContent);
+        console.log('✅ Setting signature name to:', approvedByName);
+        console.log('✅ Signature name element found and updated');
+        console.log('✅ Element textContent after update:', signatureNameElement.textContent);
+        console.log('✅ Element visibility style:', window.getComputedStyle(signatureNameElement).display);
+        console.log('✅ Element parent visibility:', window.getComputedStyle(signatureNameElement.parentElement).display);
+
+        // Force visibility check
+        if (approvedByName) {
+            signatureNameElement.style.display = 'block';
+            signatureNameElement.style.visibility = 'visible';
+            console.log('✅ Forced signature name element to be visible');
+        }
     } else {
-        console.error('Signature name element not found!');
-        console.log('Available elements with "signature" in id:', document.querySelectorAll('[id*="signature"]'));
+        console.error('❌ Signature name element not found!');
+        console.log('🔍 Available elements with "signature" in id:', document.querySelectorAll('[id*="signature"]'));
+        console.log('🔍 All elements with class "signature-name":', document.querySelectorAll('.signature-name'));
     }
 
     if (signatureTitleElement) {
         signatureTitleElement.textContent = approvedPosition;
-        console.log('Setting signature title to:', approvedPosition);
-        console.log('Signature title element found and updated');
-        console.log('Element textContent after update:', signatureTitleElement.textContent);
+        console.log('✅ Setting signature title to:', approvedPosition);
+        console.log('✅ Signature title element found and updated');
+        console.log('✅ Element textContent after update:', signatureTitleElement.textContent);
+        console.log('✅ Element visibility style:', window.getComputedStyle(signatureTitleElement).display);
+
+        // Force visibility check
+        if (approvedPosition) {
+            signatureTitleElement.style.display = 'block';
+            signatureTitleElement.style.visibility = 'visible';
+            console.log('✅ Forced signature title element to be visible');
+        }
     } else {
-        console.error('Signature title element not found!');
+        console.error('❌ Signature title element not found!');
+        console.log('🔍 All elements with class "signature-title":', document.querySelectorAll('.signature-title'));
     }
 
 }
 
+// Function to hide signature elements when status is not "Approved"
+function hideSignatureElements() {
+    console.log('🚫 Hiding signature elements - status is not Approved');
 
+    // Hide signature name and title
+    const signatureNameElement = document.getElementById('signatureName');
+    const signatureTitleElement = document.getElementById('signatureTitle');
+    const signatureSpaceElement = document.querySelector('.signature-space');
 
+    if (signatureNameElement) {
+        signatureNameElement.style.display = 'none';
+        console.log('✅ Hidden signature name element');
+    }
 
+    if (signatureTitleElement) {
+        signatureTitleElement.style.display = 'none';
+        console.log('✅ Hidden signature title element');
+    }
 
+    if (signatureSpaceElement) {
+        signatureSpaceElement.style.display = 'none';
+        console.log('✅ Hidden signature space element');
+    }
 
+    // Store empty signature data for additional pages
+    window.signatureData = {
+        name: '',
+        position: ''
+    };
 
-
+    console.log('✅ All signature elements hidden');
+}
 
 // Function to get signature data from invoice (for additional pages)
 function getSignatureDataFromInvoice(invoice) {
@@ -1366,7 +1660,7 @@ function getSignatureDataFromInvoice(invoice) {
     let approvedByName = '';
     let approvedPosition = '';
 
-    // Get signature data from multiple possible sources - same logic as populateSignatureInformation
+    // Enhanced signature data retrieval with multiple fallback sources - same logic as populateSignatureInformation
     if (invoice.arInvoiceApprovalSummary && invoice.arInvoiceApprovalSummary.approvedByName) {
         console.log('Using approvedByName from approval summary for additional page:', invoice.arInvoiceApprovalSummary.approvedByName);
         approvedByName = invoice.arInvoiceApprovalSummary.approvedByName;
@@ -1375,10 +1669,18 @@ function getSignatureDataFromInvoice(invoice) {
         console.log('Using direct approvedByName for additional page:', invoice.approvedByName);
         approvedByName = invoice.approvedByName;
         approvedPosition = invoice.approvedPosition || '';
+    } else if (invoice.arInvoiceApprovalSummary && invoice.arInvoiceApprovalSummary.receivedByName) {
+        console.log('Using receivedByName from approval summary for additional page:', invoice.arInvoiceApprovalSummary.receivedByName);
+        approvedByName = invoice.arInvoiceApprovalSummary.receivedByName;
+        approvedPosition = invoice.arInvoiceApprovalSummary.receivedPosition || 'Receiver';
     } else if (invoice.receivedByName) {
         console.log('Using receivedByName as fallback for additional page:', invoice.receivedByName);
         approvedByName = invoice.receivedByName;
         approvedPosition = 'Receiver';
+    } else if (invoice.u_BSI_Expressiv_PreparedByName) {
+        console.log('Using preparedByName as last resort for additional page:', invoice.u_BSI_Expressiv_PreparedByName);
+        approvedByName = invoice.u_BSI_Expressiv_PreparedByName;
+        approvedPosition = 'Prepared By';
     } else {
         // No default values - return empty if no data is available
         approvedByName = '';
@@ -2269,29 +2571,71 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
     if (isLastPage) {
         // Get the current invoice data to populate signature
         const currentInvoiceData = getCurrentInvoiceData();
-        const signatureData = getSignatureDataFromInvoice(currentInvoiceData);
 
-        // Debug: Log what name is being set for additional page
-        console.log(`Setting signature data for page ${pageNum}:`, signatureData);
-        console.log(`Current invoice data for page ${pageNum}:`, currentInvoiceData);
+        // Get status from URL parameters to determine if signatures should be shown
+        if (isStatusApproved()) {
+            // Status is Approved, show signatures
+            const signatureData = getSignatureDataFromInvoice(currentInvoiceData);
 
-        footerHTML = `
-            <div class="footer">
-                <div class="signature-section">
-                    <img src="../../../../../image/StampKansai.png" alt="Kansai Stamp" class="signature-stamp">
-                    <div class="qr-code">QR CODE</div>
-                    <div class="signature-space"></div>
-                    <div class="signature-name">${signatureData.name}</div>
-                    <div class="signature-title">${signatureData.position}</div>
+            // Debug: Log what name is being set for additional page
+            console.log(`Setting signature data for page ${pageNum}:`, signatureData);
+            console.log(`Current invoice data for page ${pageNum}:`, currentInvoiceData);
+
+            // Get signature image for this approver - only for APPROVED status
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentStatus = urlParams.get('status');
+            const currentStatusLower = currentStatus ? currentStatus.toLowerCase() : '';
+            
+            let signatureImageHTML = '';
+            if (currentStatusLower === 'approved') {
+                const signatureImage = findSignatureImage(signatureData.name);
+                signatureImageHTML = signatureImage ?
+                    `<img src="../../../../../image/${signatureImage}" alt="Signature of ${signatureData.name}" 
+                          style="max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; margin: 0; object-fit: contain;"
+                          onerror="console.error('Failed to load signature image for page ${pageNum}: ../../../../../image/${signatureImage}'); this.style.display='none';"
+                          onload="console.log('✅ Signature image loaded for page ${pageNum}: ../../../../../image/${signatureImage}');" />` : '';
+                console.log(`📄 Page ${pageNum} - APPROVED status: signature image ${signatureImage ? 'included' : 'not available'}`);
+            } else {
+                console.log(`📄 Page ${pageNum} - ${currentStatus} status: signature image hidden (name and position only)`);
+            }
+
+            footerHTML = `
+                <div class="footer">
+                    <div class="signature-section">
+                        <img src="../../../../../image/StampKansai.png" alt="Kansai Stamp" class="signature-stamp">
+                        <div class="qr-code">QR CODE</div>
+                        <div class="signature-space">${signatureImageHTML}</div>
+                        <div class="signature-name">${signatureData.name}</div>
+                        <div class="signature-title">${signatureData.position}</div>
+                    </div>
+                    <div class="system-info">
+                        <div>Page ${pageNum} of ${window.totalPages || getTotalPages()}</div>
+                    </div>
                 </div>
-                <div class="system-info">
-                    <div>Page ${pageNum} of ${window.totalPages || getTotalPages()}</div>
+                <div class="generated-by">
+                    <div>Generated by Expressiv System</div>
                 </div>
-            </div>
-            <div class="generated-by">
-                <div>Generated by Expressiv System</div>
-            </div>
-        `;
+            `;
+        } else {
+            // Status is not Approved, create footer without signatures
+            console.log(`Status is not Approved (${getCurrentStatus()}), creating footer without signatures for page ${pageNum}`);
+
+            footerHTML = `
+                <div class="footer">
+                    <div class="signature-section">
+                        <img src="../../../../../image/StampKansai.png" alt="Kansai Stamp" class="signature-stamp">
+                        <div class="qr-code">QR CODE</div>
+                        <!-- Signature elements hidden for non-approved status -->
+                    </div>
+                    <div class="system-info">
+                        <div>Page ${pageNum} of ${window.totalPages || getTotalPages()}</div>
+                    </div>
+                </div>
+                <div class="generated-by">
+                    <div>Generated by Expressiv System</div>
+                </div>
+            `;
+        }
     }
 
     newPage.innerHTML = `
@@ -2326,6 +2670,115 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
 
 
 }
+
+// DEBUG FUNCTIONS - For manual testing in console
+window.debugSignature = function () {
+    console.log('🔍 SIGNATURE DEBUG INFORMATION:');
+    console.log('📍 Signature Name Element:', document.getElementById('signatureName'));
+    console.log('📍 Signature Title Element:', document.getElementById('signatureTitle'));
+    console.log('📍 Current content:', {
+        name: document.getElementById('signatureName')?.textContent,
+        title: document.getElementById('signatureTitle')?.textContent
+    });
+    console.log('📍 Latest invoice data:', window.latestInvoiceData);
+    console.log('📍 Signature data:', window.signatureData);
+
+    // Check if elements are visible
+    const nameEl = document.getElementById('signatureName');
+    const titleEl = document.getElementById('signatureTitle');
+    if (nameEl) {
+        console.log('📍 Name element styles:', {
+            display: window.getComputedStyle(nameEl).display,
+            visibility: window.getComputedStyle(nameEl).visibility,
+            opacity: window.getComputedStyle(nameEl).opacity
+        });
+    }
+    if (titleEl) {
+        console.log('📍 Title element styles:', {
+            display: window.getComputedStyle(titleEl).display,
+            visibility: window.getComputedStyle(titleEl).visibility,
+            opacity: window.getComputedStyle(titleEl).opacity
+        });
+    }
+};
+
+window.forceSignature = function (name = 'Test User', position = 'Test Position') {
+    console.log('🔧 FORCING SIGNATURE:', name, position);
+    const nameEl = document.getElementById('signatureName');
+    const titleEl = document.getElementById('signatureTitle');
+    const signatureSpaceEl = document.querySelector('.signature-space');
+
+    if (nameEl) {
+        nameEl.textContent = name;
+        nameEl.style.display = 'block';
+        nameEl.style.visibility = 'visible';
+        nameEl.style.opacity = '1';
+        console.log('✅ Forced name element');
+    } else {
+        console.error('❌ Name element not found');
+    }
+
+    if (titleEl) {
+        titleEl.textContent = position;
+        titleEl.style.display = 'block';
+        titleEl.style.visibility = 'visible';
+        titleEl.style.opacity = '1';
+        console.log('✅ Forced title element');
+    } else {
+        console.error('❌ Title element not found');
+    }
+
+    // Try to load signature image
+    if (signatureSpaceEl) {
+        const signatureImage = findSignatureImage(name);
+        if (signatureImage) {
+            const imagePath = `../../../../../image/${signatureImage}`;
+            signatureSpaceEl.innerHTML = `
+                <img src="${imagePath}" alt="Signature of ${name}" 
+                     style="max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; margin: 0; object-fit: contain;"
+                     onerror="console.error('Failed to load signature image: ${imagePath}'); this.style.display='none';"
+                     onload="console.log('✅ Signature image loaded: ${imagePath}');" />
+            `;
+            console.log('✅ Forced signature image:', imagePath);
+        } else {
+            signatureSpaceEl.innerHTML = '';
+            console.log('⚠️ No signature image found for:', name);
+        }
+    } else {
+        console.error('❌ Signature space element not found');
+    }
+
+    console.log('🔧 Force signature complete');
+};
+
+// Test function for signature images
+window.testSignatureImages = function () {
+    console.log('🧪 TESTING ALL SIGNATURE IMAGES');
+    const availableSignatures = Object.keys(SIGNATURE_IMAGE_MAPPING);
+    console.log('📋 Available signatures:', availableSignatures);
+
+    availableSignatures.forEach((name, index) => {
+        setTimeout(() => {
+            console.log(`🧪 Testing signature ${index + 1}/${availableSignatures.length}: ${name}`);
+            window.forceSignature(name, 'Test Position');
+        }, index * 2000); // 2 second delay between each test
+    });
+};
+
+// Debug function to force signature population
+window.forceSignaturePopulation = function() {
+    console.log('🔧 FORCE SIGNATURE POPULATION');
+    isSignatureProcessed = false; // Reset flag
+    
+    if (currentInvoiceData) {
+        console.log('📄 Using current invoice data:', currentInvoiceData);
+        populateSignatureSync(currentInvoiceData);
+    } else {
+        console.log('❌ No current invoice data available');
+    }
+};
+
+console.log('🔧 Debug functions loaded. Use debugSignature() and forceSignature() in console.');
 
 // Function to get total pages
 function getTotalPages() {

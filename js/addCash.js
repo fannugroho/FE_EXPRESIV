@@ -119,27 +119,60 @@ function removeTransactionTypeEmphasis() {
     }
 }
 
-// Function to calculate total amount from all rows
+// Function to calculate total amount from all rows (with thousand separators)
 function calculateTotalAmount() {
     const totalInputs = document.querySelectorAll('.total');
     let sum = 0;
     
     totalInputs.forEach(input => {
-        // Only add to sum if the input has a valid numeric value
-        const value = input.value.trim();
-        if (value && !isNaN(parseFloat(value))) {
-            sum += parseFloat(value);
-        }
+        const cleaned = (input.value || '').toString().replace(/,/g, '').replace(/[^\d.]/g, '');
+        const value = parseFloat(cleaned) || 0;
+        sum += value;
     });
     
-    // Format the sum with 2 decimal places (no thousands separator to avoid confusion)
-    const formattedSum = sum.toFixed(2);
-    
-    // Update the total amount display
     const totalAmountDisplay = document.getElementById('totalAmountDisplay');
     if (totalAmountDisplay) {
-        totalAmountDisplay.textContent = formattedSum;
+        totalAmountDisplay.textContent = sum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
+}
+
+// Caret-preserving formatter reused in JS context
+function formatNumberAsYouTypeCaret(input) {
+    const oldValue = (input.value || '').toString();
+    const selectionStart = input.selectionStart || 0;
+    const digitsBeforeCaret = oldValue.slice(0, selectionStart).replace(/[^0-9]/g, '').length;
+
+    let raw = oldValue.replace(/,/g, '');
+    const firstDot = raw.indexOf('.');
+    if (firstDot !== -1) raw = raw.slice(0, firstDot + 1) + raw.slice(firstDot + 1).replace(/\./g, '');
+    raw = raw.replace(/[^0-9.]/g, '');
+
+    if (!raw) {
+        input.value = '0.00';
+        try { input.setSelectionRange(1, 1); } catch (e) {}
+        calculateTotalAmount();
+        return;
+    }
+
+    const parts = raw.split('.');
+    let intPart = parts[0] || '0';
+    intPart = intPart.replace(/^0+(?=\d)/, '');
+    const decPart = parts.length > 1 ? parts[1] : '';
+    const formattedInt = (intPart ? Number(intPart) : 0).toLocaleString('en-US');
+    const newValue = decPart !== '' ? `${formattedInt}.${decPart}` : formattedInt;
+    input.value = newValue;
+
+    // Restore caret based on digit count before caret
+    let newPos = 0;
+    let seen = 0;
+    for (let i = 0; i < newValue.length; i++) {
+        if (/\d/.test(newValue[i])) seen++;
+        if (seen >= digitsBeforeCaret) { newPos = i + 1; break; }
+        if (i === newValue.length - 1) newPos = newValue.length;
+    }
+    try { input.setSelectionRange(newPos, newPos); } catch (e) {}
+
+    calculateTotalAmount();
 }
 
 // Function to update field states based on prerequisites
@@ -374,7 +407,7 @@ async function updateAccountNameDropdown(row, category, departmentId, transactio
         if (selectedAccountName && selectedOption) {
             // Use COA data that's already available from dataset
             const coa = selectedOption.dataset.coa || '';
-            console.log('Using COA from dataset:', coa, 'for account:', selectedAccountName);
+            
             if (coaInput) coaInput.value = coa;
         } else {
             if (coaInput) coaInput.value = '';
@@ -493,7 +526,7 @@ async function saveDocument(isSubmit = false) {
             const accountName = row.querySelector('.account-name').value;
             const coa = row.querySelector('.coa').value;
             const description = row.querySelector('.description').value;
-            const amount = row.querySelector('.total').value;
+            const amount = (row.querySelector('.total').value || '').toString().replace(/,/g, '');
             
             if (description && amount) {
                 formData.append(`CashAdvanceDetails[${detailIndex}][Category]`, category || '');
@@ -552,7 +585,7 @@ async function saveDocument(isSubmit = false) {
                     errorMessage = errorData.message || errorData.Message;
                 }
             } catch (parseError) {
-                console.log("Could not parse error response:", parseError);
+                
             }
 
             await Swal.fire({
@@ -619,7 +652,7 @@ function validateFormFields(isSubmit) {
         const accountName = row.querySelector('.account-name').value;
         const coa = row.querySelector('.coa').value;
         const description = row.querySelector('.description').value;
-        const amount = row.querySelector('.total').value;
+        const amount = (row.querySelector('.total').value || '').toString().replace(/,/g, '');
 
         if (description && amount) {
             hasValidDetails = true;
@@ -652,7 +685,7 @@ function validateRow(row, rowIndex) {
     const category = row.querySelector('.category-input')?.value.trim();
     const accountName = row.querySelector('.account-name')?.value.trim();
     const coa = row.querySelector('.coa')?.value.trim();
-    const amount = row.querySelector('.total')?.value.trim();
+    const amount = (row.querySelector('.total')?.value || '').toString().replace(/,/g, '').trim();
     // Details/description is optional
 
     let missing = [];
@@ -774,11 +807,6 @@ function goToMenuCash() {
 
 function previewPDF(event) {
 const files = event.target.files;
-if (files.length + uploadedFiles.length > 5) {
-alert('Maximum 5 PDF files are allowed.');
-event.target.value = ''; // Reset file input
-return;
-}
 
 for (let i = 0; i < files.length; i++) {
     const file = files[i];
@@ -922,7 +950,7 @@ async function addRow() {
             <input type="text" class="description w-full" maxlength="200" />
         </td>
         <td class="p-2 border">
-            <input type="number" class="total w-full" maxlength="10" required step="0.01" oninput="calculateTotalAmount()"/>
+            <input type="text" class="total w-full" maxlength="10" required oninput="calculateTotalAmount()"/>
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -935,6 +963,14 @@ async function addRow() {
     
     // Setup category dropdown for the new row
     await setupCategoryDropdown(newRow);
+    
+    // Setup amount formatting events with caret preservation
+    const amountInput = newRow.querySelector('.total');
+    if (amountInput) {
+        amountInput.value = '0.00';
+        amountInput.addEventListener('blur', function() { formatNumberWithDecimals(this); });
+        amountInput.addEventListener('input', function() { formatNumberAsYouTypeCaret(this); });
+    }
 }
 
 function deleteRow(button) {
@@ -951,7 +987,7 @@ function fetchDepartments() {
             return response.json();
         })
         .then(data => {
-            console.log("Department data:", data);
+            
             populateDepartmentSelect(data.data);
         })
         .catch(error => {
@@ -982,7 +1018,7 @@ function fetchUsers() {
             return response.json();
         })
         .then(data => {
-            console.log("User data:", data);
+            
             populateUserSelects(data.data);
         })
         .catch(error => {
@@ -991,7 +1027,7 @@ function fetchUsers() {
 }
 
 function fetchBusinessPartners() {
-    fetch(`${BASE_URL}/api/business-partners/type/employee`)
+    fetch(`${BASE_URL}/api/business-partners/type/all`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -999,7 +1035,7 @@ function fetchBusinessPartners() {
             return response.json();
         })
         .then(data => {
-            console.log("Business Partners data:", data);
+            
             setupBusinessPartnerSearch(data.data);
         })
         .catch(error => {
@@ -1008,10 +1044,12 @@ function fetchBusinessPartners() {
 }
 
 function setupBusinessPartnerSearch(businessPartners) {
-    // Store business partners globally for search functionality - only store active employee business partners
+    // Store business partners globally for search functionality - only store active business partners
     window.businessPartners = businessPartners.filter(bp => bp.active).map(bp => ({
+        id: bp.id,
         code: bp.code,
-        name: bp.name
+        name: bp.name,
+        type: bp.type
     }));
 
     // Setup search functionality for paid to
@@ -1159,7 +1197,7 @@ function filterUsers(fieldId) {
         return;
     }
     
-    console.log(`filterUsers called for fieldId: ${fieldId}, searchText: "${searchText}"`);
+    
     
     // Clear dropdown
     dropdown.innerHTML = '';
@@ -1175,10 +1213,10 @@ function filterUsers(fieldId) {
         fieldId === 'Approval.ClosedById') {
         try {
             const users = JSON.parse(searchInput.dataset.users || '[]');
-            console.log(`Users from dataset for ${fieldId}:`, users);
+            
             
             filteredUsers = users.filter(user => user && user.name && user.name.toLowerCase().includes(searchText));
-            console.log(`Filtered users for ${fieldId}:`, filteredUsers);
+            
             
             // Show search results
             filteredUsers.forEach(user => {
@@ -1203,7 +1241,7 @@ function filterUsers(fieldId) {
                             const newOption = document.createElement('option');
                             newOption.value = user.id;
                             newOption.textContent = user.name;
-                            selectElement.appendChild(option);
+                            selectElement.appendChild(newOption);
                             selectElement.value = user.id;
                         }
                     }
@@ -1212,6 +1250,11 @@ function filterUsers(fieldId) {
                 };
                 dropdown.appendChild(option);
             });
+            
+            // Show the dropdown if there are results
+            if (filteredUsers.length > 0) {
+                dropdown.classList.remove('hidden');
+            }
         } catch (error) {
             console.error("Error parsing users data:", error);
         }
@@ -1233,6 +1276,11 @@ function filterUsers(fieldId) {
             };
             dropdown.appendChild(option);
         });
+        
+        // Show the dropdown if there are results
+        if (filteredUsers.length > 0) {
+            dropdown.classList.remove('hidden');
+        }
     }
     
     // Show message if no results
@@ -1241,11 +1289,11 @@ function filterUsers(fieldId) {
         noResults.className = 'p-2 text-gray-500';
         noResults.innerText = 'Name Not Found';
         dropdown.appendChild(noResults);
+        // Show dropdown even when no results to display the message
+        dropdown.classList.remove('hidden');
     }
     
-    // Show dropdown
-    dropdown.classList.remove('hidden');
-    console.log(`Dropdown shown for ${fieldId} with ${filteredUsers.length} results`);
+    
 }
 
 // Modifikasi di fungsi populateUserSelects untuk setup searchbar approval
@@ -1307,7 +1355,7 @@ function populateUserSelects(users) {
                 //update department
                 const departmentSelect = document.getElementById('department');
                 if (requester.department) {
-                    console.log(requester.department)
+                    
                     // Find the department option and select it
                     const departmentOptions = departmentSelect.options;
                     for (let i = 0; i < departmentOptions.length; i++) {
@@ -1364,12 +1412,11 @@ function populateUserSelects(users) {
 
     // Auto-populate employee fields with logged-in user data (same as addSettle)
     const loggedInUserId = getUserId();
-    console.log("Logged in user ID:", loggedInUserId);
-    console.log("Available employees:", window.employees);
+    
     
     if(loggedInUserId && window.employees) {
         const loggedInEmployee = window.employees.find(emp => emp.id === loggedInUserId);
-        console.log("Found logged in employee:", loggedInEmployee);
+        
         
         if(loggedInEmployee) {
             const employeeNIK = loggedInEmployee.kansaiEmployeeId || '';
@@ -1378,15 +1425,12 @@ function populateUserSelects(users) {
             document.getElementById("EmployeeNIK").value = employeeNIK;
             document.getElementById("EmployeeName").value = employeeName;
             
-            console.log("Auto-populated employee fields:", {
-                employeeNIK: employeeNIK,
-                employeeName: employeeName
-            });
+            
         } else {
-            console.warn("Could not find logged in employee in employees array");
+            
         }
     } else {
-        console.warn("Missing logged in user ID or employees array");
+        
     }
 
     // Auto-fill preparedBy with logged-in user (like addPR.js and addReim.js)
@@ -1406,7 +1450,7 @@ function fetchTransactionType() {
             return response.json();
         })
         .then(data => {
-            console.log("Transaction Type data:", data);
+            
             populateTransactionTypeSelect(data.data);
         })
         .catch(error => {
@@ -1495,7 +1539,7 @@ function autoFillPreparedBy(users) {
         option.selected = true;
         preparedBySelect.appendChild(option);
         
-        console.log('Auto-filled preparedBy select with current user:', currentUserId);
+        
     }
 }
 
@@ -1511,9 +1555,8 @@ async function fetchSuperiorEmployees(documentType, transactionType, superiorLev
             return [];
         }
 
-        const apiUrl = `${BASE_URL}/api/employee-superior-document-approvals/user/${currentUserId}/document-type/${documentType}`;
-        console.log(`Fetching superior employees from: ${apiUrl}`);
-        console.log(`Parameters: documentType=${documentType}, transactionType=${transactionType}, superiorLevel=${superiorLevel}`);
+        const apiUrl = `${BASE_URL}/api/employee-superior-document-approvals/employee/${currentUserId}/document-type/${documentType}`;
+        
 
         const response = await fetch(apiUrl);
         
@@ -1522,24 +1565,22 @@ async function fetchSuperiorEmployees(documentType, transactionType, superiorLev
         }
         
         const result = await response.json();
-        console.log('API Response:', result);
+        
         
         if (!result.status || result.code !== 200) {
             throw new Error(result.message || 'Failed to fetch superior employees');
         }
         
         const allSuperiors = result.data;
-        console.log('All superiors from API:', allSuperiors);
+        
         
         // Filter by transaction type and superior level
         const filteredSuperiors = allSuperiors.filter(superior => {
             // Map transaction type to API transaction type
             const transactionTypeMap = {
-                'NRM': 'NRM',
                 'Entertainment': 'EN',
-                'Golf Competition': 'GC',
-                'Medical': 'ME',
-                'Others': 'OT',
+                'Other': 'OT',
+                'Business Trip': 'BT',
                 'Travelling': 'TR',
                 'Personal Loan': 'LO'
             };
@@ -1553,8 +1594,7 @@ async function fetchSuperiorEmployees(documentType, transactionType, superiorLev
             return superior.typeTransaction === apiTransactionType && superior.superiorLevel === superiorLevel;
         });
         
-        console.log(`Found ${filteredSuperiors.length} superior employees for ${documentType}/${transactionType}/${superiorLevel}`);
-        console.log('Filtered superiors:', filteredSuperiors);
+        
         
         // Fetch full user details for each superior to get full names
         const superiorsWithFullNames = [];
@@ -1568,7 +1608,7 @@ async function fetchSuperiorEmployees(documentType, transactionType, superiorLev
                     const user = window.requesters.find(u => u.id === superior.superiorUserId);
                     if (user && user.fullName) {
                         fullName = user.fullName;
-                        console.log(`Found full name in cache for ${superior.superiorUserId}: ${fullName}`);
+                        
                     }
                 } else {
                     // Fetch user details from API if not in cache
@@ -1578,7 +1618,7 @@ async function fetchSuperiorEmployees(documentType, transactionType, superiorLev
                             const userResult = await userResponse.json();
                             if (userResult.status && userResult.data && userResult.data.fullName) {
                                 fullName = userResult.data.fullName;
-                                console.log(`Fetched full name from API for ${superior.superiorUserId}: ${fullName}`);
+                                
                             }
                         }
                     } catch (error) {
@@ -1624,7 +1664,7 @@ function getSuperiorLevelForField(fieldId) {
 
 // Function to populate superior employee dropdown with provided data
 async function populateSuperiorEmployeeDropdownWithData(fieldId, superiors) {
-    console.log(`populateSuperiorEmployeeDropdownWithData called for fieldId: ${fieldId} with ${superiors.length} superiors`);
+    
     
     // Clear existing options
     const selectElement = document.getElementById(fieldId);
@@ -1636,13 +1676,13 @@ async function populateSuperiorEmployeeDropdownWithData(fieldId, superiors) {
     selectElement.innerHTML = '<option value="" disabled selected>Select User</option>';
     
     // Add superior employees to dropdown
-    console.log(`Adding ${superiors.length} superiors to dropdown for fieldId: ${fieldId}`);
+    
     superiors.forEach(superior => {
         const option = document.createElement('option');
         option.value = superior.superiorUserId;
         option.textContent = superior.superiorFullName; // Use superiorFullName
         selectElement.appendChild(option);
-        console.log(`Added superior: ${superior.superiorFullName} (${superior.superiorUserId}) to ${fieldId}`);
+        
     });
     
     // Update the search input dataset (don't auto-fill, let user pick)
@@ -1668,9 +1708,21 @@ async function populateSuperiorEmployeeDropdownWithData(fieldId, superiors) {
                 if (searchInput) {
                     searchInput.value = matchingSuperior.superiorFullName; // Use superiorFullName
                 }
-                console.log(`Set pending approval value for ${fieldId}:`, pendingUserId);
+                
             }
         }
+    }
+
+    // Auto-select the single available option for specific fields
+    // If there's exactly one supervisor for the requested level, pre-fill it
+    if (superiors.length === 1) {
+        const onlySuperior = superiors[0];
+        selectElement.value = onlySuperior.superiorUserId;
+        const autoSearchInput = document.getElementById(fieldId + 'Search');
+        if (autoSearchInput) {
+            autoSearchInput.value = onlySuperior.superiorFullName;
+        }
+        
     }
 }
 
@@ -1721,18 +1773,18 @@ async function populateSuperiorEmployeeDropdown(fieldId, documentType, transacti
                 if (searchInput) {
                     searchInput.value = matchingSuperior.superiorFullName; // Use superiorFullName
                 }
-                console.log(`Set pending approval value for ${fieldId}:`, pendingUserId);
+                
             }
         }
     }
 }
 
 // Function to populate all superior employee dropdowns
+// Note: API call gets all superiors for document type CA, then filters by transaction type
 async function populateAllSuperiorEmployeeDropdowns(transactionType) {
     const documentType = 'CA'; // Cash Advance
     
-    console.log(`populateAllSuperiorEmployeeDropdowns called with transactionType: "${transactionType}", documentType: ${documentType}`);
-    console.log(`Transaction type type: ${typeof transactionType}`);
+    
     
     // Fetch all superiors once
     const currentUserId = getUserId();
@@ -1741,8 +1793,8 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
         return;
     }
 
-    const apiUrl = `${BASE_URL}/api/employee-superior-document-approvals/user/${currentUserId}/document-type/${documentType}`;
-    console.log(`Fetching all superior employees from: ${apiUrl}`);
+    const apiUrl = `${BASE_URL}/api/employee-superior-document-approvals/employee/${currentUserId}/document-type/${documentType}`;
+    
 
     try {
         const response = await fetch(apiUrl);
@@ -1751,33 +1803,47 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
         }
         
         const result = await response.json();
-        console.log('API Response:', result);
+        
         
         if (!result.status || result.code !== 200) {
             throw new Error(result.message || 'Failed to fetch superior employees');
         }
         
         const allSuperiors = result.data;
-        console.log('All superiors from API:', allSuperiors);
+        
         
         // Filter by transaction type - map Cash Advance transaction types to API transaction types
+        // Note: API returns "TR" for "Others" transaction type, so we map accordingly
         const transactionTypeMap = {
-            'NRM': 'NRM',
             'Entertainment': 'EN',
-            'Golf Competition': 'GC',
-            'Medical': 'ME',
-            'Others': 'OT',
+            'Other': 'OT',
+            'Business Trip': 'BT',
             'Travelling': 'TR',
             'Personal Loan': 'LO'
         };
         
-        const apiTransactionType = transactionTypeMap[transactionType] || 'NRM';
-        console.log(`Transaction type mapping: "${transactionType}" -> "${apiTransactionType}"`);
-        console.log(`Available transaction types in API response:`, [...new Set(allSuperiors.map(s => s.typeTransaction))]);
+        const apiTransactionType = transactionTypeMap[transactionType];
+        if (!apiTransactionType) {
+            console.warn(`Unknown transaction type: ${transactionType}`);
+            return;
+        }
         
+        
+        
+        // Filter superiors by transaction type first
         const filteredSuperiors = allSuperiors.filter(superior => superior.typeTransaction === apiTransactionType);
-        console.log(`Found ${filteredSuperiors.length} superiors with ${apiTransactionType} transaction type`);
-        console.log('Filtered superiors:', filteredSuperiors);
+        if (!filteredSuperiors || filteredSuperiors.length === 0) {
+            try {
+                await Swal.fire({
+                    title: 'No approvers for this type',
+                    text: 'There are no approvers configured for the selected transaction type. Please choose a different type or contact admin.',
+                    icon: 'info',
+                    confirmButtonText: 'OK'
+                });
+            } catch (_) {}
+        }
+        
+        
         
         // Fetch full names for all superiors
         const superiorsWithFullNames = [];
@@ -1789,7 +1855,7 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
                     const user = window.requesters.find(u => u.id === superior.superiorUserId);
                     if (user && user.fullName) {
                         fullName = user.fullName;
-                        console.log(`Found full name in cache for ${superior.superiorUserId}: ${fullName}`);
+                        
                     }
                 }
                 
@@ -1799,7 +1865,7 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
                 });
                 
             } catch (error) {
-                console.warn(`Error processing superior ${superior.superiorUserId}:`, error);
+                
                 superiorsWithFullNames.push({
                     ...superior,
                     superiorFullName: superior.superiorName
@@ -1817,25 +1883,38 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
             { id: 'Approval.ClosedById', level: 'RE' } // Use same level as ReceivedById
         ];
         
-        console.log(`Will populate ${approvalFields.length} approval fields:`, approvalFields.map(f => f.id));
+        
         
         for (const fieldInfo of approvalFields) {
-            console.log(`Populating field: ${fieldInfo.id} with level: ${fieldInfo.level}`);
+            
             
             // Filter superiors for this specific level
             const levelSuperiors = superiorsWithFullNames.filter(superior => superior.superiorLevel === fieldInfo.level);
-            console.log(`Found ${levelSuperiors.length} superiors for level ${fieldInfo.level}`);
+            
             
             // Populate the dropdown
             await populateSuperiorEmployeeDropdownWithData(fieldInfo.id, levelSuperiors);
         }
         
-        console.log('Finished populating all superior employee dropdowns');
+        
         
     } catch (error) {
+        // Show alert if no approvers can be fetched
+        try {
+            await Swal.fire({
+                title: 'No approvers found',
+                text: 'Unable to fetch approvers for the selected transaction type.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+        } catch (_) {}
         console.error("Error fetching superior employees:", error);
     }
 }
+
+// Test function to manually test dropdown functionality
+// Expose a startup log to verify script load
+// remove test helpers
 
 // --- Initialization for Approval Dropdowns ---
 document.addEventListener('DOMContentLoaded', async function() {
@@ -1873,7 +1952,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Approval dropdowns initialization - only populate when transaction type is selected
     // Don't populate on initial load since no transaction type is selected yet
-    console.log('Initial transaction type:', document.getElementById("TransactionType")?.value);
+    
 
     // When fetchUsers completes, populate all dropdowns
     fetchUsers = async function() {
@@ -1906,8 +1985,17 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (searchInput) {
             // Show dropdown on focus
             searchInput.addEventListener('focus', function() {
-                console.log(`Approval search input focused: ${inputId}`);
                 const fieldId = inputId.replace('Search', '');
+                
+                // Test: manually show the dropdown to see if CSS is working
+                const dropdown = document.getElementById(fieldId + 'Dropdown');
+                if (dropdown) {
+                    
+                }
+                
+                // Test: check if the search input has users data
+                
+                
                 filterUsers(fieldId);
             });
         }

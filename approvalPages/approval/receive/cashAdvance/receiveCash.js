@@ -11,6 +11,7 @@ window.onload = function() {
     if (caId) fetchCADetails(caId);
     if (currentTab === 'received' || currentTab === 'rejected') hideApprovalButtons();
     if (currentTab === 'received' || currentTab === 'rejected') hideRevisionButton();
+    if (currentTab === 'approved') hidePrintButton();
     // Apply tab-based behavior for field editability and button visibility
     applyTabBasedBehavior();
 };
@@ -62,6 +63,11 @@ function populateCADetails(data) {
             statusSelect.appendChild(option);
         }
     }
+    // Hide print when status is Approved or tab is approved
+    try {
+        const isApprovedStatus = (data.status || '').toLowerCase() === 'approved';
+        if (isApprovedStatus || currentTab === 'approved') hidePrintButton();
+    } catch (e) { /* no-op */ }
     if (data.cashAdvanceDetails) populateCashAdvanceDetails(data.cashAdvanceDetails);
     if (data.attachments) displayAttachments(data.attachments);
     else displayAttachments([]);
@@ -395,6 +401,14 @@ function hideApprovalButtons() {
     }
 }
 
+// Function to hide print button
+function hidePrintButton() {
+    const printButton = document.querySelector('button[onclick="printCash()"]');
+    if (printButton) {
+        printButton.style.display = 'none';
+    }
+}
+
 // Function to hide revision button
 function hideRevisionButton() {
     const revisionButton = document.querySelector('button[onclick="reviseCash()"]');
@@ -432,6 +446,9 @@ function applyTabBasedBehavior() {
         makeAllFieldsReadOnly();
         showApprovalButtons();
         showRevisionButton();
+        if (currentTab === 'approved') {
+            hidePrintButton();
+        }
     }
 }
 

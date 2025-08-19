@@ -159,7 +159,7 @@ function updateTable(documents = []) {
     const endIndex = Math.min(startIndex + itemsPerPage, documents.length);
     const paginatedDocs = documents.slice(startIndex, endIndex);
     
-    paginatedDocs.forEach(doc => {
+    paginatedDocs.forEach((doc, index) => {
         const row = document.createElement('tr');
         row.classList.add('border-t', 'hover:bg-gray-100');
         
@@ -173,7 +173,7 @@ function updateTable(documents = []) {
         }
         
         row.innerHTML = `
-            <td class="p-2">${doc.id ? doc.id.substring(0, 10) : ''}</td>
+            <td class="p-2">${startIndex + index + 1}</td>
             <td class="p-2">${doc.cashAdvanceNo || ''}</td>
             <td class="p-2">${doc.requesterName || ''}</td>
             <td class="p-2">${doc.departmentName || ''}</td>

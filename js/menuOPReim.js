@@ -569,7 +569,7 @@ function displayDocuments(documents) {
             <td class='p-2'>${totalAmount}</td>
             <td class='p-2'>${statusDisplay}</td>
             <td class='p-2'>
-                <button onclick="detailDoc('${doc.stagingID || doc.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
+                <button onclick="detailDoc('${doc.stagingID || doc.id}', '${status.toLowerCase()}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Detail</button>
             </td>
         </tr>`;
         tableBody.innerHTML += row;
@@ -1295,13 +1295,20 @@ function handleSearch() {
     switchTab(currentTab); // This will apply the search filter
 }
 
-function detailDoc(opId) {
-    // Navigate to outgoing payment reimbursement receive page
-    debugNavigation('detailDoc', `approvalPages/approval/receive/outgoingPayment/receiveOPReim.html?id=${opId}`);
+function detailDoc(opId, statusTab) {
+    // Determine tab parameter based on provided status or current context
+    const tabParam = (statusTab && typeof statusTab === 'string' && statusTab.trim())
+        ? statusTab.toLowerCase()
+        : (typeof currentTab !== 'undefined' && currentTab ? currentTab : 'prepared');
+
+    const targetUrl = `approvalPages/approval/receive/outgoingPayment/receiveOPReim.html?id=${opId}&tab=${encodeURIComponent(tabParam)}`;
+
+    // Navigate to outgoing payment reimbursement receive page with tab param
+    debugNavigation('detailDoc', targetUrl);
     if (typeof navigateToPage === 'function') {
-        navigateToPage(`approvalPages/approval/receive/outgoingPayment/receiveOPReim.html?id=${opId}`);
+        navigateToPage(targetUrl);
     } else {
-        window.location.href = `approvalPages/approval/receive/outgoingPayment/receiveOPReim.html?id=${opId}`;
+        window.location.href = targetUrl;
     }
 }
 

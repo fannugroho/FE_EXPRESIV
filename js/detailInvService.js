@@ -6,6 +6,55 @@ let employeesData = []; // Add this to store employee data
 // API Configuration - Using BASE_URL from auth.js
 const API_BASE_URL = `${BASE_URL}/api`;
 
+// Optimized utilities for element access and manipulation
+const OptimizedUtils = {
+    elementCache: new Map(),
+
+    formatDateToLocalInput: function (dateString) {
+        if (!dateString) return '';
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return '';
+            return date.toISOString().split('T')[0];
+        } catch (error) {
+            console.warn('Date formatting error:', error);
+            return '';
+        }
+    },
+
+    formatCurrencyIDR: function (value) {
+        if (!value || isNaN(value)) return 'IDR 0';
+        return `IDR ${parseFloat(value).toLocaleString('id-ID', { minimumFractionDigits: 2 })}`;
+    },
+
+    safeGetElement: function (id) {
+        if (this.elementCache.has(id)) {
+            return this.elementCache.get(id);
+        }
+        const element = document.getElementById(id);
+        if (element) {
+            this.elementCache.set(id, element);
+        } else {
+            console.warn(`Element with id '${id}' not found`);
+        }
+        return element;
+    },
+
+    safeSetValue: function (elementId, value) {
+        const element = this.safeGetElement(elementId);
+        if (element) {
+            element.value = value || '';
+        }
+    },
+
+    safeSetStyle: function (elementId, property, value) {
+        const element = this.safeGetElement(elementId);
+        if (element) {
+            element.style[property] = value;
+        }
+    }
+};
+
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function () {
     // Get stagingID from URL parameters
@@ -341,31 +390,73 @@ function populateFormData(data) {
     console.log('Track number:', data.trackNo);
     console.log('Invoice number:', data.u_bsi_invnum);
 
-    // Populate header fields
-    document.getElementById('DocEntry').value = data.stagingID || '';
-    document.getElementById('DocNum').value = data.docNum || '';
-    document.getElementById('CardCode').value = data.cardCode || '';
-    document.getElementById('CardName').value = data.cardName || '';
-    document.getElementById('address').value = data.address || '';
-    document.getElementById('NumAtCard').value = data.numAtCard || '';
-    document.getElementById('DocCur').value = data.docCur || 'IDR';
-    document.getElementById('docRate').value = data.docRate || '1';
-    document.getElementById('DocDate').value = formatDate(data.docDate);
-    document.getElementById('DocDueDate').value = formatDate(data.docDueDate);
-    document.getElementById('TaxNo').value = data.licTradNum || '';
-    document.getElementById('U_BSI_ShippingType').value = data.u_BSI_ShippingType || '';
-    document.getElementById('U_BSI_PaymentGroup').value = data.u_BSI_PaymentGroup || '';
-    document.getElementById('U_BSI_Expressiv_IsTransfered').value = data.u_BSI_Expressiv_IsTransfered || 'N';
-    document.getElementById('U_BSI_UDF1').value = data.u_bsi_udf1 || '';
-    document.getElementById('U_BSI_UDF2').value = data.u_bsi_udf2 || '';
-    document.getElementById('account').value = data.account || '';
-    document.getElementById('acctName').value = data.acctName || '';
-    document.getElementById('U_BSI_UDF3').value = data.U_BSI_UDF3 || data.u_bsi_udf3 || '';
-    document.getElementById('comments').value = data.comments || '';
+    // Get status from approval data
+    const statusFromApproval = getStatusFromInvoice(data);
 
-    // Populate status from approval summary
-    const status = getStatusFromInvoice(data);
-    document.getElementById('Status').value = status;
+    // Debug log for requested fields from API
+    console.log('API VALUE U_BSI_ShippingType:', data.U_BSI_ShippingType);
+    console.log('API VALUE u_bsi_invnum:', data.u_bsi_invnum);
+
+    const headerFields = {
+        'DocEntry': data.stagingID || data.stagingId || data.id || '',
+        'DocNum': data.docNum || data.documentNumber || data.invoiceNumber || '',
+        'CardCode': data.cardCode || data.customerCode || data.vendorCode || '',
+        'CardName': data.cardName || data.customerName || data.vendorName || '',
+        'Status': statusFromApproval,
+        'address': data.address || data.customerAddress || data.billingAddress || '',
+        'NumAtCard': data.numAtCard || data.kpinNumber || data.externalNumber || '',
+        'DocCur': data.docCur || data.currency || data.docCurrency || 'IDR',
+        'docRate': data.docRate || data.exchangeRate || data.rate || 1,
+        'DocDate': OptimizedUtils.formatDateToLocalInput(data.docDate || data.documentDate || data.invoiceDate),
+        'DocDueDate': OptimizedUtils.formatDateToLocalInput(data.docDueDate || data.dueDate || data.paymentDueDate),
+        // Tax No mapping: licTradNum → taxNo
+        'TaxNo': data.licTradNum || data.taxNo || data.npwp || data.taxNumber || '',
+        // Service Mode specific mappings (fix case mismatch)
+        // Shipping Type (HTML uses U_BSI_ShippingType)
+        'U_BSI_ShippingType': data.u_BSI_ShippingType || data.U_BSI_ShippingType || data.u_bsi_shippingtype || data.shippingType || '',
+        // Payment Terms
+        'U_BSI_PaymentGroup': data.U_BSI_PaymentGroup || data.u_BSI_PaymentGroup || data.u_bsi_paymentgroup || '',
+        // No Surat Jalan (connect to u_bsi_invnum if available)
+        'U_BSI_UDF1': data.u_bsi_invnum || data.U_BSI_UDF1 || data.u_BSI_UDF1 || data.u_bsi_udf1 || data.suratJalan || data.deliveryNote || '',
+        // P/O No
+        'U_BSI_UDF2': data.U_BSI_UDF2 || data.u_BSI_UDF2 || data.u_bsi_udf2 || data.poNumber || data.purchaseOrder || '',
+        // Control Account (HTML uses U_BSI_UDF3)
+        'U_BSI_UDF3': data.u_bsi_udf3 || data.u_BSI_UDF3 || data.controlAccount || '',
+        'account': data.account || data.accountCode || '',
+        'acctName': data.acctName || data.accountName || '',
+        'U_BSI_Expressiv_IsTransfered': data.U_BSI_Expressiv_IsTransfered || data.u_BSI_Expressiv_IsTransfered || 'N',
+        'comments': data.comments || ''
+    };
+
+    console.log('📋 HEADER FIELDS TO POPULATE:', headerFields);
+
+    // Debug: specifically check u_bsi_udf3 field
+    console.log('🔍 DEBUG u_bsi_udf3:', {
+        raw: data.u_bsi_udf3,
+        fallback: data.controlAccount,
+        final: headerFields.U_BSI_UDF3
+    });
+
+    // Batch update fields for better performance
+    Object.entries(headerFields).forEach(([id, value]) => {
+        console.log(`Setting header field ${id} = "${value}"`);
+        OptimizedUtils.safeSetValue(id, value);
+    });
+
+    // Populate summary fields with proper formatting (align with PartApprovalInvItem)
+    const summaryFields = {
+        'dpp1112': OptimizedUtils.formatCurrencyIDR(data.dpp1112 || data.taxBase || 0),
+        'vatSum': OptimizedUtils.formatCurrencyIDR(data.docTax || data.vatAmount || data.vatSum || 0),
+        'wtSum': OptimizedUtils.formatCurrencyIDR(data.wtSum || data.withholdingTax || 0),
+        'grandTotal': OptimizedUtils.formatCurrencyIDR(data.grandTotal || data.totalAmount || 0)
+    };
+
+    console.log('💰 SUMMARY FIELDS TO POPULATE:', summaryFields);
+
+    Object.entries(summaryFields).forEach(([id, value]) => {
+        console.log(`Setting summary field ${id} = "${value}"`);
+        OptimizedUtils.safeSetValue(id, value);
+    });
 
     // Check if submit button should be shown based on status
     updateSubmitButtonVisibility(status);
@@ -506,7 +597,7 @@ function populateInvoiceServiceDetails(details, invoiceData) {
                 <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.acctCode || ''}" disabled autocomplete="off" />
             </td>
             <td class="p-2 border account-name-column">
-                <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.freetxt || detail.accName || ''}" disabled autocomplete="off" />
+                <textarea class="w-full bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${detail.text || detail.freeTxt || detail.freeText || detail.remarks || ''}</textarea>
             </td>
             <td class="p-2 border tax-code-column">
                 <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.vatGroup || detail.vatgroup || ''}" disabled autocomplete="off" />

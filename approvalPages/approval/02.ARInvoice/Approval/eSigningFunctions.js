@@ -207,42 +207,73 @@ function generateUUID() {
     });
 }
 
-// Progress tracking functions
+// Progress tracking functions - Enhanced with modal overlay
 function showProgressContainer() {
+    const modal = document.getElementById('progressModalOverlay');
     const progressContainer = document.getElementById('eSignProgressContainer');
+    
+    // Show modal for better visibility
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+    // Also show original container for backward compatibility
     if (progressContainer) {
         progressContainer.classList.remove('hidden');
     }
+    
+    // Reset progress state
+    updateProgressBar(0);
+    updateProgressStatus('Initializing process...');
 }
 
 function hideProgressContainer() {
+    const modal = document.getElementById('progressModalOverlay');
     const progressContainer = document.getElementById('eSignProgressContainer');
+    
+    if (modal) {
+        modal.classList.add('hidden');
+    }
     if (progressContainer) {
         progressContainer.classList.add('hidden');
     }
 }
 
 function updateProgressBar(percentage) {
+    // Update both original and modal progress bars
     const progressBar = document.getElementById('progressBar');
+    const modalProgressBar = document.getElementById('modalProgressBar');
     const progressPercentage = document.getElementById('progressPercentage');
+    const modalProgressPercentage = document.getElementById('modalProgressPercentage');
     
     if (progressBar) {
         progressBar.style.width = percentage + '%';
     }
+    if (modalProgressBar) {
+        modalProgressBar.style.width = percentage + '%';
+    }
     
     if (progressPercentage) {
         progressPercentage.textContent = Math.round(percentage) + '%';
+    }
+    if (modalProgressPercentage) {
+        modalProgressPercentage.textContent = Math.round(percentage) + '%';
     }
     
     currentProgress = percentage;
 }
 
 function updateProgressStatus(message) {
+    // Update both original and modal progress status
     const progressStatus = document.getElementById('progressStatus');
+    const modalProgressStatus = document.getElementById('modalProgressStatus');
+    
     if (progressStatus) {
         progressStatus.textContent = message;
     }
-    console.log('📊 Progress:', message);
+    if (modalProgressStatus) {
+        modalProgressStatus.textContent = message;
+    }
+    console.log('Progress:', message);
 }
 
 function updateProgressStep(stepNumber) {
@@ -358,7 +389,7 @@ function cancelESigningProcess() {
 
 // Show success popup with download and view options
 function showSuccessPopup(documentUrl, jobData) {
-    console.log('📄 Showing success popup for document:', documentUrl);
+    console.log('Showing success popup for document:', documentUrl);
     
     const urlParams = new URLSearchParams(window.location.search);
     const stagingId = urlParams.get('stagingID');
@@ -367,7 +398,7 @@ function showSuccessPopup(documentUrl, jobData) {
     if (typeof Swal !== 'undefined') {
         Swal.fire({
             icon: 'success',
-            title: '🎉 E-Signing Completed!',
+            title: 'E-Signing Completed',
             html: `
                 <div class="text-left space-y-4">
                     <div class="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -383,7 +414,7 @@ function showSuccessPopup(documentUrl, jobData) {
                     </div>
                     
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h4 class="font-semibold text-blue-800 mb-3">📋 Available Actions:</h4>
+                        <h4 class="font-semibold text-blue-800 mb-3">Available Actions:</h4>
                         <div class="space-y-3">
                             <button onclick="viewSignedDocument('${documentUrl}', '${jobData?.id || currentJobId}')" 
                                     class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2">
@@ -391,7 +422,7 @@ function showSuccessPopup(documentUrl, jobData) {
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                 </svg>
-                                <span>👁️ View Signed Document</span>
+                                <span> View Signed Document</span>
                             </button>
                             
                             <button onclick="downloadSignedDocumentFromPopup('${documentUrl}', 'signed_${docNum}.pdf')" 
@@ -399,7 +430,7 @@ function showSuccessPopup(documentUrl, jobData) {
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
-                                <span>💾 Download Document</span>
+                                <span> Download Document</span>
                             </button>
                             
                             <button onclick="refreshDocumentList()" 
@@ -407,7 +438,7 @@ function showSuccessPopup(documentUrl, jobData) {
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                                 </svg>
-                                <span>🔄 Refresh Document List</span>
+                                <span>Refresh Document List</span>
                             </button>
                         </div>
                     </div>
@@ -418,7 +449,7 @@ function showSuccessPopup(documentUrl, jobData) {
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             <div class="text-sm">
-                                <p class="text-yellow-800 font-medium">💡 Next Steps:</p>
+                                <p class="text-yellow-800 font-medium">Next Steps:</p>
                                 <p class="text-yellow-700">• Document is now digitally signed</p>
                                 <p class="text-yellow-700">• Available in the "Signed Documents" section</p>
                                 <p class="text-yellow-700">• Consider applying E-Stamp if required</p>
@@ -561,19 +592,8 @@ function showDocumentNotFoundError(action) {
 
 // Initialize E-Signing features
 function initializeESigningFeatures() {
-    // Setup file input event listener
-    const fileInput = document.getElementById('eSignFileInput');
-    if (fileInput) {
-        fileInput.addEventListener('change', handleFileSelection);
-    }
-
-    // Setup drag and drop
-    const uploadArea = document.getElementById('eSignUploadArea');
-    if (uploadArea) {
-        uploadArea.addEventListener('dragover', handleDragOver);
-        uploadArea.addEventListener('dragleave', handleDragLeave);
-        uploadArea.addEventListener('drop', handleFileDrop);
-    }
+    // Note: File upload event listeners are now handled in PartApprovalInvItem.html
+    // to prevent duplicate event listener issues
     
     // Load existing signed documents for this staging ID
     loadExistingSignedDocuments();
@@ -1158,13 +1178,13 @@ async function startESigningProcess() {
 
         // Update progress to 70%
         simulateProgressUpdate(70, 1000, () => {
-            updateProgressStatus('Document submitted successfully!');
+            updateProgressStatus('Document submitted for processing');
         });
         
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         // Start checking job status
-        updateProgressStatus('Processing e-signature...');
+        updateProgressStatus('Processing document signature...');
         simulateProgressUpdate(85, 2000, null);
         await checkESignJobStatus();
 
@@ -1206,7 +1226,7 @@ async function checkESignJobStatus() {
             if (jobData.status === 'completed' || jobData.status === 'success') {
                 // Move to Step 4: Complete
                 updateProgressStep(4);
-                updateProgressStatus('E-signature completed successfully!');
+                updateProgressStatus('Digital signature completed');
                 simulateProgressUpdate(100, 1000, () => {
                     // Hide spinner once complete
                     const spinner = document.getElementById('progressSpinner');
@@ -1215,7 +1235,7 @@ async function checkESignJobStatus() {
                     }
                     
                     // Show success message
-                    updateProgressStatus('✅ Document signed successfully!');
+                    updateProgressStatus('Document signed successfully');
                 });
                 
                 // E-Signing completed
@@ -1406,7 +1426,7 @@ async function checkEStampJobStatus() {
                 // E-Stamp completed
                 stampedDocumentUrl = extractStampedFileName(job.result);
                 console.log('✅ E-Stamp completed, file:', stampedDocumentUrl);
-                updateProcessStatus('E-stamp completed successfully!', 100);
+                updateProcessStatus('E-stamp process completed', 100);
                 showCompletionSection(true);
                 
             } else if (job.status === 'failed' || job.status === 'error') {
@@ -2394,7 +2414,7 @@ async function checkEStampJobStatus() {
         
         if (job.status === 'completed') {
             console.log('✅ E-stamping completed successfully!');
-            updateStampStatus('E-stamping completed!', 100);
+            updateStampStatus('E-stamping completed', 100);
             
             if (job.ref_num) {
                 // Download the stamped document
