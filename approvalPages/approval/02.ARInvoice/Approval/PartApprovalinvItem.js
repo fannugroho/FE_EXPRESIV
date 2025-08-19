@@ -502,6 +502,72 @@ const OptimizedUtils = {
     }
 };
 
+// Helper function to normalize U_BSI* fields according to specification
+function normalizeUBSIField(data, fieldName, altName) {
+    const variations = [
+        `u_bsi_${fieldName.toLowerCase()}`,
+        `u_BSI_${fieldName}`,
+        `U_BSI_${altName || fieldName}`,
+        `U_BSI_${fieldName}`,
+        fieldName,
+        altName
+    ].filter(Boolean);
+
+    for (const variation of variations) {
+        if (data[variation] !== undefined && data[variation] !== null) {
+            return data[variation];
+        }
+    }
+    return '';
+}
+
+// Helper function to normalize field mappings according to specification
+function normalizeFieldMapping(data, primaryField, fallbackFields = []) {
+    // Check primary field first
+    if (data.hasOwnProperty(primaryField) && data[primaryField] != null) {
+        return data[primaryField];
+    }
+
+    // Check fallback fields
+    for (const fallback of fallbackFields) {
+        if (data.hasOwnProperty(fallback) && data[fallback] != null) {
+            return data[fallback];
+        }
+    }
+
+    return '';
+}
+
+// Helper function to format dates for local input (Indonesian format)
+OptimizedUtils.formatDateToLocalInput = function (dateString) {
+    if (!dateString) return '';
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return dateString;
+
+        // Format as YYYY-MM-DD for HTML date inputs
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return dateString;
+    }
+};
+
+// Helper function to format currency with symbol
+OptimizedUtils.formatCurrencyWithSymbol = function (amount, currency) {
+    if (amount === null || amount === undefined || isNaN(amount)) return '';
+
+    const formattedAmount = new Intl.NumberFormat('id-ID', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(amount);
+
+    return `${currency} ${formattedAmount}`;
+};
+
 // Initialize the page - Optimized and flexible
 async function initializePage() {
     if (AppState.initialized) return;
@@ -709,6 +775,39 @@ function setupPageForDocType() {
     }, 100);
 
     console.log(`✅ Page configured for ${config.name} mode`);
+
+    // Debug field visibility after mode setup
+    debugFieldVisibility();
+}
+
+// Debug function to check field visibility
+function debugFieldVisibility() {
+    setTimeout(() => {
+        console.log('🔍 FIELD VISIBILITY DEBUG:');
+        console.log('Current docType:', AppState.docType);
+        console.log('Body classes:', document.body.className);
+
+        // Check service fields visibility
+        const serviceFields = document.querySelector('.service-fields');
+        const itemFields = document.querySelector('.item-fields');
+
+        console.log('Service fields display:', serviceFields ? window.getComputedStyle(serviceFields).display : 'not found');
+        console.log('Item fields display:', itemFields ? window.getComputedStyle(itemFields).display : 'not found');
+
+        // Check specific field examples
+        const sampleFields = AppState.docType === 'S' ?
+            ['DocNum', 'CardCode', 'u_BSI_ShippingType', 'u_bsi_udf1'] :
+            ['itemDocNum', 'itemCardCode', 'itemShippingType', 'itemUDF1'];
+
+        sampleFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                console.log(`Field ${fieldId}: exists, value="${field.value}", visible=${field.offsetParent !== null}`);
+            } else {
+                console.log(`Field ${fieldId}: NOT FOUND`);
+            }
+        });
+    }, 200);
 }
 
 // Update page title and status based on current status
@@ -870,6 +969,23 @@ function initializeSummaryFields() {
     });
 }
 
+// Function to update currency labels throughout the UI
+function updateCurrencyLabels(currency) {
+    const currencyLabelIds = [
+        'docCurLabel', 'discCurLabel', 'salesCurLabel',
+        'dppCurLabel', 'vatCurLabel', 'wtCurLabel', 'grandCurLabel'
+    ];
+
+    currencyLabelIds.forEach(labelId => {
+        const label = document.getElementById(labelId);
+        if (label) {
+            label.textContent = currency;
+        }
+    });
+
+    console.log(`✅ Currency labels updated to: ${currency}`);
+}
+
 // Load invoice item data - Optimized
 function loadInvItemData() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -966,51 +1082,115 @@ function populateInvItemData(data) {
 
     try {
         // Populate header fields efficiently with fallbacks
-        const headerFields = {
-            'DocEntry': data.stagingID || data.stagingId || data.id || '',
-            'DocNum': data.docNum || data.documentNumber || data.invoiceNumber || '',
-            'CardCode': data.cardCode || data.customerCode || data.clientCode || '',
-            'CardName': data.cardName || data.customerName || data.clientName || '',
-            'address': data.address || data.customerAddress || data.billingAddress || '',
-            'NumAtCard': data.numAtCard || data.kpinNumber || data.externalNumber || '',
-            'DocCur': data.docCur || data.currency || data.docCurrency || 'IDR',
-            'docRate': data.docRate || data.exchangeRate || data.rate || 1,
-            'DocDate': OptimizedUtils.formatDate(data.docDate || data.documentDate || data.invoiceDate),
-            'DocDueDate': OptimizedUtils.formatDate(data.docDueDate || data.dueDate || data.paymentDueDate),
-            'GroupNum': data.groupNum || data.paymentTerms || '',
-            'TrnspCode': data.trnspCode || data.transportCode || '',
-            'TaxNo': data.licTradNum || data.npwp || data.taxNumber || '',
-            'U_BSI_ShippingType': data.u_BSI_ShippingType || data.shippingType || '',
-            'U_BSI_PaymentGroup': data.u_BSI_PaymentGroup || data.paymentGroup || '',
-            'U_BSI_Expressiv_IsTransfered': data.u_BSI_Expressiv_IsTransfered || 'N',
-            'U_BSI_UDF1': data.u_bsi_udf1 || data.suratJalan || data.deliveryNote || '',
-            'U_BSI_UDF2': data.u_bsi_udf2 || data.poNumber || data.purchaseOrder || '',
-            'u_bsi_udf3': data.u_bsi_udf3 || data.controlAccount || '',
-            'account': data.account || data.accountCode || '',
-            'acctName': data.acctName || data.accountName || ''
+        // Service mode: specific field order and data mapping
+        const statusFromApproval = data.arInvoiceApprovalSummary?.approvalStatus || getStatusFromInvoice(data);
+
+        // Debug log for ALL API fields to understand data structure
+        console.log('=== DEBUG: ALL API FIELD VALUES ===');
+        console.log('stagingID:', data.stagingID);
+        console.log('docNum:', data.docNum);
+        console.log('cardCode:', data.cardCode);
+        console.log('cardName:', data.cardName);
+        console.log('address:', data.address);
+        console.log('numAtCard:', data.numAtCard);
+        console.log('docCur:', data.docCur);
+        console.log('docRate:', data.docRate);
+        console.log('docDate:', data.docDate);
+        console.log('docDueDate:', data.docDueDate);
+        console.log('licTradNum:', data.licTradNum);
+        console.log('u_BSI_ShippingType:', data.u_BSI_ShippingType);
+        console.log('U_BSI_PaymentGroup:', data.U_BSI_PaymentGroup);
+        console.log('u_bsi_udf1:', data.u_bsi_udf1);
+        console.log('u_bsi_udf2:', data.u_bsi_udf2);
+        console.log('u_bsi_udf3:', data.u_bsi_udf3);
+        console.log('account:', data.account);
+        console.log('acctName:', data.acctName);
+        console.log('u_BSI_Expressiv_IsTransfered:', data.u_BSI_Expressiv_IsTransfered);
+        console.log('==============================');
+
+        // Shared fields - both modes need these
+        const sharedFields = {
+            'DocEntry': data.stagingID || '',
+            'comments': data.comments || ''
         };
+
+        // Service Mode fields (original IDs)
+        const serviceModeFields = {
+            'DocNum': data.docNum || '',
+            'CardCode': data.cardCode || '',
+            'CardName': data.cardName || '',
+            'Status': statusFromApproval,
+            'address': data.address || '',
+            'NumAtCard': data.numAtCard || '',
+            'DocCur': data.docCur || 'IDR',
+            'docRate': data.docRate || 1,
+            'DocDate': OptimizedUtils.formatDateToLocalInput(data.docDate),
+            'DocDueDate': OptimizedUtils.formatDateToLocalInput(data.docDueDate),
+            'TaxNo': data.licTradNum || '',
+            'u_BSI_ShippingType': data.u_BSI_ShippingType || '',
+            'u_BSI_PaymentGroup': data.u_BSI_PaymentGroup || '',
+            'u_bsi_udf1': data.u_bsi_invnum || '',  // Service mode uses u_bsi_invnum
+            'u_bsi_udf2': data.u_bsi_udf2 || '',
+            'u_bsi_udf3': data.u_bsi_udf3 || '',
+            'account': data.account || '',
+            'acctName': data.acctName || ''
+        };
+
+        // Item Mode fields (new unique IDs)
+        const itemModeFields = {
+            'itemDocNum': data.docNum || '',
+            'itemCardCode': data.cardCode || '',
+            'itemCardName': data.cardName || '',
+            'itemStatus': statusFromApproval,
+            'itemAddress': data.address || '',
+            'itemNumAtCard': data.numAtCard || '',
+            'itemDocCur': data.docCur || 'IDR',
+            'itemDocRate': data.docRate || 1,
+            'itemDocDate': OptimizedUtils.formatDateToLocalInput(data.docDate),
+            'itemDocDueDate': OptimizedUtils.formatDateToLocalInput(data.docDueDate),
+            'itemTaxNo': data.licTradNum || '',
+            'itemShippingType': data.u_BSI_ShippingType || '',
+            'itemPaymentGroup': data.u_BSI_PaymentGroup || '',
+            'itemUDF1': data.u_bsi_sjnum || data.u_bsi_udf1 || '',  // Item mode uses u_bsi_sjnum
+            'itemUDF2': data.u_bsi_pono || data.u_bsi_udf2 || '',   // Item mode uses u_bsi_pono
+            'itemIsTransfered': data.u_BSI_Expressiv_IsTransfered || 'N',
+            'itemAccount': data.account || ''
+        };
+
+        // Combine fields based on current mode
+        const headerFields = { ...sharedFields };
+        if (AppState.docType === 'S') {
+            Object.assign(headerFields, serviceModeFields);
+        } else {
+            Object.assign(headerFields, itemModeFields);
+        }
 
         console.log('📋 HEADER FIELDS TO POPULATE:', headerFields);
 
-        // Debug: specifically check u_bsi_udf3 field
-        console.log('🔍 DEBUG u_bsi_udf3:', {
-            raw: data.u_bsi_udf3,
-            fallback: data.controlAccount,
-            final: headerFields.u_bsi_udf3
+        // Debug: specifically check fields for current mode
+        console.log('🔍 DEBUG MODE FIELDS:', {
+            docType: AppState.docType,
+            mode: AppState.docType === 'S' ? 'SERVICE' : 'ITEM',
+            fieldsPopulated: Object.keys(headerFields).length,
+            sampleFields: AppState.docType === 'S' ?
+                {
+                    u_bsi_udf3: data.u_bsi_udf3,
+                    u_bsi_invnum: data.u_bsi_invnum
+                } :
+                {
+                    u_bsi_sjnum: data.u_bsi_sjnum,
+                    u_bsi_pono: data.u_bsi_pono
+                }
         });
 
         // Batch update fields for better performance
         Object.entries(headerFields).forEach(([id, value]) => {
-            console.log(`Setting header field ${id} = "${value}"`);
+            console.log(`Setting ${AppState.docType === 'S' ? 'SERVICE' : 'ITEM'} field ${id} = "${value}"`);
             OptimizedUtils.safeSetValue(id, value);
         });
 
-        // Populate status field in form: ALWAYS use API status, never URL
-        let status = getStatusFromInvoice(data);
-        console.log('📊 Document Status (API for form):', status);
-        OptimizedUtils.safeSetValue('Status', status);
-        // For page title, still allow URL param (handled in updatePageTitleAndStatus)
-        updatePageTitleAndStatus(status);
+        // Status already populated in headerFields, update page title
+        updatePageTitleAndStatus(statusFromApproval);
 
         // Debug: log summary data
         console.log('🔄 Summary Data:', {
@@ -1029,13 +1209,19 @@ function populateInvItemData(data) {
             grandTotal: data.grandTotal
         });
 
-        // Populate summary fields with optimized currency formatting
+        // Populate summary fields with currency formatting according to specification
+        const currency = data.docCur || 'IDR';
+
+        // Update currency labels in the UI
+        updateCurrencyLabels(currency);
+
         const summaryFields = {
             'docTotal': OptimizedUtils.formatCurrencyIDR(data.netPrice || data.totalAmount || data.docTotal || 0),
             'discSum': OptimizedUtils.formatCurrencyIDR(data.discSum || data.discountAmount || 0),
-            'netPriceAfterDiscount': OptimizedUtils.formatCurrencyIDR(data.netPriceAfterDiscount || data.salesAmount || 0),
+            'netPriceAfterDiscount': OptimizedUtils.formatCurrencyIDR(data.netPriceAfterDiscount || data.netPriceAfterDisc || data.salesAmount || 0),
             'dpp1112': OptimizedUtils.formatCurrencyIDR(data.dpp1112 || data.taxBase || 0),
             'vatSum': OptimizedUtils.formatCurrencyIDR(data.docTax || data.vatAmount || data.vatSum || 0),
+            'wtSum': OptimizedUtils.formatCurrencyIDR(data.wtSum || data.withholdingTax || 0),
             'grandTotal': OptimizedUtils.formatCurrencyIDR(data.grandTotal || data.totalAmount || 0)
         };
 
@@ -1270,7 +1456,7 @@ function populateItemsTable(items) {
 
     // Handle null/undefined items
     if (!items || items === null || items === undefined) {
-        const colSpan = AppState.docType === 'S' ? '11' : '13';
+        const colSpan = AppState.docType === 'S' ? '10' : '13'; // Updated colspan for service mode
         tableBody.innerHTML = `
             <tr>
                 <td colspan="${colSpan}" class="p-4 text-center text-gray-500">
@@ -1284,7 +1470,7 @@ function populateItemsTable(items) {
 
     // Handle empty array
     if (items.length === 0) {
-        const colSpan = AppState.docType === 'S' ? '11' : '13'; // Adjust colspan based on doc type
+        const colSpan = AppState.docType === 'S' ? '10' : '13'; // Updated colspan for service mode
         tableBody.innerHTML = `
             <tr>
                 <td colspan="${colSpan}" class="p-4 text-center text-gray-500">
@@ -1299,35 +1485,49 @@ function populateItemsTable(items) {
     // Use document fragment for better performance
     const fragment = document.createDocumentFragment();
 
-    // Service row creation for docType 'S' with correct order and mapping
+    // Service row creation for docType 'S' with updated mapping according to requirements
     function createServiceRow(item, index) {
-        // Debug: log all keys and values for this service row
         console.log(`🔍 [Service Row ${index + 1}] All keys/values:`, item);
+
+        // Map fields according to requirements:
+        // - dscription → description
+        // - vatgroup → vatGroup (normalized)
+        // - wtLiable → WTLiable (normalized) and show Y/N
+        // - invQty (normalized)
+        // - u_bsi_salprice for price
+
+        const lineNum = item.lineNum || (index + 1);
+        const description = item.dscription || item.description || '';
+        const glAccount = item.acctCode || '';
+        const accountName = item.freeTxt || item.freeText || item.text || ''; // freeTxt is Account Name for service
+        const vatCode = item.vatgroup || item.vatGroup || '';
+        const wtax = (item.wtLiable || item.WTLiable) ? 'Y' : 'N';
+        const unit = item.unitMsr || '';
+        const qty = item.invQty != null ? item.invQty : '';
+        const price = item.u_bsi_salprice || item.priceBefDi || 0;
+        const amount = item.lineTotal || 0;
+
+        // Format numbers with proper currency display for service mode
+        const currency = AppState.currentInvItemData?.docCur || 'IDR';
+        const formattedPrice = OptimizedUtils.formatCurrencyIDR(price);
+        const formattedAmount = OptimizedUtils.formatCurrencyIDR(amount);
+        const formattedQty = qty;
+
         const row = document.createElement('tr');
         row.className = 'border-b';
-        // Map: No. | Description | GL Account | Account Name | Control Account | VAT Code | Wtax | unit | qty | Price | Amount | Free Text
-        const acctName = AppState.currentInvItemData?.acctName || '';
-        const controlAccount = AppState.currentInvItemData?.u_bsi_udf3 || '';
         row.innerHTML = `
-        <td class="p-2">${index + 1}</td>
-        <td class="p-2 description-column service-only">${item.dscription || ''}</td>
-        <td class="p-2 account-code-column service-only">${item.acctCode || ''}</td>
-        <td class="p-2 account-name-column service-only" style="min-width:120px; vertical-align:top;">
-          <div style="margin-bottom:12px;">${acctName}</div>
-        </td>
-                <td class="p-2 freetext-column service-only">${item.freeTxt || 'null'}</td>
+            <td class="p-2 no-column">${lineNum}</td>
+            <td class="p-2 description-column service-only">${description}</td>
+            <td class="p-2 account-code-column service-only">${glAccount}</td>
+            <td class="p-2 account-name-column service-only">${accountName}</td>
+            <td class="p-2 tax-code-column service-only">${vatCode}</td>
+            <td class="p-2 wtax-column service-only">${wtax}</td>
+            <td class="p-2 uom-column service-only">${unit}</td>
+            <td class="p-2 quantity-column service-only">${formattedQty}</td>
+            <td class="p-2 price-column service-only">${formattedPrice}</td>
+            <td class="p-2 line-total-column service-only">${formattedAmount}</td>
+        `;
 
-        <td class="p-2 control-account-column service-only" style="min-width:120px; vertical-align:bottom;">
-          <div style="margin-top:12px;">${controlAccount}</div>
-        </td>
-        <td class="p-2 tax-code-column service-only">${item.vatgroup || ''}</td>
-        <td class="p-2 wtax-column service-only">${item.wtLiable || ''}</td>
-        <td class="p-2 uom-column service-only">${item.unitMsr || ''}</td>
-        <td class="p-2 quantity-column service-only">${item.invQty != null ? item.invQty : ''}</td>
-        <td class="p-2 price-column service-only">${item.priceBefDi != null ? OptimizedUtils.formatCurrencyIDR(item.priceBefDi) : ''}</td>
-
-        <td class="p-2 line-total-column service-only">${item.lineTotal != null ? OptimizedUtils.formatCurrencyIDR(item.lineTotal) : ''}</td>
-    `;
         return row;
     }
 
@@ -1335,10 +1535,11 @@ function populateItemsTable(items) {
         let row;
         if (AppState.docType === 'S') {
             row = createServiceRow(item, index);
+            fragment.appendChild(row);
         } else {
             row = createOptimizedItemRow(item, index);
+            fragment.appendChild(row);
         }
-        fragment.appendChild(row);
     });
 
     tableBody.appendChild(fragment);
@@ -1352,6 +1553,7 @@ function createOptimizedItemRow(item, index) {
         quantity: item.quantity,
         invQty: item.invQty,
         priceBefDi: item.priceBefDi,
+        u_bsi_salprice: item.u_bsi_salprice,
         lineTotal: item.lineTotal,
         fullItem: item
     });
@@ -1359,82 +1561,45 @@ function createOptimizedItemRow(item, index) {
     const row = document.createElement('tr');
     row.className = 'border-b';
 
-    // Common cell data
+    // Item mode structure - match the exact HTML header structure
     const cellData = [
-        { class: 'no-column', content: `<input type="number" class="line-num-input no-input p-2 border rounded bg-gray-100 cursor-not-allowed text-center" value="${index + 1}" disabled readonly />` }
+        // No. column (always visible)
+        { class: 'no-column', content: `<input type="number" class="line-num-input no-input p-2 border rounded bg-gray-100 cursor-not-allowed text-center" value="${index + 1}" disabled readonly />` },
+
+        // Item Only Columns - matching HTML header order exactly
+        { class: 'item-code-column item-only', content: `<input type="text" class="item-code-input p-2 border rounded bg-gray-100" value="${item.itemCode || ''}" disabled />` },
+        { class: 'bp-catalog-column item-only', content: `<input type="text" class="bp-catalog-input p-2 border rounded bg-gray-100" value="${item.catalogNo || ''}" disabled />` },
+        { class: 'description-column item-only', content: `<textarea class="w-full item-description bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.dscription || ''}</textarea>` },
+        { class: 'uom-column item-only', content: `<textarea class="w-full item-uom bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.unitMsr || ''}</textarea>` },
+        { class: 'packing-size-column item-only', content: `<textarea class="w-full item-packing-size bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.unitMsr2 || ''}</textarea>` },
+        { class: 'quantity-column item-only', content: `<textarea class="quantity-input item-sls-qty bg-gray-100 text-center currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.quantity) || ''}</textarea>` },
+        { class: 'quantity-column item-only', content: `<textarea class="quantity-input item-quantity bg-gray-100 text-center currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.invQty) || ''}</textarea>` },
+        { class: 'price-column item-only', content: `<textarea class="price-input item-sls-price bg-gray-100 text-right currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.u_bsi_salprice) || ''}</textarea>` },
+        { class: 'price-column item-only', content: `<textarea class="price-input item-price bg-gray-100 text-right currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.priceBefDi) || ''}</textarea>` },
+        { class: 'tax-code-column item-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.vatgroup || ''}" />` },
+        { class: 'line-total-column item-only', content: `<textarea class="line-total-input item-line-total bg-gray-100 text-right currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.lineTotal) || ''}</textarea>` },
+
+        // Service Only Columns (hidden in item mode)
+        { class: 'description-column service-only', content: `<textarea class="w-full item-description bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.dscription || ''}</textarea>` },
+        { class: 'account-code-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.acctCode || ''}" />` },
+        { class: 'account-name-column service-only', content: `<textarea class="w-full bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.text || item.freeTxt || item.freeText || item.remarks || ''}</textarea>` },
+        { class: 'tax-code-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.vatgroup || ''}" />` },
+        { class: 'wtax-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.wtLiable || 'N'}" />` },
+        { class: 'uom-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.unitMsr || ''}" />` },
+        { class: 'quantity-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100 text-center" disabled value="${OptimizedUtils.formatCurrencyIDR(item.invQty) || ''}" />` },
+        { class: 'price-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100 text-right" disabled value="${OptimizedUtils.formatCurrencyIDR(item.u_bsi_salprice) || ''}" />` },
+        { class: 'line-total-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100 text-right" disabled value="${OptimizedUtils.formatCurrencyIDR(item.lineTotal) || ''}" />` }
     ];
 
-    // Item-specific columns
-    if (AppState.docType === 'I') {
-        cellData.push(
-            { class: 'item-code-column item-only', content: `<input type="text" class="item-code-input p-2 border rounded bg-gray-100" value="${item.itemCode || ''}" disabled />` },
-            { class: 'bp-catalog-column item-only', content: `<input type="text" class="bp-catalog-input p-2 border rounded bg-gray-100" value="${item.catalogNo || ''}" disabled />` }
-        );
-    }
-
-    // Description column (different labels for Item vs Service)
-    cellData.push(
-        { class: 'description-column', content: `<textarea class="w-full item-description bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.dscription || ''}</textarea>` }
-    );
-
-    // Item-only columns
-    if (AppState.docType === 'I') {
-        cellData.push(
-            { class: 'uom-column item-only', content: `<textarea class="w-full item-uom bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.unitMsr || ''}</textarea>` },
-            { class: 'packing-size-column item-only', content: `<textarea class="w-full item-packing-size bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.unitMsr2 || ''}</textarea>` },
-            { class: 'quantity-column item-only', content: `<textarea class="quantity-input item-sls-qty bg-gray-100 text-center currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.quantity) || ''}</textarea>` }
-        );
-    }
-
-    // Quantity column (common but different labels)
-    cellData.push(
-        { class: 'quantity-column', content: `<textarea class="quantity-input item-quantity bg-gray-100 text-center currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.invQty) || ''}</textarea>` }
-    );
-
-    // Hidden UoM column
-    cellData.push(
-        { class: 'uom-column hidden', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.unitMsr || ''}" />` }
-    );
-
-    // Price columns
-    if (AppState.docType === 'I') {
-        cellData.push(
-            { class: 'price-column item-only', content: `<textarea class="price-input item-sls-price bg-gray-100 text-right currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.u_bsi_salprice) || ''}</textarea>` }
-        );
-    }
-
-    cellData.push(
-        { class: 'price-column', content: `<textarea class="price-input item-price bg-gray-100 text-right currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.priceBefDi) || ''}</textarea>` }
-    );
-
-    // VAT column
-    cellData.push(
-        { class: 'tax-code-column', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.vatgroup || ''}" />` }
-    );
-
-    // Service-only columns
-    if (AppState.docType === 'S') {
-        cellData.push(
-            { class: 'wtax-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.wtLiable || 'N'}" />` },
-            { class: 'account-name-column service-only', content: `<textarea class="w-full bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.text || item.freeTxt || item.freeText || item.remarks || ''}</textarea>` }
-        );
-    }
-
-    // Line total column
-    cellData.push(
-        { class: 'line-total-column', content: `<textarea class="line-total-input item-line-total bg-gray-100 text-right currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.lineTotal) || ''}</textarea>` }
-    );
-
-    // Hidden columns
+    // Hidden columns for backward compatibility
     const hiddenColumns = [
-        { class: 'account-code-column hidden', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.acctCode || ''}" />` },
         { class: 'base-column hidden', content: `<input type="number" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.baseType || 0}" />` },
         { class: 'base-column hidden', content: `<input type="number" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.baseEntry || 0}" />` },
         { class: 'base-column hidden', content: `<input type="number" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.baseLine || 0}" />` },
         { class: 'base-column hidden', content: `<input type="number" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.lineType || 0}" />` }
     ];
 
-    // Combine all cell data properly
+    // Combine all cell data
     const allCellData = [...cellData, ...hiddenColumns];
 
     allCellData.forEach(({ class: className, content }) => {
@@ -1871,11 +2036,17 @@ async function loadAttachments(stagingId) {
 
 // Optimized attachment display
 function displayAttachments(attachments) {
-    const attachmentList = OptimizedUtils.safeGetElement('attachmentsContainer');
-    const noAttachmentsDiv = OptimizedUtils.safeGetElement('noAttachments');
+    // Get the appropriate containers based on current mode
+    const attachmentListService = OptimizedUtils.safeGetElement('attachmentsContainer');
+    const attachmentListItem = OptimizedUtils.safeGetElement('itemAttachmentsContainer');
+    const noAttachmentsService = OptimizedUtils.safeGetElement('noAttachments');
+    const noAttachmentsItem = OptimizedUtils.safeGetElement('itemNoAttachments');
+
+    const attachmentList = AppState.docType === 'S' ? attachmentListService : attachmentListItem;
+    const noAttachmentsDiv = AppState.docType === 'S' ? noAttachmentsService : noAttachmentsItem;
 
     if (!attachmentList) {
-        console.error('❌ Attachment list container not found');
+        console.error(`❌ Attachment list container not found for mode: ${AppState.docType}`);
         return;
     }
 
@@ -1962,8 +2133,14 @@ function createAttachmentItem(attachment, index) {
 }
 
 function displayNoAttachments() {
-    const attachmentList = OptimizedUtils.safeGetElement('attachmentsContainer');
-    const noAttachmentsDiv = OptimizedUtils.safeGetElement('noAttachments');
+    // Get the appropriate containers based on current mode
+    const attachmentListService = OptimizedUtils.safeGetElement('attachmentsContainer');
+    const attachmentListItem = OptimizedUtils.safeGetElement('itemAttachmentsContainer');
+    const noAttachmentsService = OptimizedUtils.safeGetElement('noAttachments');
+    const noAttachmentsItem = OptimizedUtils.safeGetElement('itemNoAttachments');
+
+    const attachmentList = AppState.docType === 'S' ? attachmentListService : attachmentListItem;
+    const noAttachmentsDiv = AppState.docType === 'S' ? noAttachmentsService : noAttachmentsItem;
 
     if (attachmentList) {
         attachmentList.innerHTML = '';
@@ -1971,6 +2148,7 @@ function displayNoAttachments() {
 
     if (noAttachmentsDiv) {
         noAttachmentsDiv.classList.remove('hidden');
+        console.log(`📎 No attachments to display for mode: ${AppState.docType}`);
     }
 }
 
