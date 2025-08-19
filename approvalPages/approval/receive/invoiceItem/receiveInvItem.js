@@ -7,7 +7,7 @@ let allUsers = []; // Store all users for kansaiEmployeeId lookup
 const API_BASE_URL = `${BASE_URL}/api`;
 
 // Initialize the page
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initializePage();
 });
 
@@ -52,16 +52,16 @@ function initializePage() {
 
     // Load users from API to get kansaiEmployeeId
     fetchUsers();
-    
+
     // Load invoice item data from URL parameters
     loadInvItemData();
-    
+
     // Setup event listeners
     setupEventListeners();
-    
+
     // Initialize summary fields with default values
     initializeSummaryFields();
-    
+
     // Initially hide attachment section until status is determined
     toggleAttachmentSectionVisibility('Draft'); // Hide by default
 }
@@ -73,7 +73,7 @@ async function fetchUsers() {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const result = await response.json();
         if (result.data) {
             allUsers = result.data;
@@ -91,19 +91,19 @@ function getCurrentUserKansaiEmployeeId() {
         console.warn('No current user or users data available');
         return currentUser?.userId || currentUser?.username || 'unknown';
     }
-    
+
     // Find the current user in the allUsers array
-    const currentUserData = allUsers.find(user => 
-        user.id === currentUser.userId || 
+    const currentUserData = allUsers.find(user =>
+        user.id === currentUser.userId ||
         user.username === currentUser.username ||
         user.name === currentUser.username
     );
-    
+
     if (currentUserData && currentUserData.kansaiEmployeeId) {
         console.log('Found kansaiEmployeeId for current user:', currentUserData.kansaiEmployeeId);
         return currentUserData.kansaiEmployeeId;
     }
-    
+
     console.warn('kansaiEmployeeId not found for current user, falling back to userId/username');
     return currentUser.userId || currentUser.username || 'unknown';
 }
@@ -114,18 +114,18 @@ function getCurrentUserFullName() {
         console.warn('No current user or users data available for full name');
         return currentUser?.username || 'Unknown User';
     }
-    
+
     // Find the current user in the allUsers array
-    const currentUserData = allUsers.find(user => 
-        user.id === currentUser.userId || 
+    const currentUserData = allUsers.find(user =>
+        user.id === currentUser.userId ||
         user.username === currentUser.username ||
         user.name === currentUser.username
     );
-    
+
     if (currentUserData && currentUserData.name) {
         return currentUserData.name;
     }
-    
+
     console.warn('Full name not found for current user, falling back to username');
     return currentUser.username || 'Unknown User';
 }
@@ -134,7 +134,7 @@ function getCurrentUserFullName() {
 function loadInvItemData() {
     const urlParams = new URLSearchParams(window.location.search);
     const stagingId = urlParams.get('stagingID');
-    
+
     if (!stagingId) {
         Swal.fire({
             icon: 'error',
@@ -154,7 +154,7 @@ function loadInvItemData() {
 async function loadInvItemFromAPI(stagingId) {
     try {
         console.log('Loading invoice item data for stagingId:', stagingId);
-        
+
         // Show loading indicator
         Swal.fire({
             title: 'Loading...',
@@ -163,11 +163,11 @@ async function loadInvItemFromAPI(stagingId) {
                 Swal.showLoading();
             }
         });
-        
+
         // Construct API URL
         const apiUrl = `${API_BASE_URL}/ar-invoices/${stagingId}/details`;
         console.log('API URL:', apiUrl);
-        
+
         // Fetch data from API
         const response = await fetch(apiUrl, {
             method: 'GET',
@@ -176,40 +176,40 @@ async function loadInvItemFromAPI(stagingId) {
                 'Content-Type': 'application/json'
             }
         });
-        
+
         console.log('Response status:', response.status);
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const result = await response.json();
         console.log('API response result:', result);
-        
+
         if (result.status && result.data) {
             currentInvItemData = result.data;
             console.log('Invoice item data loaded from API:', currentInvItemData);
-            
+
             // Populate form with data
             populateInvItemData(currentInvItemData);
-            
+
             // Update button visibility based on status
             updateButtonVisibility();
-            
+
             // Load attachments for this invoice item
             loadAttachments(stagingId);
-            
+
             // Close loading indicator
             Swal.close();
         } else {
             throw new Error('Invalid response format from API');
         }
-        
+
     } catch (error) {
         console.error('Error loading invoice item data:', error);
-        
+
         let errorMessage = 'Failed to load invoice item data';
-        
+
         if (error.message.includes('404')) {
             errorMessage = 'Invoice item not found. Please check the staging ID.';
         } else if (error.message.includes('500')) {
@@ -219,7 +219,7 @@ async function loadInvItemFromAPI(stagingId) {
         } else {
             errorMessage = `Failed to load invoice item data: ${error.message}`;
         }
-        
+
         Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -233,14 +233,14 @@ async function loadInvItemFromAPI(stagingId) {
 // Update button visibility based on document status
 function updateButtonVisibility() {
     if (!currentInvItemData) return;
-    
+
     const status = getStatusFromInvoice(currentInvItemData);
     const receiveButton = document.querySelector('button[onclick="receiveInvItem()"]');
     const rejectButton = document.querySelector('button[onclick="rejectInvItem()"]');
     const eSignButton = document.getElementById('eSignButton');
-    
+
     console.log('Current document status:', status);
-    
+
     // Hide Reject and Receive buttons if status is "Received"
     if (status === 'Received') {
         if (receiveButton) receiveButton.style.display = 'none';
@@ -250,10 +250,10 @@ function updateButtonVisibility() {
         if (receiveButton) receiveButton.style.display = 'inline-block';
         if (rejectButton) rejectButton.style.display = 'inline-block';
     }
-    
+
     // Print button has been removed from main submit section
     // Print functionality is now only available in the E-Signing section
-    
+
     // Show E-Sign button if status is "Received"
     if (eSignButton) {
         if (status === 'Received') {
@@ -262,14 +262,14 @@ function updateButtonVisibility() {
             eSignButton.style.display = 'none';
         }
     }
-    
+
     console.log('Button visibility updated based on status');
 }
 
 // Populate invoice item data in the form
 function populateInvItemData(data) {
     console.log('Populating invoice item data:', data);
-    
+
     // Helper function to safely set element value
     function safeSetValue(elementId, value) {
         const element = document.getElementById(elementId);
@@ -279,7 +279,7 @@ function populateInvItemData(data) {
             console.warn(`Element with id '${elementId}' not found`);
         }
     }
-    
+
     // Helper function to safely set element style
     function safeSetStyle(elementId, styleProperty, value) {
         const element = document.getElementById(elementId);
@@ -289,7 +289,7 @@ function populateInvItemData(data) {
             console.warn(`Element with id '${elementId}' not found`);
         }
     }
-    
+
     // Populate header fields
     safeSetValue('DocEntry', data.stagingID || '');
     safeSetValue('DocNum', data.docNum || '');
@@ -303,39 +303,39 @@ function populateInvItemData(data) {
     safeSetValue('DocDueDate', formatDate(data.docDueDate));
     safeSetValue('GroupNum', data.groupNum || '');
     safeSetValue('TrnspCode', data.trnspCode || '');
-            safeSetValue('TaxNo', data.licTradNum || '');
-        safeSetValue('U_BSI_ShippingType', data.u_BSI_ShippingType || '');
-        safeSetValue('U_BSI_PaymentGroup', data.u_BSI_PaymentGroup || '');
+    safeSetValue('TaxNo', data.licTradNum || '');
+    safeSetValue('U_BSI_ShippingType', data.u_BSI_ShippingType || '');
+    safeSetValue('U_BSI_PaymentGroup', data.u_BSI_PaymentGroup || '');
     safeSetValue('U_BSI_Expressiv_IsTransfered', data.u_BSI_Expressiv_IsTransfered || 'N');
     safeSetValue('U_BSI_UDF1', data.u_bsi_udf1 || '');
     safeSetValue('U_BSI_UDF2', data.u_bsi_udf2 || '');
     safeSetValue('account', data.account || '');
     safeSetValue('acctName', data.acctName || '');
-    
 
-    
+
+
     // Populate status from approval summary
     const status = getStatusFromInvoice(data);
     safeSetValue('Status', status);
-    
+
     // Toggle attachment section visibility based on approval status
     toggleAttachmentSectionVisibility(status);
-    
+
     // Populate summary fields with currency formatting
     const docCur = data.docCur || 'IDR';
-    
+
     // Total Amount (totalAmount) - from docCur and netPrice fields
     const totalAmount = data.netPrice || 0;
     safeSetValue('docTotal', formatCurrencyIDR(totalAmount));
-    
+
     // Discounted Amount (discountAmount) - from docCur and discSum fields
     const discountAmount = data.discSum || 0;
     safeSetValue('discSum', formatCurrencyIDR(discountAmount));
-    
+
     // Sales Amount (salesAmount) - from docCur and netPriceAfterDiscount fields
     const salesAmount = data.netPriceAfterDiscount || 0;
     safeSetValue('netPriceAfterDiscount', formatCurrencyIDR(salesAmount));
-    
+
     console.log('Summary fields populated:', {
         docCur: data.docCur,
         netPrice: data.netPrice,
@@ -346,42 +346,42 @@ function populateInvItemData(data) {
         grandTotal: data.grandTotal,
         note: 'Using specific API fields with currency'
     });
-    
-            // Tax Base Other Value (taxBase) - from dpp1112 field
-        const taxBase = data.dpp1112 || 0;
-        safeSetValue('dpp1112', formatCurrencyIDR(taxBase));
-    
+
+    // Tax Base Other Value (taxBase) - from dpp1112 field
+    const taxBase = data.dpp1112 || 0;
+    safeSetValue('dpp1112', formatCurrencyIDR(taxBase));
+
     // VAT 12% (vatAmount) - from docCur and docTax fields
     const vatAmount = data.docTax || 0;
     safeSetValue('vatSum', formatCurrencyIDR(vatAmount));
-    
+
     // GRAND TOTAL (grandTotal) - from docCur and grandTotal fields
     const grandTotal = data.grandTotal || 0;
     safeSetValue('grandTotal', formatCurrencyIDR(grandTotal));
-    
+
     // Populate comments
     safeSetValue('comments', data.comments || '');
-    
+
     // Populate approval info from approval summary
     if (data.arInvoiceApprovalSummary) {
         console.log('Approval summary data:', data.arInvoiceApprovalSummary);
-        
+
         safeSetValue('preparedBySearch', data.arInvoiceApprovalSummary.preparedByName || '');
         safeSetValue('acknowledgeBySearch', data.arInvoiceApprovalSummary.acknowledgedByName || '');
         safeSetValue('checkedBySearch', data.arInvoiceApprovalSummary.checkedByName || '');
         safeSetValue('approvedBySearch', data.arInvoiceApprovalSummary.approvedByName || '');
         safeSetValue('receivedBySearch', data.arInvoiceApprovalSummary.receivedByName || '');
-        
+
         // Show rejection remarks if exists and has valid value
         const revisionRemarks = data.arInvoiceApprovalSummary.revisionRemarks;
         const rejectionRemarks = data.arInvoiceApprovalSummary.rejectionRemarks;
-        
+
         // Check both revisionRemarks and rejectionRemarks fields
         const remarksToShow = revisionRemarks || rejectionRemarks;
-        
+
         if (remarksToShow && remarksToShow.trim() !== '' && remarksToShow !== null && remarksToShow !== undefined) {
             safeSetValue('rejectionRemarks', remarksToShow);
-            
+
             // Populate rejection information if available
             if (data.arInvoiceApprovalSummary.rejectedByName) {
                 safeSetValue('rejectedByName', data.arInvoiceApprovalSummary.rejectedByName);
@@ -389,7 +389,7 @@ function populateInvItemData(data) {
             } else {
                 safeSetValue('rejectedByName', '');
             }
-            
+
             if (data.arInvoiceApprovalSummary.rejectedDate) {
                 const rejectedDate = new Date(data.arInvoiceApprovalSummary.rejectedDate);
                 if (!isNaN(rejectedDate.getTime())) {
@@ -408,7 +408,7 @@ function populateInvItemData(data) {
             } else {
                 safeSetValue('rejectedDate', '');
             }
-            
+
             safeSetStyle('rejectionRemarksSection', 'display', 'block');
             console.log('Showing rejection remarks:', remarksToShow);
         } else {
@@ -416,17 +416,17 @@ function populateInvItemData(data) {
             console.log('Hiding rejection remarks section - no valid remarks found');
         }
     }
-    
+
     // Populate items table
     populateItemsTable(data.arInvoiceDetails || []);
-    
+
     // Apply text wrapping
     refreshTextWrapping();
-    
+
     // Apply currency formatting to table cells and summary fields
     setTimeout(() => {
         applyCurrencyFormattingToTable();
-        
+
         // Apply currency formatting to summary fields
         const summaryFields = ['docTotal', 'discSum', 'netPriceAfterDiscount', 'dpp1112', 'vatSum', 'grandTotal'];
         summaryFields.forEach(fieldId => {
@@ -439,10 +439,10 @@ function populateInvItemData(data) {
             }
         });
     }, 200);
-    
+
     // Make all fields read-only since this is a receive page
     makeAllFieldsReadOnly();
-    
+
     // Save data to storage for print functionality
     if (data.stagingID) {
         saveInvoiceDataToStorage(data.stagingID, data);
@@ -452,7 +452,7 @@ function populateInvItemData(data) {
 // Function to control attachment section visibility based on approval status
 function toggleAttachmentSectionVisibility(approvalStatus) {
     console.log('toggleAttachmentSectionVisibility called with status:', approvalStatus);
-    
+
     const attachmentSection = document.querySelector('.attachment-section');
     if (attachmentSection) {
         if (approvalStatus === 'Received') {
@@ -473,16 +473,16 @@ function getStatusFromInvoice(invoice) {
     if (invoice.arInvoiceApprovalSummary === null || invoice.arInvoiceApprovalSummary === undefined) {
         return 'Draft';
     }
-    
+
     // If arInvoiceApprovalSummary exists, use approvalStatus field
     if (invoice.arInvoiceApprovalSummary) {
         const summary = invoice.arInvoiceApprovalSummary;
-        
+
         // First priority: use approvalStatus field from arInvoiceApprovalSummary
         if (summary.approvalStatus && summary.approvalStatus.trim() !== '') {
             return summary.approvalStatus;
         }
-        
+
         // Fallback: check individual status flags
         if (summary.isRejected) return 'Rejected';
         if (summary.isApproved) return 'Approved';
@@ -490,19 +490,19 @@ function getStatusFromInvoice(invoice) {
         if (summary.isChecked) return 'Checked';
         if (summary.isReceived) return 'Received';
     }
-    
+
     // Check transfer status
     if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
-    
+
     // Check if it's a staging document (draft)
     if (invoice.stagingID && invoice.stagingID.startsWith('STG')) return 'Draft';
-    
+
     // Check if document has been transferred (received)
     if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') return 'Received';
-    
+
     // Check if document is in preparation stage
     if (invoice.docNum && invoice.docNum > 0) return 'Prepared';
-    
+
     // Default to Draft for new documents
     return 'Draft';
 }
@@ -510,14 +510,14 @@ function getStatusFromInvoice(invoice) {
 // Format date to YYYY-MM-DD
 function formatDate(dateString) {
     if (!dateString) return '';
-    
+
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return '';
-    
+
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    
+
     return `${year}-${month}-${day}`;
 }
 
@@ -528,9 +528,9 @@ function populateItemsTable(items) {
         console.warn('Element with id "tableBody" not found');
         return;
     }
-    
+
     tableBody.innerHTML = '';
-    
+
     if (items.length === 0) {
         // Add empty row message
         const emptyRow = document.createElement('tr');
@@ -542,7 +542,7 @@ function populateItemsTable(items) {
         tableBody.appendChild(emptyRow);
         return;
     }
-    
+
     // Populate table with sequential numbering starting from 1
     items.forEach((item, index) => {
         const row = createItemRow(item, index);
@@ -554,7 +554,7 @@ function populateItemsTable(items) {
 function createItemRow(item, index) {
     const row = document.createElement('tr');
     row.className = 'border-b';
-    
+
     row.innerHTML = `
         <td class="p-2 border no-column">
             <!-- Sequential numbering starting from 1 -->
@@ -612,7 +612,7 @@ function createItemRow(item, index) {
             <input type="number" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off" value="${item.lineType || 0}" />
         </td>
     `;
-    
+
     return row;
 }
 
@@ -694,7 +694,7 @@ function rejectInvItem() {
             if (firstField) {
                 initializeWithRejectionPrefix(firstField);
             }
-            
+
             // Add event listener for input protection
             const field = document.querySelector('#rejectionFieldsContainer textarea');
             if (field) {
@@ -705,16 +705,16 @@ function rejectInvItem() {
             // Get the rejection remark
             const field = document.querySelector('#rejectionFieldsContainer textarea');
             const remarks = field ? field.value.trim() : '';
-            
+
             // Check if there's content beyond the prefix
             const prefixLength = parseInt(field?.dataset.prefixLength || '0');
             const contentAfterPrefix = remarks.substring(prefixLength).trim();
-            
+
             if (!contentAfterPrefix) {
                 Swal.showValidationMessage('Please enter a rejection reason');
                 return false;
             }
-            
+
             return remarks;
         }
     }).then((result) => {
@@ -731,10 +731,10 @@ function initializeWithRejectionPrefix(textarea) {
     const role = getCurrentUserRole();
     const prefix = `[${userInfo} - ${role}]: `;
     textarea.value = prefix;
-    
+
     // Store the prefix length as a data attribute
     textarea.dataset.prefixLength = prefix.length;
-    
+
     // Set selection range after the prefix
     textarea.setSelectionRange(prefix.length, prefix.length);
     textarea.focus();
@@ -744,18 +744,18 @@ function initializeWithRejectionPrefix(textarea) {
 function handleRejectionInput(event) {
     const textarea = event.target;
     const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
-    
+
     // Get the expected prefix
     const userInfo = getCurrentUserFullName() || 'Unknown User';
     const role = getCurrentUserRole();
     const expectedPrefix = `[${userInfo} - ${role}]: `;
-    
+
     // Check if the current value starts with the expected prefix
     if (!textarea.value.startsWith(expectedPrefix)) {
         // If prefix is damaged, restore it
         const userText = textarea.value.substring(prefixLength);
         textarea.value = expectedPrefix + userText;
-        
+
         // Reset cursor position after the prefix
         textarea.setSelectionRange(prefixLength, prefixLength);
     } else {
@@ -803,7 +803,7 @@ async function updateInvItemStatus(status, remarks = '') {
         // Create timestamp in ISO format
         const now = new Date().toISOString();
         console.log('Current timestamp for status update:', now);
-        
+
         // Prepare payload for PATCH API - preserve existing approval data
         const payload = {
             approvalStatus: status,
@@ -823,7 +823,7 @@ async function updateInvItemStatus(status, remarks = '') {
             payload.rejectedDate = now;
             console.log('✅ Added rejectedDate to payload:', now);
             console.log('📅 rejectedDate format:', typeof now, now);
-            
+
             // Add rejection remarks if provided
             if (remarks && remarks.trim() !== '') {
                 payload.rejectionRemarks = remarks.trim();
@@ -834,24 +834,24 @@ async function updateInvItemStatus(status, remarks = '') {
         // Preserve existing approval data if available
         if (currentInvItemData.arInvoiceApprovalSummary) {
             const existingSummary = currentInvItemData.arInvoiceApprovalSummary;
-            
+
             // Preserve existing approval data
             if (existingSummary.preparedBy) payload.preparedBy = existingSummary.preparedBy;
             if (existingSummary.preparedByName) payload.preparedByName = existingSummary.preparedByName;
             if (existingSummary.preparedDate) payload.preparedDate = existingSummary.preparedDate;
-            
+
             if (existingSummary.checkedBy) payload.checkedBy = existingSummary.checkedBy;
             if (existingSummary.checkedByName) payload.checkedByName = existingSummary.checkedByName;
             if (existingSummary.checkedDate) payload.checkedDate = existingSummary.checkedDate;
-            
+
             if (existingSummary.acknowledgedBy) payload.acknowledgedBy = existingSummary.acknowledgedBy;
             if (existingSummary.acknowledgedByName) payload.acknowledgedByName = existingSummary.acknowledgedByName;
             if (existingSummary.acknowledgedDate) payload.acknowledgedDate = existingSummary.acknowledgedDate;
-            
+
             if (existingSummary.approvedBy) payload.approvedBy = existingSummary.approvedBy;
             if (existingSummary.approvedByName) payload.approvedByName = existingSummary.approvedByName;
             if (existingSummary.approvedDate) payload.approvedDate = existingSummary.approvedDate;
-            
+
             // Preserve existing rejection remarks if any (but don't override new ones)
             if (existingSummary.rejectionRemarks && !payload.rejectionRemarks) {
                 payload.rejectionRemarks = existingSummary.rejectionRemarks;
@@ -877,7 +877,7 @@ async function updateInvItemStatus(status, remarks = '') {
         if (!response.ok) {
             const errorText = await response.text();
             console.error('❌ API Error response:', errorText);
-            
+
             let errorDetails = errorText;
             try {
                 const errorJson = JSON.parse(errorText);
@@ -885,7 +885,7 @@ async function updateInvItemStatus(status, remarks = '') {
             } catch (parseError) {
                 console.error('Could not parse error response as JSON:', parseError);
             }
-            
+
             throw new Error(`API Error: ${response.status} - ${errorDetails}`);
         }
 
@@ -915,7 +915,7 @@ async function updateInvItemStatus(status, remarks = '') {
         // Show success message with confirmation
         const actionText = status === 'Received' ? 'received' : 'rejected';
         const dateField = status === 'Received' ? 'receivedDate' : 'rejectedDate';
-        
+
         Swal.fire({
             icon: 'success',
             title: 'Success!',
@@ -936,7 +936,7 @@ async function updateInvItemStatus(status, remarks = '') {
 
     } catch (error) {
         console.error('❌ Error updating invoice item status:', error);
-        
+
         Swal.fire({
             icon: 'error',
             title: 'Update Failed',
@@ -950,7 +950,7 @@ async function updateInvItemStatus(status, remarks = '') {
 function printInvItem() {
     try {
         console.log("Print function started");
-        
+
         // Helper function to safely get element value
         function safeGetValue(elementId, defaultValue = '') {
             const element = document.getElementById(elementId);
@@ -961,7 +961,7 @@ function printInvItem() {
                 return defaultValue;
             }
         }
-        
+
         // Helper function to safely get element value as number
         function safeGetNumber(elementId, defaultValue = 0) {
             const element = document.getElementById(elementId);
@@ -972,10 +972,10 @@ function printInvItem() {
                 return defaultValue;
             }
         }
-        
+
         // Get current stagingID
         const stagingID = currentInvItemData?.stagingID || 'STG-UNKNOWN';
-        
+
         // Get all necessary data from the form
         const invData = {
             stagingID: stagingID,
@@ -1003,35 +1003,35 @@ function printInvItem() {
             approvedBy: safeGetValue('approvedBySearch'),
             receivedBy: safeGetValue('receivedBySearch'),
         };
-        
+
         // Get items from the table
         const items = [];
         const tableBody = document.getElementById('tableBody');
-        
+
         if (!tableBody) {
             console.warn('Table body not found, skipping item extraction');
         } else {
             const rows = tableBody.querySelectorAll('tr');
-            
+
             rows.forEach((row, index) => {
                 // Helper function to safely get element value from row
                 function safeGetRowValue(selector, defaultValue = '') {
                     const element = row.querySelector(selector);
                     return element ? (element.value || defaultValue) : defaultValue;
                 }
-                
+
                 // Helper function to safely get element value as number from row
                 function safeGetRowNumber(selector, defaultValue = 0) {
                     const element = row.querySelector(selector);
                     return element ? (parseFloat(element.value) || defaultValue) : defaultValue;
                 }
-                
+
                 // Helper function to safely get element value as integer from row
                 function safeGetRowInt(selector, defaultValue = 0) {
                     const element = row.querySelector(selector);
                     return element ? (parseInt(element.value) || defaultValue) : defaultValue;
                 }
-                
+
                 // Extract data from each row
                 const lineNum = safeGetRowNumber('.line-num-input', index);
                 const itemCode = safeGetRowValue('.item-code-input');
@@ -1050,32 +1050,32 @@ function printInvItem() {
                 const baseEntry = safeGetRowInt('.item-base-entry');
                 const baseLine = safeGetRowInt('.item-base-line');
                 const lineType = safeGetRowInt('.item-line-type');
-            
-            items.push({
-                lineNum: parseInt(lineNum),
-                itemCode: itemCode,
-                dscription: itemName,
-                text: freeTxt,
-                quantity: salesQty,
-                invQty: invQty,
-                unitMsr: uom,
-                u_bsi_salprice: salesPrice,
-                priceBefDi: price,
-                discount: discPrcnt,
-                vatgroup: taxCode,
-                lineTotal: lineTotal,
-                acctCode: accountCode,
-                baseType: baseType,
-                baseEntry: baseEntry,
-                baseLine: baseLine,
-                lineType: lineType
-            });
+
+                items.push({
+                    lineNum: parseInt(lineNum),
+                    itemCode: itemCode,
+                    dscription: itemName,
+                    text: freeTxt,
+                    quantity: salesQty,
+                    invQty: invQty,
+                    unitMsr: uom,
+                    u_bsi_salprice: salesPrice,
+                    priceBefDi: price,
+                    discount: discPrcnt,
+                    vatgroup: taxCode,
+                    lineTotal: lineTotal,
+                    acctCode: accountCode,
+                    baseType: baseType,
+                    baseEntry: baseEntry,
+                    baseLine: baseLine,
+                    lineType: lineType
+                });
             });
         }
-        
+
         // Add items to invoice data
         invData.arInvoiceDetails = items;
-        
+
         // Save data to storage
         if (typeof saveInvoiceDataToStorage === 'function') {
             saveInvoiceDataToStorage(stagingID, invData);
@@ -1084,15 +1084,15 @@ function printInvItem() {
             localStorage.setItem(`invoice_${stagingID}`, JSON.stringify(invData));
             sessionStorage.setItem(`invoice_${stagingID}`, JSON.stringify(invData));
         }
-        
+
         console.log("Invoice data saved to storage, opening print page");
-        
+
         // First load the data directly into the print page
         const printWindow = window.open(`printARItem.html?stagingID=${stagingID}`, '_blank');
-        
+
         // Ensure data is loaded in the new window
         if (printWindow) {
-            printWindow.onload = function() {
+            printWindow.onload = function () {
                 try {
                     // Pass the invoice data directly to the print page
                     if (printWindow.populateInvoiceData) {
@@ -1121,7 +1121,7 @@ function makeAllFieldsReadOnly() {
         field.classList.add('bg-gray-100', 'cursor-not-allowed');
         field.classList.remove('bg-white');
     });
-    
+
     // Make search inputs read-only with gray background
     const searchInputs = document.querySelectorAll('input[id$="Search"]');
     searchInputs.forEach(field => {
@@ -1131,7 +1131,7 @@ function makeAllFieldsReadOnly() {
         // Remove the onkeyup event to prevent search triggering
         field.removeAttribute('onkeyup');
     });
-    
+
     // Disable all select fields with gray background (exclude environment switcher)
     const selectFields = document.querySelectorAll('select:not(#kasboEnvSelect)');
     selectFields.forEach(field => {
@@ -1147,14 +1147,14 @@ function makeAllFieldsReadOnly() {
         envSelect.classList.remove('cursor-not-allowed');
         envSelect.classList.remove('bg-gray-100');
     }
-    
+
     // Disable all checkboxes
     const checkboxFields = document.querySelectorAll('input[type="checkbox"]');
     checkboxFields.forEach(field => {
         field.disabled = true;
         field.classList.add('cursor-not-allowed');
     });
-    
+
     // Handle table inputs and textareas - make them all gray
     const tableInputs = document.querySelectorAll('#tableBody input, #tableBody textarea');
     tableInputs.forEach(input => {
@@ -1180,7 +1180,7 @@ function refreshTextWrapping() {
 // Function to apply text wrapping to all relevant elements
 function applyTextWrappingToAll() {
     const textElements = document.querySelectorAll('.description-column textarea, .item-code-column input, .quantity-column textarea, .price-column textarea, .packing-size-column textarea');
-    
+
     textElements.forEach(element => {
         handleTextWrapping(element);
     });
@@ -1190,14 +1190,14 @@ function applyTextWrappingToAll() {
 function handleTextWrapping(element) {
     const text = element.value || element.textContent || '';
     const charLength = text.length;
-    
+
     // Remove existing classes
     element.classList.remove('wrap-text', 'no-wrap', 'auto-resize');
-    
+
     if (charLength > 15) {
         // Apply wrap text styling for long content
         element.classList.add('wrap-text', 'auto-resize');
-        
+
         // Auto-adjust height for textarea elements
         if (element.tagName === 'TEXTAREA') {
             const lineHeight = 20; // Approximate line height
@@ -1208,7 +1208,7 @@ function handleTextWrapping(element) {
     } else {
         // Apply no-wrap styling for short content
         element.classList.add('no-wrap');
-        
+
         // Reset height for textarea elements
         if (element.tagName === 'TEXTAREA') {
             element.style.height = '40px';
@@ -1247,7 +1247,7 @@ function formatCurrencyIDR(number) {
     if (number === null || number === undefined || number === '') {
         return '0.00';
     }
-    
+
     let num;
     try {
         if (typeof number === 'string') {
@@ -1260,7 +1260,7 @@ function formatCurrencyIDR(number) {
         } else {
             num = Number(number);
         }
-        
+
         if (isNaN(num)) {
             return '0.00';
         }
@@ -1268,7 +1268,7 @@ function formatCurrencyIDR(number) {
         console.error('Error parsing number:', e);
         return '0.00';
     }
-    
+
     const maxAmount = 100000000000000;
     if (num > maxAmount) {
         if (typeof Swal !== 'undefined') {
@@ -1282,12 +1282,12 @@ function formatCurrencyIDR(number) {
         }
         num = maxAmount;
     }
-    
+
     if (num >= 1e12) {
         let strNum = num.toString();
         let result = '';
         let count = 0;
-        
+
         for (let i = strNum.length - 1; i >= 0; i--) {
             result = strNum[i] + result;
             count++;
@@ -1295,7 +1295,7 @@ function formatCurrencyIDR(number) {
                 result = ',' + result;
             }
         }
-        
+
         return result + '.00';
     } else {
         return num.toLocaleString('en-US', {
@@ -1307,7 +1307,7 @@ function formatCurrencyIDR(number) {
 
 function parseCurrencyIDR(formattedValue) {
     if (!formattedValue) return 0;
-    
+
     try {
         const numericValue = formattedValue.toString().replace(/,/g, '');
         return parseFloat(numericValue) || 0;
@@ -1322,22 +1322,22 @@ function formatCurrencyInputIDR(input) {
     if (input.type === 'number') {
         input.type = 'text';
     }
-    
+
     const cursorPos = input.selectionStart;
     const originalLength = input.value.length;
-    
+
     let value = input.value.replace(/[^\d,.]/g, '');
-    
+
     let parts = value.split('.');
     if (parts.length > 1) {
         value = parts[0] + '.' + parts.slice(1).join('');
     }
-    
+
     const numValue = parseCurrencyIDR(value);
     const formattedValue = formatCurrencyIDR(numValue);
-    
+
     input.value = formattedValue;
-    
+
     const newLength = input.value.length;
     const newCursorPos = cursorPos + (newLength - originalLength);
     input.setSelectionRange(Math.max(0, newCursorPos), Math.max(0, newCursorPos));
@@ -1349,7 +1349,7 @@ function applyCurrencyFormattingToTable() {
     const pricePerUoMInputs = document.querySelectorAll('.item-sls-price');
     pricePerUoMInputs.forEach(input => {
         input.classList.add('currency-input-idr');
-        input.addEventListener('input', function() {
+        input.addEventListener('input', function () {
             formatCurrencyInputIDR(this);
         });
         if (input.value) {
@@ -1363,7 +1363,7 @@ function applyCurrencyFormattingToTable() {
     const pricePerUnitInputs = document.querySelectorAll('.item-price');
     pricePerUnitInputs.forEach(input => {
         input.classList.add('currency-input-idr');
-        input.addEventListener('input', function() {
+        input.addEventListener('input', function () {
             formatCurrencyInputIDR(this);
         });
         if (input.value) {
@@ -1377,7 +1377,7 @@ function applyCurrencyFormattingToTable() {
     const amountInputs = document.querySelectorAll('.item-line-total');
     amountInputs.forEach(input => {
         input.classList.add('currency-input-idr');
-        input.addEventListener('input', function() {
+        input.addEventListener('input', function () {
             formatCurrencyInputIDR(this);
         });
         if (input.value) {
@@ -1393,7 +1393,7 @@ function applyCurrencyFormattingToTable() {
         const field = document.getElementById(fieldId);
         if (field) {
             field.classList.add('currency-input-idr');
-            field.addEventListener('input', function() {
+            field.addEventListener('input', function () {
                 formatCurrencyInputIDR(this);
             });
             if (field.value) {
@@ -1413,19 +1413,19 @@ function applyCurrencyFormattingToTable() {
 // Initialize attachment scrollbar behavior
 function initializeAttachmentScrollbar(container) {
     if (!container) return;
-    
+
     // Add smooth scrolling behavior
     container.style.scrollBehavior = 'smooth';
-    
+
     // Add custom scrollbar indicators
     const hasScrollbar = container.scrollHeight > container.clientHeight;
-    
+
     if (hasScrollbar) {
         // Add scroll indicator class
         container.classList.add('has-scrollbar');
-        
+
         // Add scroll event listener for enhanced UX
-        container.addEventListener('scroll', function() {
+        container.addEventListener('scroll', function () {
             // Add shadow effect when scrolled
             if (this.scrollTop > 0) {
                 this.style.boxShadow = 'inset 0 2px 4px rgba(0, 0, 0, 0.1)';
@@ -1434,16 +1434,16 @@ function initializeAttachmentScrollbar(container) {
             }
         });
     }
-    
+
     // Add keyboard navigation support
-    container.addEventListener('keydown', function(e) {
+    container.addEventListener('keydown', function (e) {
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
             e.preventDefault();
             const scrollAmount = e.key === 'ArrowDown' ? 50 : -50;
             this.scrollTop += scrollAmount;
         }
     });
-    
+
     // Make container focusable for keyboard navigation
     container.setAttribute('tabindex', '0');
     container.setAttribute('role', 'region');
@@ -1454,11 +1454,11 @@ function initializeAttachmentScrollbar(container) {
 async function loadAttachments(stagingId) {
     try {
         console.log('Loading attachments for stagingId:', stagingId);
-        
+
         // Construct API URL for attachments
         const apiUrl = `${API_BASE_URL}/ar-invoices/${stagingId}/attachments`;
         console.log('Attachments API URL:', apiUrl);
-        
+
         // Fetch attachments from API
         const response = await fetch(apiUrl, {
             method: 'GET',
@@ -1466,26 +1466,26 @@ async function loadAttachments(stagingId) {
                 'accept': '*/*'
             }
         });
-        
+
         console.log('Attachments response status:', response.status);
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const result = await response.json();
         console.log('Attachments API response result:', result);
-        
+
         if (result.status && result.data) {
             console.log('Attachments loaded from API:', result.data);
             displayAttachments(result.data);
         } else {
             throw new Error('Invalid response format from attachments API');
         }
-        
+
     } catch (error) {
         console.error('Error loading attachments:', error);
-        
+
         // Show no attachments message instead of error for better UX
         displayNoAttachments();
     }
@@ -1495,50 +1495,50 @@ async function loadAttachments(stagingId) {
 function displayAttachments(attachments) {
     const attachmentList = document.getElementById('attachmentsContainer');
     const noAttachmentsDiv = document.getElementById('noAttachments');
-    
+
     if (!attachmentList) {
         console.error('Attachment list container not found');
         return;
     }
-    
+
     // Clear loading content
     attachmentList.innerHTML = '';
-    
+
     if (!attachments || attachments.length === 0) {
         displayNoAttachments();
         return;
     }
-    
+
     // Hide no attachments message
     if (noAttachmentsDiv) {
         noAttachmentsDiv.classList.add('hidden');
     }
-    
+
     // Filter out invalid entries (like the "string" example)
-    const validAttachments = attachments.filter(attachment => 
-        attachment.fileName && 
-        attachment.fileName !== 'string' && 
+    const validAttachments = attachments.filter(attachment =>
+        attachment.fileName &&
+        attachment.fileName !== 'string' &&
         attachment.fileName.trim() !== '' &&
-        attachment.fileUrl && 
+        attachment.fileUrl &&
         attachment.fileUrl !== 'string' &&
         attachment.fileUrl.trim() !== '' &&
         attachment.id // Ensure attachment has a valid ID
     );
-    
+
     if (validAttachments.length === 0) {
         displayNoAttachments();
         return;
     }
-    
+
     // Create attachment list
     validAttachments.forEach((attachment, index) => {
         const attachmentItem = createAttachmentItem(attachment, index);
         attachmentList.appendChild(attachmentItem);
     });
-    
+
     // Initialize scrollbar behavior
     initializeAttachmentScrollbar(attachmentList);
-    
+
     console.log(`Displayed ${validAttachments.length} valid attachments`);
 }
 
@@ -1546,16 +1546,16 @@ function displayAttachments(attachments) {
 function createAttachmentItem(attachment, index) {
     const attachmentDiv = document.createElement('div');
     attachmentDiv.className = 'attachment-item border rounded-lg p-3 mb-2 bg-gray-50 hover:bg-gray-100 transition-colors';
-    
+
     // Format file size if available
     const fileSize = formatAttachmentDate(attachment.createdAt);
     const fileName = attachment.fileName || 'Unknown file';
     const description = attachment.description || '';
-    
+
     // Determine file type icon
     const fileExtension = fileName.split('.').pop().toLowerCase();
     const fileIcon = getFileIcon(fileExtension);
-    
+
     attachmentDiv.innerHTML = `
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-3 flex-1">
@@ -1586,7 +1586,7 @@ function createAttachmentItem(attachment, index) {
             </div>
         </div>
     `;
-    
+
     return attachmentDiv;
 }
 
@@ -1594,11 +1594,11 @@ function createAttachmentItem(attachment, index) {
 function displayNoAttachments() {
     const attachmentList = document.getElementById('attachmentsContainer');
     const noAttachmentsDiv = document.getElementById('noAttachments');
-    
+
     if (attachmentList) {
         attachmentList.innerHTML = '';
     }
-    
+
     if (noAttachmentsDiv) {
         noAttachmentsDiv.classList.remove('hidden');
     }
@@ -1631,11 +1631,11 @@ function getFileIcon(extension) {
 // Format attachment date
 function formatAttachmentDate(dateString) {
     if (!dateString) return 'Unknown date';
-    
+
     try {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return 'Unknown date';
-        
+
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
@@ -1653,7 +1653,7 @@ function formatAttachmentDate(dateString) {
 function viewAttachment(stagingId, fileUrl, fileName) {
     try {
         console.log('Viewing attachment:', { stagingId, fileUrl, fileName });
-        
+
         // Construct full view URL
         let viewUrl;
         if (fileUrl.startsWith('http')) {
@@ -1666,10 +1666,10 @@ function viewAttachment(stagingId, fileUrl, fileName) {
             viewUrl = `${API_BASE_URL}${fileUrl}`;
         }
         console.log('View URL:', viewUrl);
-        
+
         // Determine file type
         const fileExtension = fileName.split('.').pop().toLowerCase();
-        
+
         if (fileExtension === 'pdf') {
             // For PDF files, try to embed in iframe first, fallback to new tab
             showPDFViewer(viewUrl, fileName);
@@ -1677,10 +1677,10 @@ function viewAttachment(stagingId, fileUrl, fileName) {
             // For other file types, open in new tab with specific headers
             openInNewTab(viewUrl, fileName);
         }
-        
+
     } catch (error) {
         console.error('Error viewing attachment:', error);
-        
+
         Swal.fire({
             icon: 'error',
             title: 'View Failed',
@@ -1747,7 +1747,7 @@ async function showPDFViewer(pdfUrl, fileName) {
 
     } catch (error) {
         console.error('Error loading PDF for viewing:', error);
-        
+
         // Fallback to Google Docs viewer
         Swal.fire({
             title: fileName,
@@ -1781,19 +1781,19 @@ function openInNewTab(fileUrl, fileName) {
         toast: true,
         position: 'top-end'
     });
-    
+
     // Create a temporary link to force view behavior
     const tempLink = document.createElement('a');
     tempLink.href = fileUrl;
     tempLink.target = '_blank';
     tempLink.rel = 'noopener noreferrer';
-    
+
     // Add parameters to hint at viewing instead of downloading
     const viewUrl = `${fileUrl}${fileUrl.includes('?') ? '&' : '?'}view=1&inline=1`;
-    
+
     // Try to open in new tab
     const newWindow = window.open(viewUrl, '_blank', 'noopener,noreferrer');
-    
+
     // Check if popup was blocked
     if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
         loadingToast.close();
@@ -1814,7 +1814,7 @@ function downloadPdfDocument() {
     // This function should generate and download the current invoice as PDF
     // For now, we'll use the print functionality and suggest user to save as PDF
     printInvItem();
-    
+
     Swal.fire({
         icon: 'info',
         title: 'Download PDF',
@@ -1849,7 +1849,7 @@ function downloadPdfDocument() {
 // All e-signing UI and utility functions moved to eSigningFunctions.js
 
 // Initialize e-signing functionality when page loads
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Initialize enhanced e-signing features
     if (typeof initializeESigningFeatures === 'function') {
         initializeESigningFeatures();
@@ -1879,5 +1879,5 @@ window.formatAttachmentDate = formatAttachmentDate;
 window.viewAttachment = viewAttachment;
 window.showPDFViewer = showPDFViewer;
 window.openInNewTab = openInNewTab;
-window.initializeAttachmentScrollbar = initializeAttachmentScrollbar; 
+window.initializeAttachmentScrollbar = initializeAttachmentScrollbar;
 // Note: E-signing functions are now exported from eSigningFunctions.js 

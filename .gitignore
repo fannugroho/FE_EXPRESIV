@@ -1,3 +1,5 @@
+# Ignore authentication script
+js/auth.js
 # Dependencies
 node_modules/
 /.pnp
