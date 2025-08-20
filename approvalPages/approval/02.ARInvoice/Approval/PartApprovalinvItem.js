@@ -3395,38 +3395,51 @@ function handlePrintButtonVisibility() {
 
     console.log('✅ Print button element found:', printBtn);
 
-    // Get URL parameter with extra debugging
+    // Get API status (status sebenarnya dari dokumen)
+    let apiStatus = 'Draft';
+    if (AppState.currentInvItemData) {
+        apiStatus = getStatusFromInvoice(AppState.currentInvItemData);
+    }
+
+    // Get URL parameter status
     const urlStatus = getUrlParameter('status');
     const urlStatusLower = urlStatus ? urlStatus.toLowerCase() : '';
 
-    console.log('🔍 Current URL:', window.location.href);
-    console.log('🔍 URL Search Params:', window.location.search);
-
-    // Show print button if URL status is 'approved' or 'received'
-    const showPrintByUrl = urlStatusLower === 'approved' || urlStatusLower === 'received';
+    // Show print button if BOTH conditions are met:
+    // 1. URL status is 'received' or 'approve' 
+    // 2. API status is 'Received' or 'Approved'
+    const urlCondition = urlStatusLower === 'received' || urlStatusLower === 'approve';
+    const apiCondition = apiStatus === 'Received' || apiStatus === 'Approved';
+    const showPrintButton = urlCondition && apiCondition;
 
     console.log('🖨️ ===== PRINT BUTTON LOGIC DEBUGGING =====');
-    console.log('- Original URL status:', urlStatus);
-    console.log('- URL status (lowercase):', urlStatusLower);
-    console.log('- Should show print button:', showPrintByUrl);
-    console.log('- Check approved:', urlStatusLower === 'approved');
-    console.log('- Check received:', urlStatusLower === 'received');
+    console.log('- API Status (dari dokumen):', apiStatus);
+    console.log('- URL Status (dari parameter):', urlStatus);
+    console.log('- URL Condition (received/approve):', urlCondition);
+    console.log('- API Condition (Received/Approved):', apiCondition);
+    console.log('- Should show print button:', showPrintButton);
     console.log('- Current button classes:', printBtn.className);
     console.log('- Current button disabled:', printBtn.disabled);
 
-    if (showPrintByUrl) {
-        console.log('🎯 EXECUTING: Show print button');
+    if (showPrintButton) {
+        console.log('🎯 EXECUTING: Show print button - BOTH conditions met');
         printBtn.classList.remove('hidden');
         printBtn.disabled = false;
         printBtn.style.display = ''; // Remove any inline display:none
-        console.log('✅ PRINT BUTTON SHOWN for URL status:', urlStatus);
+        console.log('✅ PRINT BUTTON SHOWN - URL:', urlStatus, 'API:', apiStatus);
         console.log('✅ New button classes:', printBtn.className);
         console.log('✅ New button disabled:', printBtn.disabled);
     } else {
-        console.log('🎯 EXECUTING: Hide print button');
+        console.log('🎯 EXECUTING: Hide print button - conditions not met');
+        if (!urlCondition) {
+            console.log('❌ URL condition failed - expected received/approve, got:', urlStatus);
+        }
+        if (!apiCondition) {
+            console.log('❌ API condition failed - expected Received/Approved, got:', apiStatus);
+        }
         printBtn.classList.add('hidden');
         printBtn.disabled = true;
-        console.log('❌ PRINT BUTTON HIDDEN for URL status:', urlStatus);
+        console.log('❌ PRINT BUTTON HIDDEN');
     }
 
     console.log('🖨️ ===== END PRINT BUTTON LOGIC =====');
@@ -3435,7 +3448,7 @@ function handlePrintButtonVisibility() {
     setTimeout(() => {
         const currentlyHidden = printBtn.classList.contains('hidden');
         console.log('🔍 Print button status after timeout - Hidden:', currentlyHidden);
-        if (showPrintByUrl && currentlyHidden) {
+        if (showPrintButton && currentlyHidden) {
             console.log('⚠️ FORCING print button visibility');
             printBtn.classList.remove('hidden');
             printBtn.disabled = false;
