@@ -1218,7 +1218,7 @@ function populateInvItemData(data) {
         updateCurrencyLabels(currency);
 
         const summaryFields = {
-            'docTotal': OptimizedUtils.formatCurrencyIDR(data.docTotal || 0),
+            'docTotal': OptimizedUtils.formatCurrencyIDR(data.netPrice || 0),
             'discSum': OptimizedUtils.formatCurrencyIDR(data.discSum || 0),
             'netPriceAfterDiscount': OptimizedUtils.formatCurrencyIDR(data.netPriceAfterDiscount || 0),
             'dpp1112': OptimizedUtils.formatCurrencyIDR(data.dpp1112 || 0),
