@@ -26,7 +26,7 @@ function getKasboEnvironment() {
         const explicitEnv = (window.KASBO_ENV || localStorage.getItem('KASBO_ENV') || '').toString().toLowerCase();
         if (explicitEnv === 'prod' || explicitEnv === 'production') return 'prod';
         if (explicitEnv === 'sandbox' || explicitEnv === 'sb') return 'sandbox';
-    } catch (_) {}
+    } catch (_) { }
     // Infer from explicit base URL if set
     const explicitBase = (window.KASBO_SERVICE_BASE_URL || window.KASBO_BASE_URL || (window.__CONFIG__ && window.__CONFIG__.kasboBaseUrl) || '').toString();
     if (/expressiv-prod/i.test(explicitBase)) return 'prod';
@@ -34,7 +34,7 @@ function getKasboEnvironment() {
 }
 
 function getKasboBaseUrl() {
-    const explicit = (window.KASBO_SERVICE_BASE_URL || window.KASBO_BASE_URL || (window.__CONFIG__ && window.__CONFIG__.kasboBaseUrl) || (function(){ try { return localStorage.getItem('KASBO_SERVICE_BASE_URL'); } catch(_) { return null; } })());
+    const explicit = (window.KASBO_SERVICE_BASE_URL || window.KASBO_BASE_URL || (window.__CONFIG__ && window.__CONFIG__.kasboBaseUrl) || (function () { try { return localStorage.getItem('KASBO_SERVICE_BASE_URL'); } catch (_) { return null; } })());
     if (explicit) return explicit.toString().replace(/\/+$/, '');
     const env = getKasboEnvironment();
     const fallback = KASBO_KNOWN_ENV_URLS[env] || KASBO_KNOWN_ENV_URLS.sandbox;
@@ -58,10 +58,10 @@ function setKasboEnvironment(envOrUrl) {
             localStorage.setItem('KASBO_SERVICE_BASE_URL', url);
             window.KASBO_SERVICE_BASE_URL = url;
         }
-    } catch (_) {}
+    } catch (_) { }
     // Best-effort refresh hook
     if (typeof refreshEnvironment === 'function') {
-        try { refreshEnvironment(); } catch (_) {}
+        try { refreshEnvironment(); } catch (_) { }
     }
 }
 
@@ -80,13 +80,13 @@ function getCaptureUserEmail() {
         if (typeof currentUser !== 'undefined' && currentUser) {
             return (currentUser.email || currentUser.username || currentUser.userId || 'unknown') + '';
         }
-    } catch (_) {}
+    } catch (_) { }
     try {
         if (typeof window.getCurrentUser === 'function') {
             const u = window.getCurrentUser();
             if (u) return (u.email || u.username || u.userId || 'unknown') + '';
         }
-    } catch (_) {}
+    } catch (_) { }
     return 'unknown';
 }
 
@@ -104,11 +104,11 @@ function refreshEnvironment() {
     try {
         const expected = (KASBO_KNOWN_ENV_URLS[env] || KASBO_KNOWN_ENV_URLS.sandbox).replace(/\/+$/, '');
         if (base !== expected) {
-            try { localStorage.setItem('KASBO_SERVICE_BASE_URL', expected); } catch (_) {}
+            try { localStorage.setItem('KASBO_SERVICE_BASE_URL', expected); } catch (_) { }
             window.KASBO_SERVICE_BASE_URL = expected;
             base = expected;
         }
-    } catch (_) {}
+    } catch (_) { }
     // Update select
     const select = document.getElementById('kasboEnvSelect');
     if (select && select.value !== env) {
@@ -126,25 +126,25 @@ function refreshEnvironment() {
     try {
         if (typeof loadExistingSignedDocuments === 'function') loadExistingSignedDocuments();
         if (typeof loadExistingStampedDocuments === 'function') loadExistingStampedDocuments();
-    } catch (_) {}
+    } catch (_) { }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Force base URL to match the current environment on load
     try {
         const env = getKasboEnvironment();
         const expected = (KASBO_KNOWN_ENV_URLS[env] || KASBO_KNOWN_ENV_URLS.sandbox).replace(/\/+$/, '');
         const current = getKasboBaseUrl();
         if (current !== expected) {
-            try { localStorage.setItem('KASBO_SERVICE_BASE_URL', expected); } catch (_) {}
+            try { localStorage.setItem('KASBO_SERVICE_BASE_URL', expected); } catch (_) { }
             window.KASBO_SERVICE_BASE_URL = expected;
         }
-    } catch (_) {}
+    } catch (_) { }
     // Initialize select state and UI on load
     refreshEnvironment();
     const select = document.getElementById('kasboEnvSelect');
     if (select) {
-        select.addEventListener('change', function() {
+        select.addEventListener('change', function () {
             const nextEnv = this.value === 'prod' ? 'prod' : 'sandbox';
             if (nextEnv === 'prod' && typeof Swal !== 'undefined') {
                 Swal.fire({
@@ -180,10 +180,10 @@ async function confirmProductionAction(actionLabel) {
         const expected = (KASBO_KNOWN_ENV_URLS[env] || KASBO_KNOWN_ENV_URLS.sandbox).replace(/\/+$/, '');
         const current = getKasboBaseUrl();
         if (current !== expected) {
-            try { localStorage.setItem('KASBO_SERVICE_BASE_URL', expected); } catch(_) {}
+            try { localStorage.setItem('KASBO_SERVICE_BASE_URL', expected); } catch (_) { }
             window.KASBO_SERVICE_BASE_URL = expected;
         }
-    } catch(_) {}
+    } catch (_) { }
     const message = `You are about to perform ${actionLabel} in PRODUCTION. This will incur real costs. Do you want to proceed?`;
     if (typeof Swal !== 'undefined') {
         const res = await Swal.fire({
@@ -201,7 +201,7 @@ async function confirmProductionAction(actionLabel) {
 
 // UUID generation function for unique document references
 function generateUUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
         var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });
@@ -211,7 +211,7 @@ function generateUUID() {
 function showProgressContainer() {
     const modal = document.getElementById('progressModalOverlay');
     const progressContainer = document.getElementById('eSignProgressContainer');
-    
+
     // Show modal for better visibility
     if (modal) {
         modal.classList.remove('hidden');
@@ -220,7 +220,7 @@ function showProgressContainer() {
     if (progressContainer) {
         progressContainer.classList.remove('hidden');
     }
-    
+
     // Reset progress state
     updateProgressBar(0);
     updateProgressStatus('Initializing process...');
@@ -229,7 +229,7 @@ function showProgressContainer() {
 function hideProgressContainer() {
     const modal = document.getElementById('progressModalOverlay');
     const progressContainer = document.getElementById('eSignProgressContainer');
-    
+
     if (modal) {
         modal.classList.add('hidden');
     }
@@ -244,21 +244,21 @@ function updateProgressBar(percentage) {
     const modalProgressBar = document.getElementById('modalProgressBar');
     const progressPercentage = document.getElementById('progressPercentage');
     const modalProgressPercentage = document.getElementById('modalProgressPercentage');
-    
+
     if (progressBar) {
         progressBar.style.width = percentage + '%';
     }
     if (modalProgressBar) {
         modalProgressBar.style.width = percentage + '%';
     }
-    
+
     if (progressPercentage) {
         progressPercentage.textContent = Math.round(percentage) + '%';
     }
     if (modalProgressPercentage) {
         modalProgressPercentage.textContent = Math.round(percentage) + '%';
     }
-    
+
     currentProgress = percentage;
 }
 
@@ -266,7 +266,7 @@ function updateProgressStatus(message) {
     // Update both original and modal progress status
     const progressStatus = document.getElementById('progressStatus');
     const modalProgressStatus = document.getElementById('modalProgressStatus');
-    
+
     if (progressStatus) {
         progressStatus.textContent = message;
     }
@@ -278,7 +278,7 @@ function updateProgressStatus(message) {
 
 function updateProgressStep(stepNumber) {
     currentStep = stepNumber;
-    
+
     // Reset all steps
     for (let i = 1; i <= 4; i++) {
         const step = document.getElementById(`step${i}`);
@@ -291,12 +291,12 @@ function updateProgressStep(stepNumber) {
             }
         }
     }
-    
+
     // Update steps based on current step
     for (let i = 1; i <= 4; i++) {
         const step = document.getElementById(`step${i}`);
         const circle = step?.querySelector('.w-8');
-        
+
         if (i < stepNumber) {
             // Completed step
             step?.classList.add('completed');
@@ -321,17 +321,17 @@ function simulateProgressUpdate(targetPercentage, duration, callback) {
     const updateInterval = 50; // Update every 50ms
     const steps = duration / updateInterval;
     const stepIncrement = progressDiff / steps;
-    
+
     let currentUpdate = 0;
-    
+
     if (progressInterval) {
         clearInterval(progressInterval);
     }
-    
+
     progressInterval = setInterval(() => {
         currentUpdate++;
         const newProgress = startPercentage + (stepIncrement * currentUpdate);
-        
+
         if (currentUpdate >= steps) {
             clearInterval(progressInterval);
             progressInterval = null;
@@ -349,32 +349,32 @@ function cancelESigningProcess() {
         clearInterval(progressInterval);
         progressInterval = null;
     }
-    
+
     if (statusCheckInterval) {
         clearInterval(statusCheckInterval);
         statusCheckInterval = null;
     }
-    
+
     // Reset progress
     currentProgress = 0;
     currentStep = 1;
-    
+
     // Hide progress container
     hideProgressContainer();
-    
+
     // Reset UI
     updateProgressBar(0);
     updateProgressStatus('Process cancelled');
     updateProgressStep(1);
-    
+
     // Show upload section again
     const uploadArea = document.getElementById('eSignUploadArea');
     if (uploadArea) {
         uploadArea.style.display = 'block';
     }
-    
+
     console.log('🚫 E-signing process cancelled');
-    
+
     // Show cancellation message
     if (typeof Swal !== 'undefined') {
         Swal.fire({
@@ -390,11 +390,11 @@ function cancelESigningProcess() {
 // Show success popup with download and view options
 function showSuccessPopup(documentUrl, jobData) {
     console.log('Showing success popup for document:', documentUrl);
-    
+
     const urlParams = new URLSearchParams(window.location.search);
     const stagingId = urlParams.get('stagingID');
     const docNum = document.getElementById('DocNum')?.value || 'Document';
-    
+
     if (typeof Swal !== 'undefined') {
         Swal.fire({
             icon: 'success',
@@ -472,7 +472,7 @@ function showSuccessPopup(documentUrl, jobData) {
 // View signed document function
 function viewSignedDocument(documentUrl, jobId) {
     console.log('👁️ Viewing document:', documentUrl, 'Job ID:', jobId);
-    
+
     if (!documentUrl) {
         // Fallback: try to get document from job ID
         if (jobId) {
@@ -491,30 +491,30 @@ function viewSignedDocument(documentUrl, jobId) {
         }
         return;
     }
-    
+
     openDocumentViewer(documentUrl);
 }
 
 // Download signed document function
 function downloadSignedDocumentFromPopup(documentUrl, fileName) {
     console.log('💾 Downloading document:', documentUrl, 'as:', fileName);
-    
+
     if (!documentUrl) {
         showDocumentNotFoundError('download');
         return;
     }
-    
+
     // Create download link
     const link = document.createElement('a');
     link.href = documentUrl;
     link.download = fileName || `signed_document_${Date.now()}.pdf`;
     link.target = '_blank';
-    
+
     // Trigger download
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     // Show success message
     if (typeof Swal !== 'undefined') {
         Swal.fire({
@@ -546,7 +546,7 @@ async function getDocumentByJobId(jobId) {
 function openDocumentViewer(url) {
     // Try to open in new window first
     const newWindow = window.open(url, '_blank', 'width=1000,height=700,scrollbars=yes,resizable=yes');
-    
+
     if (!newWindow) {
         // Fallback: show modal with iframe
         if (typeof Swal !== 'undefined') {
@@ -594,10 +594,10 @@ function showDocumentNotFoundError(action) {
 function initializeESigningFeatures() {
     // Note: File upload event listeners are now handled in PartApprovalInvItem.html
     // to prevent duplicate event listener issues
-    
+
     // Load existing signed documents for this staging ID
     loadExistingSignedDocuments();
-    
+
     // Load existing stamped documents for this staging ID
     loadExistingStampedDocuments();
 }
@@ -607,29 +607,29 @@ async function loadExistingSignedDocuments() {
     try {
         const urlParams = new URLSearchParams(window.location.search);
         const stagingId = urlParams.get('stagingID');
-        
+
         if (!stagingId) {
             console.log('No staging ID found in URL parameters');
             return;
         }
-        
+
         console.log('📄 Loading signed documents for staging ID:', stagingId);
-        
+
         const apiUrl = kasboUrl(`/esign/staging/${stagingId}/documents`);
         console.log('📍 API URL:', apiUrl);
-        
+
         const response = await fetch(apiUrl);
         console.log('📡 Response status:', response.status);
-        
+
         if (response.ok) {
             const result = await response.json();
             console.log('📋 API Response:', result);
-            
+
             if (result.success && result.data && result.data.length > 0) {
                 documentTrackingData = result.data;
                 console.log(`✅ Found ${result.data.length} signed documents`);
                 displayExistingDocuments(result.data);
-                
+
                 // Show success notification
                 if (result.count > 0) {
                     showDocumentLoadNotification(result.count, stagingId);
@@ -643,7 +643,7 @@ async function loadExistingSignedDocuments() {
         } else {
             const errorText = await response.text();
             console.log('❌ API Error:', response.status, errorText);
-            
+
             // Handle 404 specifically - this means no documents exist yet
             if (response.status === 404) {
                 console.log('ℹ️ No signed documents found (404 - endpoint not found or no documents)');
@@ -671,9 +671,9 @@ function showDocumentLoadNotification(count, stagingId) {
             <span class="text-sm font-medium">Found ${count} signed document${count > 1 ? 's' : ''} for staging ID: ${stagingId}</span>
         </div>
     `;
-    
+
     document.body.appendChild(notification);
-    
+
     // Auto-remove after 5 seconds
     setTimeout(() => {
         notification.style.opacity = '0';
@@ -693,13 +693,13 @@ function showNoDocumentsMessage() {
         existingDocsSection = document.createElement('div');
         existingDocsSection.id = 'existingSignedDocs';
         existingDocsSection.className = 'mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg';
-        
+
         const uploadSection = document.getElementById('uploadSection');
         if (uploadSection && uploadSection.parentNode) {
             uploadSection.parentNode.insertBefore(existingDocsSection, uploadSection);
         }
     }
-    
+
     existingDocsSection.innerHTML = `
         <h4 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
             <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -720,12 +720,12 @@ function showNoDocumentsMessage() {
 // Show error message when document loading fails
 function showDocumentLoadError(statusOrType, message) {
     console.error('Failed to load signed documents:', statusOrType, message);
-    
+
     // Don't show error notifications for 404s since we handle them gracefully
     if (statusOrType === 404 || statusOrType === '404') {
         return;
     }
-    
+
     // Show error notification for other errors
     const notification = document.createElement('div');
     notification.className = 'fixed top-4 right-4 bg-red-100 border border-red-200 text-red-800 px-4 py-3 rounded-lg shadow-md z-50 transition-all duration-300';
@@ -740,9 +740,9 @@ function showDocumentLoadError(statusOrType, message) {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(notification);
-    
+
     // Auto-remove after 8 seconds
     setTimeout(() => {
         notification.style.opacity = '0';
@@ -763,13 +763,13 @@ function displayExistingDocuments(documents) {
         existingDocsSection = document.createElement('div');
         existingDocsSection.id = 'existingSignedDocs';
         existingDocsSection.className = 'mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg';
-        
+
         const uploadSection = document.getElementById('uploadSection');
         if (uploadSection && uploadSection.parentNode) {
             uploadSection.parentNode.insertBefore(existingDocsSection, uploadSection);
         }
     }
-    
+
     existingDocsSection.innerHTML = `
         <div class="flex items-center justify-between mb-4">
             <h4 class="text-lg font-semibold text-gray-800 flex items-center">
@@ -882,7 +882,7 @@ function downloadExistingDocument(url, filename) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     Swal.fire({
         icon: 'success',
         title: 'Download Started',
@@ -928,7 +928,7 @@ function handleFileDrop(event) {
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.classList.remove('border-blue-500', 'bg-blue-100');
-    
+
     const files = event.dataTransfer.files;
     if (files.length > 0) {
         validateAndSetFile(files[0]);
@@ -977,7 +977,7 @@ function displaySelectedFile(file) {
     const fileName = document.getElementById('selectedFileName');
     const fileSize = document.getElementById('selectedFileSize');
     const fileDisplay = document.getElementById('selectedFileDisplay');
-    
+
     if (fileName && fileSize && fileDisplay) {
         fileName.textContent = file.name;
         fileSize.textContent = formatFileSize(file.size);
@@ -990,14 +990,14 @@ function removeSelectedFile() {
     selectedESignFile = null;
     const fileDisplay = document.getElementById('selectedFileDisplay');
     const fileInput = document.getElementById('eSignFileInput');
-    
+
     if (fileDisplay) {
         fileDisplay.classList.add('hidden');
     }
     if (fileInput) {
         fileInput.value = '';
     }
-    
+
     disableStartButton();
 }
 
@@ -1063,7 +1063,7 @@ async function startESigningProcess() {
         updateProgressStep(1);
         updateProgressStatus('Starting e-signing process...');
         updateProgressBar(0);
-        
+
         // Hide upload area
         const uploadArea = document.getElementById('eSignUploadArea');
         if (uploadArea) {
@@ -1074,7 +1074,7 @@ async function startESigningProcess() {
         simulateProgressUpdate(15, 1000, () => {
             updateProgressStatus('Validating file...');
         });
-        
+
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         // Move to Step 2: Processing
@@ -1083,30 +1083,30 @@ async function startESigningProcess() {
         simulateProgressUpdate(35, 1500, () => {
             updateProgressStatus('Preparing document for signing...');
         });
-        
+
         const documentBase64 = await fileToBase64(selectedESignFile);
 
         // Get document details
         const urlParams = new URLSearchParams(window.location.search);
         const stagingId = urlParams.get('stagingID');
-        
+
         if (!stagingId) {
             throw new Error('Staging ID not found in URL');
         }
 
         // Get signer information
-        let signerName = "Atsuro Suzuki"; // Default fallback
+        let signerName = ""; // Default fallback
         let signerEmail = "";
-        
+
         // Try to get current user information
         if (typeof currentUser !== 'undefined' && currentUser) {
             signerEmail = currentUser.email || currentUser.username + "@company.com";
         }
-        
+
         // Try to get approvedByName from current invoice data - FIX: Use AppState
-        const invData = (typeof AppState !== 'undefined' && AppState?.currentInvItemData) || 
-                       (typeof currentInvItemData !== 'undefined' && currentInvItemData);
-        
+        const invData = (typeof AppState !== 'undefined' && AppState?.currentInvItemData) ||
+            (typeof currentInvItemData !== 'undefined' && currentInvItemData);
+
         if (invData && invData.arInvoiceApprovalSummary) {
             signerName = invData.arInvoiceApprovalSummary.approvedByName || signerName;
             console.log('🔍 Found approvedByName from invoice data:', signerName);
@@ -1140,13 +1140,13 @@ async function startESigningProcess() {
         updateProgressStep(3);
         updateProgressStatus('Sending document for e-signing...');
         simulateProgressUpdate(55, 2000, null);
-        
+
         console.log('📝 Enhanced E-Sign API payload:', {
             ...apiPayload,
             document_base64: '[BASE64_DATA]' // Don't log the actual base64
         });
         console.log('📍 E-Sign URL:', kasboUrl('/esign/process'));
-        
+
         const response = await fetch(kasboUrl('/esign/process'), {
             method: 'POST',
             headers: {
@@ -1165,10 +1165,10 @@ async function startESigningProcess() {
 
         const result = await response.json();
         console.log('📝 E-Sign API result:', result);
-        
+
         // Extract transaction information from enhanced response
         currentJobId = result.jobId || result.job_id || result.id || result.transaction_id || result.data?.jobId || result.data?.job_id || result.data?.id;
-        
+
         if (!currentJobId) {
             console.error('❌ No job/transaction ID found in e-sign response:', result);
             throw new Error('No job ID returned from e-sign API');
@@ -1180,7 +1180,7 @@ async function startESigningProcess() {
         simulateProgressUpdate(70, 1000, () => {
             updateProgressStatus('Document submitted for processing');
         });
-        
+
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         // Start checking job status
@@ -1204,7 +1204,7 @@ async function checkESignJobStatus() {
         // Try both the job status endpoint and transaction status endpoint
         let statusUrl = kasboUrl(`/jobs/${currentJobId}/status`);
         let response = await fetch(statusUrl);
-        
+
         // If job status fails, try transaction status endpoint
         if (!response.ok) {
             console.log('Job status endpoint failed, trying transaction status...');
@@ -1212,16 +1212,27 @@ async function checkESignJobStatus() {
             response = await fetch(statusUrl);
         }
 
-        if (!response.ok) {
-            throw new Error(`Status check failed: ${response.status}`);
-        }
-
         const result = await response.json();
         console.log('📋 Status check result:', result);
-        
+
+        if (!response.ok) {
+            // Extract detailed error information from the response
+            let errorMessage = `e-sign request failed with status: ${response.status}`;
+            if (result.errors && result.errors.length > 0) {
+                errorMessage += `, response: ${JSON.stringify(result)}`;
+            } else if (result.message) {
+                errorMessage = `E-signing request failed: ${result.message}`;
+            } else if (result.error) {
+                errorMessage = `E-signing request failed: ${result.error}`;
+            }
+
+            console.error(`❌ E-signing API error (${response.status}):`, result);
+            throw new Error(`E-signing request failed: ${errorMessage}`);
+        }
+
         // Handle both job status and transaction status response formats
         let jobData = result.job || result.data || result;
-        
+
         if (result.success !== false && jobData) {
             if (jobData.status === 'completed' || jobData.status === 'success') {
                 // Move to Step 4: Complete
@@ -1233,17 +1244,17 @@ async function checkESignJobStatus() {
                     if (spinner) {
                         spinner.style.display = 'none';
                     }
-                    
+
                     // Show success message
                     updateProgressStatus('Document signed successfully');
                 });
-                
+
                 // E-Signing completed
                 signedDocumentUrl = extractSignedUrl(jobData.result || jobData.signed_url || jobData.message);
-                
+
                 // Refresh the existing documents list
                 setTimeout(() => loadExistingSignedDocuments(), 2000);
-                
+
                 // Check if E-Stamp is requested
                 const enableEStamp = document.getElementById('enableEStamp')?.checked;
                 if (enableEStamp) {
@@ -1260,7 +1271,7 @@ async function checkESignJobStatus() {
                         }
                     }, 2000);
                 }
-                
+
             } else if (jobData.status === 'failed' || jobData.status === 'error') {
                 throw new Error(jobData.error || jobData.message || 'E-signing failed');
             } else {
@@ -1274,7 +1285,7 @@ async function checkESignJobStatus() {
 
     } catch (error) {
         console.error('Status check error:', error);
-        
+
         // No retry - throw error immediately
         throw error;
     }
@@ -1283,7 +1294,7 @@ async function checkESignJobStatus() {
 // Extract signed document URL from result
 function extractSignedUrl(resultString) {
     if (!resultString) return null;
-    
+
     // Look for URL pattern in the result string
     const urlMatch = resultString.match(/Signed URL: (https?:\/\/[^\s]+)/);
     return urlMatch ? urlMatch[1] : null;
@@ -1297,10 +1308,10 @@ async function startEStampProcess() {
         if (!confirmed) { return; }
 
         updateProcessStatus('Starting e-stamp process...', 80);
-        
+
         const urlParams = new URLSearchParams(window.location.search);
         const stagingId = urlParams.get('stagingID');
-        
+
         if (!stagingId) {
             throw new Error('Staging ID not found');
         }
@@ -1308,11 +1319,11 @@ async function startEStampProcess() {
         // Check if there's a QR code source from the invoice data - FIX: Use AppState
         let qrcodeSrc = '';
         let hasQrCode = false;
-        
+
         // Try to get QR code from current invoice data
-        const invDataForQR = (typeof AppState !== 'undefined' && AppState?.currentInvItemData) || 
-                            (typeof currentInvItemData !== 'undefined' && currentInvItemData);
-        
+        const invDataForQR = (typeof AppState !== 'undefined' && AppState?.currentInvItemData) ||
+            (typeof currentInvItemData !== 'undefined' && currentInvItemData);
+
         if (invDataForQR && invDataForQR.qrCodeSrc) {
             qrcodeSrc = invDataForQR.qrCodeSrc;
             console.log('🔍 QR Code from invoice data:', qrcodeSrc);
@@ -1326,14 +1337,14 @@ async function startEStampProcess() {
                 console.log('🔍 No QR Code element found, defaulting to empty');
             }
         }
-        
+
         // Check if QR code is valid (not null, empty, or "null" string)
-        hasQrCode = qrcodeSrc && 
-                   qrcodeSrc !== null && 
-                   qrcodeSrc.trim() !== '' && 
-                   qrcodeSrc !== 'null' && 
-                   qrcodeSrc.toLowerCase() !== 'null';
-        
+        hasQrCode = qrcodeSrc &&
+            qrcodeSrc !== null &&
+            qrcodeSrc.trim() !== '' &&
+            qrcodeSrc !== 'null' &&
+            qrcodeSrc.toLowerCase() !== 'null';
+
         console.log('🔍 QR Code source:', qrcodeSrc);
         console.log('🔍 Has QR Code:', hasQrCode);
 
@@ -1364,7 +1375,7 @@ async function startEStampProcess() {
 
         const result = await response.json();
         console.log('🏷️ E-Stamp API result:', result);
-        
+
         // Try different possible job ID fields
         stampJobId = result.jobId || result.job_id || result.id || result.data?.jobId || result.data?.job_id || result.data?.id;
 
@@ -1401,7 +1412,7 @@ async function checkEStampJobStatus() {
     try {
         const statusUrl = kasboUrl(`/jobs/${stampJobId}/status`);
         console.log('🔍 Checking e-stamp status at:', statusUrl);
-        
+
         const response = await fetch(statusUrl, {
             headers: {
                 'X-User-Email': getCaptureUserEmail()
@@ -1417,18 +1428,18 @@ async function checkEStampJobStatus() {
 
         const result = await response.json();
         console.log('🔍 E-Stamp status result:', result);
-        
+
         if (result.success && result.job) {
             const job = result.job;
             console.log('🔍 E-Stamp job status:', job.status);
-            
+
             if (job.status === 'completed') {
                 // E-Stamp completed
                 stampedDocumentUrl = extractStampedFileName(job.result);
                 console.log('✅ E-Stamp completed, file:', stampedDocumentUrl);
                 updateProcessStatus('E-stamp process completed', 100);
                 showCompletionSection(true);
-                
+
             } else if (job.status === 'failed' || job.status === 'error') {
                 const errorMsg = job.error || job.result || 'E-stamping failed';
                 console.error('❌ E-Stamp job failed:', errorMsg);
@@ -1446,7 +1457,7 @@ async function checkEStampJobStatus() {
 
     } catch (error) {
         console.error('❌ Stamp status check error:', error);
-        
+
         // If e-stamp fails, still show the signed document
         showCompletionSection(false);
         Swal.fire({
@@ -1460,7 +1471,7 @@ async function checkEStampJobStatus() {
 // Extract stamped document filename from result
 function extractStampedFileName(resultString) {
     if (!resultString) return null;
-    
+
     // Look for stamped filename pattern in the result string
     const fileMatch = resultString.match(/stamped_ARInvoices_[^,\s]+\.pdf/);
     return fileMatch ? fileMatch[0] : null;
@@ -1477,7 +1488,7 @@ function updateStepProgress(step) {
     for (let i = 1; i <= 3; i++) {
         const stepElement = document.getElementById(`step${i}`);
         const progressElement = document.getElementById(`progress${i}`);
-        
+
         if (stepElement && progressElement) {
             if (i < step) {
                 // Completed step
@@ -1504,7 +1515,7 @@ function showProcessingSection() {
     const uploadSection = document.getElementById('uploadSection');
     const processingSection = document.getElementById('processingSection');
     const completionSection = document.getElementById('completionSection');
-    
+
     if (uploadSection) uploadSection.classList.add('hidden');
     if (processingSection) processingSection.classList.remove('hidden');
     if (completionSection) completionSection.classList.add('hidden');
@@ -1521,17 +1532,17 @@ function hideUploadSection() {
 // Show completion section
 function showCompletionSection(hasStamp) {
     updateStepProgress(3);
-    
+
     const uploadSection = document.getElementById('uploadSection');
     const processingSection = document.getElementById('processingSection');
     const completionSection = document.getElementById('completionSection');
     const downloadStampedBtn = document.getElementById('downloadStampedBtn');
     const completionMessage = document.getElementById('completionMessage');
-    
+
     if (uploadSection) uploadSection.classList.add('hidden');
     if (processingSection) processingSection.classList.add('hidden');
     if (completionSection) completionSection.classList.remove('hidden');
-    
+
     if (hasStamp && downloadStampedBtn) {
         downloadStampedBtn.classList.remove('hidden');
         if (completionMessage) {
@@ -1550,11 +1561,11 @@ function updateProcessStatus(status, percentage) {
     const processStatus = document.getElementById('processStatus');
     const processPercentage = document.getElementById('processPercentage');
     const processProgressBar = document.getElementById('processProgressBar');
-    
+
     if (processStatus) processStatus.textContent = status;
     if (processPercentage) processPercentage.textContent = `${percentage}%`;
     if (processProgressBar) processProgressBar.style.width = `${percentage}%`;
-    
+
     // Update time remaining estimate
     const timeRemaining = document.getElementById('timeRemaining');
     if (timeRemaining) {
@@ -1577,13 +1588,13 @@ function showErrorState(errorMessage) {
         clearInterval(progressInterval);
         progressInterval = null;
     }
-    
+
     // Update progress bar to show error state
     const progressBar = document.getElementById('progressBar');
     const progressPercentage = document.getElementById('progressPercentage');
     const progressStatus = document.getElementById('progressStatus');
     const progressSpinner = document.getElementById('progressSpinner');
-    
+
     if (progressBar) {
         progressBar.style.backgroundColor = '#dc2626'; // Red color for error
         progressBar.style.width = '100%';
@@ -1599,7 +1610,7 @@ function showErrorState(errorMessage) {
     if (progressSpinner) {
         progressSpinner.style.display = 'none';
     }
-    
+
     // Update current step to show error
     const currentStepElement = document.getElementById(`step${currentStep}`);
     if (currentStepElement) {
@@ -1609,7 +1620,7 @@ function showErrorState(errorMessage) {
             circle.classList.add('bg-red-600');
         }
     }
-    
+
     // Auto-hide progress after 5 seconds and show upload area
     setTimeout(() => {
         hideProgressContainer();
@@ -1630,7 +1641,7 @@ function showErrorState(errorMessage) {
             uploadArea.style.display = 'block';
         }
     }, 5000);
-    
+
     Swal.fire({
         icon: 'error',
         title: 'E-Signing Failed',
@@ -1660,7 +1671,7 @@ async function downloadSignedDocument() {
                 signedDocumentUrl = latestDoc.signed_url;
             }
         }
-        
+
         if (!signedDocumentUrl) {
             Swal.fire({
                 icon: 'error',
@@ -1676,14 +1687,14 @@ async function downloadSignedDocument() {
         const link = document.createElement('a');
         const isAbsolute = /^https?:\/\//i.test(signedDocumentUrl);
         link.href = isAbsolute ? signedDocumentUrl : `${getKasboBaseUrl().replace(/\/+$/, '')}/${signedDocumentUrl.replace(/^\/+/, '')}`;
-        
+
         // Generate filename with staging ID and timestamp
         const urlParams = new URLSearchParams(window.location.search);
         const stagingId = urlParams.get('stagingID') || 'document';
         const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
         link.download = `signed_invoice_${stagingId}_${timestamp}.pdf`;
         link.target = '_blank';
-        
+
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -1721,18 +1732,18 @@ async function downloadStampedDocument() {
         // Build download URL respecting current environment
         const isAbsolute = /^https?:\/\//i.test(stampedDocumentUrl);
         const downloadUrl = isAbsolute ? stampedDocumentUrl : kasboUrl(`/esign/download/stamped/ARInvoices/${stampedDocumentUrl}`);
-        
+
         // Create download link
         const link = document.createElement('a');
         link.href = downloadUrl;
-        
+
         // Generate filename with staging ID and timestamp
         const urlParams = new URLSearchParams(window.location.search);
         const stagingId = urlParams.get('stagingID') || 'document';
         const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
         link.download = `stamped_invoice_${stagingId}_${timestamp}.pdf`;
         link.target = '_blank';
-        
+
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -1759,12 +1770,12 @@ async function downloadStampedDocument() {
 async function getDocumentByTransactionId(transactionId) {
     try {
         const response = await fetch(kasboUrl(`/esign/transaction/${transactionId}/document`));
-        
+
         if (response.ok) {
             const result = await response.json();
             return result;
         }
-        
+
         return null;
     } catch (error) {
         console.error('Error fetching document by transaction ID:', error);
@@ -1776,7 +1787,7 @@ async function getDocumentByTransactionId(transactionId) {
 async function refreshDocumentList() {
     updateProcessStatus('Refreshing document list...', 95);
     await loadExistingSignedDocuments();
-    
+
     Swal.fire({
         icon: 'info',
         title: 'Documents Refreshed',
@@ -1789,12 +1800,12 @@ async function refreshDocumentList() {
 // Helper function to format signed date
 function formatSignedDate(dateString) {
     if (!dateString) return 'Unknown';
-    
+
     try {
         const date = new Date(dateString);
         const now = new Date();
         const diffInSeconds = Math.floor((now - date) / 1000);
-        
+
         if (diffInSeconds < 60) {
             return 'Just now';
         } else if (diffInSeconds < 3600) {
@@ -1825,10 +1836,10 @@ function formatSignedDate(dateString) {
 async function viewDocumentDetails(transactionId) {
     try {
         const result = await getDocumentByTransactionId(transactionId);
-        
+
         if (result && result.success && result.data) {
             const doc = result.data;
-            
+
             Swal.fire({
                 title: 'Document Details',
                 html: `
@@ -1893,42 +1904,42 @@ async function loadExistingStampedDocuments() {
     try {
         const urlParams = new URLSearchParams(window.location.search);
         const stagingId = urlParams.get('stagingID');
-        
+
         if (!stagingId) {
             console.log('No staging ID found for stamped documents');
             return;
         }
-        
+
         console.log('📄 Loading stamped documents for staging ID:', stagingId);
-        
+
         const apiUrl = kasboUrl(`/emeterai/staging/${stagingId}/stamped`);
         console.log('📍 Stamped Documents API URL:', apiUrl);
-        
+
         const response = await fetch(apiUrl);
         console.log('📡 Stamped Documents Response status:', response.status);
-        
+
         if (response.status === 404) {
             // No stamped documents found - this is normal
             console.log('ℹ️ No stamped documents found for this staging ID (404)');
             showNoStampedDocumentsMessage();
             return;
         }
-        
+
         if (!response.ok) {
             showStampedDocumentLoadError(response.status, `HTTP Error: ${response.status}`);
             return;
         }
-        
+
         const result = await response.json();
         console.log('📋 Stamped Documents API Response:', result);
-        
+
         if (result.success && result.data && result.data.length > 0) {
             displayExistingStampedDocuments(result.data);
             showStampedDocumentLoadNotification(result.data.length, stagingId);
         } else {
             showNoStampedDocumentsMessage();
         }
-        
+
     } catch (error) {
         console.error('❌ Error loading stamped documents:', error);
         showStampedDocumentLoadError('network', error.message);
@@ -1948,7 +1959,7 @@ function showStampedDocumentLoadNotification(count, stagingId) {
         </div>
     `;
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
         notification.style.opacity = '0';
         notification.style.transform = 'translateX(100%)';
@@ -1960,7 +1971,7 @@ function showStampedDocumentLoadNotification(count, stagingId) {
 function showNoStampedDocumentsMessage() {
     const container = document.getElementById('existingStampedDocs');
     if (!container) return;
-    
+
     container.innerHTML = `
         <div class="text-center py-8 text-gray-500">
             <div class="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
@@ -1979,9 +1990,9 @@ function showNoStampedDocumentsMessage() {
 function showStampedDocumentLoadError(statusOrType, message) {
     // Skip 404 errors as they're handled separately
     if (statusOrType === 404) return;
-    
+
     console.error('❌ Stamped Document Load Error:', statusOrType, message);
-    
+
     const notification = document.createElement('div');
     notification.className = 'fixed top-4 right-4 bg-red-100 border border-red-200 text-red-800 px-4 py-3 rounded-lg shadow-lg z-50';
     notification.innerHTML = `
@@ -1993,7 +2004,7 @@ function showStampedDocumentLoadError(statusOrType, message) {
         </div>
     `;
     document.body.appendChild(notification);
-    
+
     setTimeout(() => notification.remove(), 5000);
 }
 
@@ -2001,7 +2012,7 @@ function showStampedDocumentLoadError(statusOrType, message) {
 function displayExistingStampedDocuments(documents) {
     const container = document.getElementById('existingStampedDocs');
     if (!container) return;
-    
+
     const documentsHtml = documents.map(doc => `
         <div class="bg-white border border-purple-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow document-item">
             <div class="flex justify-between items-start mb-3">
@@ -2065,7 +2076,7 @@ function displayExistingStampedDocuments(documents) {
             </div>
         </div>
     `).join('');
-    
+
     container.innerHTML = `
         <div class="existing-docs-container space-y-4">
             ${documentsHtml}
@@ -2077,29 +2088,29 @@ function displayExistingStampedDocuments(documents) {
 async function downloadStampedDocument(refNum, filename) {
     try {
         console.log('📥 Downloading stamped document:', refNum, filename);
-        
+
         const response = await fetch(kasboUrl(`/emeterai/stamped/${refNum}`));
-        
+
         if (!response.ok) {
             throw new Error(`Failed to download document: ${response.status} ${response.statusText}`);
         }
-        
+
         const result = await response.json();
-        
+
         if (!result.success || !result.data || !result.data.document) {
             throw new Error('Invalid response format or missing document data');
         }
-        
+
         // Convert base64 to blob and download
         const binaryString = atob(result.data.document);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
             bytes[i] = binaryString.charCodeAt(i);
         }
-        
+
         const blob = new Blob([bytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
-        
+
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
@@ -2107,9 +2118,9 @@ async function downloadStampedDocument(refNum, filename) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
         console.log('✅ Stamped document downloaded successfully');
-        
+
     } catch (error) {
         console.error('❌ Error downloading stamped document:', error);
         Swal.fire({
@@ -2125,13 +2136,13 @@ async function downloadStampedDocument(refNum, filename) {
 async function viewStampedDocumentDetails(refNum) {
     try {
         const response = await fetch(kasboUrl(`/emeterai/stamped/${refNum}`));
-        
+
         if (!response.ok) {
             throw new Error(`Failed to fetch document details: ${response.status}`);
         }
-        
+
         const result = await response.json();
-        
+
         if (result.success && result.data) {
             const doc = result.data;
             Swal.fire({
@@ -2176,33 +2187,33 @@ async function startEStampingProcess() {
         if (!signedDocumentUrl) {
             throw new Error('No signed document available for stamping');
         }
-        
+
         const urlParams = new URLSearchParams(window.location.search);
         const stagingId = urlParams.get('stagingID');
-        
+
         if (!stagingId) {
             throw new Error('No staging ID found');
         }
-        
+
         // Show stamping section
         const completionSection = document.getElementById('completionSection');
         const stampingSection = document.getElementById('stampingSection');
-        
+
         if (completionSection) completionSection.classList.add('hidden');
         if (stampingSection) stampingSection.classList.remove('hidden');
-        
+
         updateStampStatus('Preparing document for e-stamping...', 10);
-        
+
         // Try multiple methods to get the signed document base64
         let signedBase64;
-        
+
         try {
             // Method 1: Try direct fetch (might work with CORS)
             const signedResponse = await fetch(signedDocumentUrl);
             if (!signedResponse.ok) {
                 throw new Error('Direct fetch failed');
             }
-            
+
             const signedBlob = await signedResponse.blob();
             signedBase64 = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -2214,10 +2225,10 @@ async function startEStampingProcess() {
                 reader.readAsDataURL(signedBlob);
             });
             console.log('✅ Direct fetch successful');
-            
+
         } catch (fetchError) {
             console.log('⚠️ Direct fetch failed due to CORS, trying proxy method...');
-            
+
             // Method 2: Use backend proxy to fetch the document
             try {
                 const proxyResponse = await fetch(kasboUrl('/proxy/download'), {
@@ -2230,11 +2241,11 @@ async function startEStampingProcess() {
                         type: 'signed_document'
                     })
                 });
-                
+
                 if (!proxyResponse.ok) {
                     throw new Error('Proxy fetch failed');
                 }
-                
+
                 const proxyResult = await proxyResponse.json();
                 if (proxyResult.success && proxyResult.base64) {
                     signedBase64 = proxyResult.base64;
@@ -2242,10 +2253,10 @@ async function startEStampingProcess() {
                 } else {
                     throw new Error('Invalid proxy response');
                 }
-                
+
             } catch (proxyError) {
                 console.log('⚠️ Proxy method failed, trying alternative approach...');
-                
+
                 // Method 3: Use the original uploaded file if available
                 if (selectedESignFile) {
                     console.log('📄 Using original uploaded file for e-stamping');
@@ -2264,7 +2275,7 @@ async function startEStampingProcess() {
                 }
             }
         }
-        
+
         updateStampStatus('Sending document for e-stamping...', 30);
 
         // Detect QR code presence to inform stamping API
@@ -2285,16 +2296,16 @@ async function startEStampingProcess() {
         } catch (e) {
             console.warn('⚠️ [E-Stamp] QR code detection failed:', e);
         }
-        
+
         // Generate unique UUID for document reference
         function generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
                 var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
                 return v.toString(16);
             });
         }
         const specificDocRef = generateUUID();
-        
+
         // Create e-stamp API payload
         const stampPayload = {
             document_base64: signedBase64,
@@ -2303,12 +2314,12 @@ async function startEStampingProcess() {
             specific_document_ref: specificDocRef,
             is_document_withqrcode: hasQrCodeForStamp
         };
-        
+
         console.log('📝 E-Stamp API payload:', {
             ...stampPayload,
             document_base64: '[BASE64_DATA]' // Don't log the actual base64
         });
-        
+
         const stampResponse = await fetch(kasboUrl('/emeterai/stamp-document'), {
             method: 'POST',
             headers: {
@@ -2317,35 +2328,35 @@ async function startEStampingProcess() {
             },
             body: JSON.stringify(stampPayload)
         });
-        
+
         if (!stampResponse.ok) {
             const errorText = await stampResponse.text();
             throw new Error(`E-stamp API error: ${stampResponse.status} - ${errorText}`);
         }
-        
+
         const stampResult = await stampResponse.json();
         console.log('📋 E-Stamp API Response:', stampResult);
-        
+
         if (!stampResult.success || !stampResult.job_id) {
             throw new Error('Invalid e-stamp API response');
         }
-        
+
         stampJobId = stampResult.job_id;
         console.log('🆔 E-Stamp Job ID:', stampJobId);
-        
+
         // Start checking job status immediately
         updateStampStatus('E-stamping process started...', 60);
         await checkEStampJobStatus();
-        
+
     } catch (error) {
         console.error('❌ E-Stamping process failed:', error);
         updateStampStatus('E-stamping failed', 0);
-        
+
         // Check if it's a CORS/network error and offer alternative
-        const isCorsError = error.message.includes('Failed to fetch') || 
-                           error.message.includes('CORS') || 
-                           error.message.includes('No alternative method available');
-        
+        const isCorsError = error.message.includes('Failed to fetch') ||
+            error.message.includes('CORS') ||
+            error.message.includes('No alternative method available');
+
         if (isCorsError) {
             Swal.fire({
                 icon: 'warning',
@@ -2378,11 +2389,11 @@ async function startEStampingProcess() {
                 confirmButtonText: 'OK'
             });
         }
-        
+
         // Show completion section again
         const stampingSection = document.getElementById('stampingSection');
         const completionSection = document.getElementById('completionSection');
-        
+
         if (stampingSection) stampingSection.classList.add('hidden');
         if (completionSection) completionSection.classList.remove('hidden');
     }
@@ -2394,44 +2405,44 @@ async function checkEStampJobStatus() {
         if (!stampJobId) {
             throw new Error('No stamp job ID available');
         }
-        
+
         console.log('📊 Checking e-stamp job status (5 seconds after response):', stampJobId);
-        
+
         const response = await fetch(kasboUrl(`/jobs/${stampJobId}/status`));
-        
+
         if (!response.ok) {
             throw new Error(`Status check failed: ${response.status}`);
         }
-        
+
         const result = await response.json();
         console.log('📈 E-Stamp Status Response:', result);
-        
+
         if (!result.success || !result.job) {
             throw new Error('Invalid status response');
         }
-        
+
         const job = result.job;
-        
+
         if (job.status === 'completed') {
             console.log('✅ E-stamping completed successfully!');
             updateStampStatus('E-stamping completed', 100);
-            
+
             if (job.ref_num) {
                 // Download the stamped document
                 setTimeout(async () => {
                     try {
                         await downloadStampedDocument(job.ref_num, `${job.ref_num}_stamped.pdf`);
-                        
+
                         // Show final completion
                         const stampingSection = document.getElementById('stampingSection');
                         if (stampingSection) stampingSection.classList.add('hidden');
                         showStampingCompleted(job.ref_num);
-                        
+
                         // Refresh the stamped documents list
                         setTimeout(() => {
                             loadExistingStampedDocuments();
                         }, 1000);
-                        
+
                     } catch (downloadError) {
                         console.error('Error downloading stamped document:', downloadError);
                     }
@@ -2444,7 +2455,7 @@ async function checkEStampJobStatus() {
             updateStampStatus('E-stamping in progress...', 75);
             setTimeout(() => checkEStampJobStatus(), 2000);
         }
-        
+
     } catch (error) {
         console.error('E-stamp status check error:', error);
         throw error;
@@ -2457,11 +2468,11 @@ function updateStampStatus(message, percentage) {
     const percentageElement = document.getElementById('stampPercentage');
     const progressBar = document.getElementById('stampProgressBar');
     const timeRemaining = document.getElementById('stampTimeRemaining');
-    
+
     if (statusElement) statusElement.textContent = message;
     if (percentageElement) percentageElement.textContent = `${percentage}%`;
     if (progressBar) progressBar.style.width = `${percentage}%`;
-    
+
     if (timeRemaining) {
         if (percentage < 50) {
             timeRemaining.textContent = '20-40 seconds';
@@ -2501,7 +2512,7 @@ function showStampingCompleted(refNum) {
             </div>
         </div>
     `;
-    
+
     // Find the e-signing section and append the completion section
     const eSigningSection = document.getElementById('eSigningSection');
     if (eSigningSection) {
@@ -2576,17 +2587,17 @@ function startManualEStamping() {
         preConfirm: () => {
             const fileInput = document.getElementById('manualStampFileInput');
             const file = fileInput.files[0];
-            
+
             if (!file) {
                 Swal.showValidationMessage('Please select a PDF file');
                 return false;
             }
-            
+
             if (file.type !== 'application/pdf') {
                 Swal.showValidationMessage('Please select a PDF file');
                 return false;
             }
-            
+
             return file;
         }
     }).then((result) => {
@@ -2605,38 +2616,38 @@ async function processManualEStamping(file) {
 
         const urlParams = new URLSearchParams(window.location.search);
         const stagingId = urlParams.get('stagingID');
-        
+
         console.log('🔍 Validating e-stamp prerequisites...');
         console.log('📋 URL Params:', Object.fromEntries(urlParams));
         console.log('🆔 Staging ID:', stagingId);
         console.log('📁 File:', file ? `${file.name} (${file.size} bytes)` : 'No file');
-        
+
         if (!stagingId) {
             console.error('❌ Missing staging ID from URL');
             throw new Error('Staging ID not found in URL parameters. Please refresh the page and try again.');
         }
-        
+
         if (!file) {
             console.error('❌ No file provided');
             throw new Error('No file provided for e-stamping');
         }
-        
+
         if (file.type !== 'application/pdf') {
             console.error('❌ Invalid file type:', file.type);
             throw new Error('Only PDF files are supported for e-stamping');
         }
-        
+
         console.log('✅ Prerequisites validation passed');
-        
+
         // Show stamping section
         const completionSection = document.getElementById('completionSection');
         const stampingSection = document.getElementById('stampingSection');
-        
+
         if (completionSection) completionSection.classList.add('hidden');
         if (stampingSection) stampingSection.classList.remove('hidden');
-        
+
         updateStampStatus('Preparing document for e-stamping...', 10);
-        
+
         // Convert file to base64 with error handling
         console.log('📄 Converting file to base64...');
         let signedBase64;
@@ -2650,19 +2661,19 @@ async function processManualEStamping(file) {
                             reject(new Error('Failed to read file: Invalid result'));
                             return;
                         }
-                        
+
                         const base64Parts = result.split(',');
                         if (base64Parts.length !== 2) {
                             reject(new Error('Failed to read file: Invalid data URL format'));
                             return;
                         }
-                        
+
                         const base64 = base64Parts[1];
                         if (!base64) {
                             reject(new Error('Failed to read file: No base64 data'));
                             return;
                         }
-                        
+
                         console.log('✅ File converted to base64 successfully');
                         resolve(base64);
                     } catch (e) {
@@ -2681,16 +2692,16 @@ async function processManualEStamping(file) {
             console.error('❌ File conversion failed:', fileError);
             throw new Error(`File processing failed: ${fileError.message}`);
         }
-        
+
         updateStampStatus('Sending document for e-stamping...', 30);
 
         // Detect QR code presence to inform stamping API - FIX: Use AppState
         let qrcodeSrcManual = '';
         let hasQrCodeManual = false;
         try {
-            const invDataManual = (typeof AppState !== 'undefined' && AppState?.currentInvItemData) || 
-                                 (typeof currentInvItemData !== 'undefined' && currentInvItemData);
-            
+            const invDataManual = (typeof AppState !== 'undefined' && AppState?.currentInvItemData) ||
+                (typeof currentInvItemData !== 'undefined' && currentInvItemData);
+
             if (invDataManual && invDataManual.qrCodeSrc) {
                 qrcodeSrcManual = invDataManual.qrCodeSrc;
             } else {
@@ -2705,16 +2716,16 @@ async function processManualEStamping(file) {
         } catch (e) {
             console.warn('⚠️ [E-Stamp] QR code detection (manual) failed:', e);
         }
-        
+
         // Generate unique UUID for document reference
         function generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
                 var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
                 return v.toString(16);
             });
         }
         const specificDocRef = generateUUID();
-        
+
         // Create e-stamp API payload
         const stampPayload = {
             document_base64: signedBase64,
@@ -2723,19 +2734,19 @@ async function processManualEStamping(file) {
             specific_document_ref: specificDocRef,
             is_document_withqrcode: hasQrCodeManual
         };
-        
+
         console.log('📝 Manual E-Stamp API payload:', {
             ...stampPayload,
             document_base64: '[BASE64_DATA]'
         });
-        
+
         const apiUrl = kasboUrl('/emeterai/stamp-document');
         const userEmail = getCaptureUserEmail();
-        
+
         console.log('🔗 E-Stamp API URL:', apiUrl);
         console.log('👤 User Email:', userEmail);
         console.log('📤 Making API request...');
-        
+
         const stampResponse = await fetch(apiUrl, {
             method: 'POST',
             headers: {
@@ -2744,30 +2755,30 @@ async function processManualEStamping(file) {
             },
             body: JSON.stringify(stampPayload)
         });
-        
+
         console.log('📡 API Response Status:', stampResponse.status);
         console.log('📡 API Response Headers:', Object.fromEntries(stampResponse.headers.entries()));
-        
+
         if (!stampResponse.ok) {
             const errorText = await stampResponse.text();
             console.error('❌ API Error Response:', errorText);
             throw new Error(`E-stamp API error: ${stampResponse.status} - ${errorText}`);
         }
-        
+
         const stampResult = await stampResponse.json();
         console.log('📋 Manual E-Stamp API Response:', stampResult);
-        
+
         if (!stampResult.success || !stampResult.job_id) {
             throw new Error('Invalid e-stamp API response');
         }
-        
+
         stampJobId = stampResult.job_id;
         console.log('🆔 Manual E-Stamp Job ID:', stampJobId);
-        
+
         // Start checking job status immediately
         updateStampStatus('E-stamping process started...', 60);
         await checkEStampJobStatus();
-        
+
     } catch (error) {
         console.error('❌ Manual E-Stamping process failed:', error);
         console.error('❌ Error stack:', error.stack);
@@ -2777,12 +2788,12 @@ async function processManualEStamping(file) {
             name: error.name,
             stack: error.stack
         });
-        
+
         updateStampStatus('E-stamping failed', 0);
-        
+
         // More detailed error message
         let errorMessage = 'An unexpected error occurred during e-stamping.';
-        
+
         if (error.message.includes('fetch')) {
             errorMessage = 'Network error: Unable to connect to e-stamp service. Please check your internet connection.';
         } else if (error.message.includes('API error')) {
@@ -2794,9 +2805,9 @@ async function processManualEStamping(file) {
         } else if (error.message) {
             errorMessage = error.message;
         }
-        
+
         console.error('🚨 Final error message:', errorMessage);
-        
+
         Swal.fire({
             icon: 'error',
             title: 'E-Stamping Failed',
@@ -2813,11 +2824,11 @@ async function processManualEStamping(file) {
             confirmButtonText: 'OK',
             width: '500px'
         });
-        
+
         // Show completion section again
         const stampingSection = document.getElementById('stampingSection');
         const completionSection = document.getElementById('completionSection');
-        
+
         if (stampingSection) stampingSection.classList.add('hidden');
         if (completionSection) completionSection.classList.remove('hidden');
     }

@@ -97,6 +97,8 @@ function populateCADetails(data) {
     if (data.cashAdvanceDetails) populateCashAdvanceDetails(data.cashAdvanceDetails);
     if (data.attachments) displayAttachments(data.attachments);
     else displayAttachments([]);
+    // Show rejection info if applicable
+    displayRejectionRemarks(data);
     displayRevisedRemarks(data);
     makeAllFieldsReadOnly();
     const approvalMap = [
@@ -115,6 +117,58 @@ function populateCADetails(data) {
         el.classList.add('bg-gray-100');
       }
     });
+}
+
+// Function to display rejection remarks if available (mirrors detail page behavior)
+function displayRejectionRemarks(data) {
+    try {
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        const rejectionTextarea = document.getElementById('rejectionRemarks');
+        const rejectionInfo = document.getElementById('rejectionInfo');
+
+        if (!rejectionSection || !rejectionTextarea) return;
+
+        if (data.status !== 'Rejected') {
+            rejectionSection.style.display = 'none';
+            return;
+        }
+
+        let rejectionRemarks = '';
+        let rejectedByName = '';
+
+        if (data.rejectedRemarks) {
+            rejectionRemarks = data.rejectedRemarks;
+        } else if (data.remarksRejectByChecker) {
+            rejectionRemarks = data.remarksRejectByChecker;
+        } else if (data.remarksRejectByAcknowledger) {
+            rejectionRemarks = data.remarksRejectByAcknowledger;
+        } else if (data.remarksRejectByApprover) {
+            rejectionRemarks = data.remarksRejectByApprover;
+        } else if (data.remarksRejectByReceiver) {
+            rejectionRemarks = data.remarksRejectByReceiver;
+        } else if (data.remarks) {
+            rejectionRemarks = data.remarks;
+        }
+
+        if (data.rejectedByName) {
+            rejectedByName = data.rejectedByName;
+        }
+
+        if (rejectionRemarks && rejectionRemarks.trim() !== '') {
+            rejectionSection.style.display = 'block';
+            rejectionTextarea.value = rejectionRemarks;
+
+            if (rejectionInfo && rejectedByName) {
+                const nikPart = data.rejectedByNIK ? `(${data.rejectedByNIK})` : '';
+                const datePart = data.rejectedDate ? ` on ${new Date(data.rejectedDate).toLocaleDateString()}` : '';
+                rejectionInfo.innerHTML = `<span class="font-medium">Rejected by:</span> ${rejectedByName} ${nikPart}${datePart}`;
+            }
+        } else {
+            rejectionSection.style.display = 'none';
+        }
+    } catch (e) {
+        console.error('Error displaying rejection remarks:', e);
+    }
 }
 
 function populateCashAdvanceDetails(details) {
@@ -143,7 +197,7 @@ function populateCashAdvanceDetails(details) {
                 <input type="text" value="${detail.description || ''}" class="w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border">
-                <input type="number" value="${detail.amount ? parseFloat(detail.amount).toFixed(2) : '0.00'}" class="total w-full bg-gray-100" readonly />
+                <input type="text" value="${detail.amount ? Number(detail.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}" class="total w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border text-center">
                 <!-- Read-only view, no action buttons -->
@@ -163,20 +217,17 @@ function calculateTotalAmount() {
     let sum = 0;
     
     totalInputs.forEach(input => {
-        // Only add to sum if the input has a valid numeric value
-        const value = input.value.trim();
-        if (value && !isNaN(parseFloat(value))) {
-            sum += parseFloat(value);
+        // Handle values with thousand separators and decimals
+        const raw = (input.value || '').toString().replace(/,/g, '').trim();
+        if (raw && !isNaN(parseFloat(raw))) {
+            sum += parseFloat(raw);
         }
     });
     
-    // Format the sum with 2 decimal places
-    const formattedSum = sum.toFixed(2);
-    
-    // Update the total amount display
+    // Update the total amount display with thousand separators and 2 decimals
     const totalAmountDisplay = document.getElementById('totalAmountDisplay');
     if (totalAmountDisplay) {
-        totalAmountDisplay.textContent = formattedSum;
+        totalAmountDisplay.textContent = Number(sum).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 }
 

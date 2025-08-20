@@ -119,7 +119,7 @@
                         <input type="text" class="description w-full bg-gray-100" readonly />
                     </td>
                     <td class="p-2 border">
-                        <input type="number" class="amount w-full bg-gray-100" readonly />
+                        <input type="text" class="amount w-full bg-gray-100" readonly />
                     </td>
                 </tr>
             </tbody>
@@ -225,6 +225,15 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Page loaded successfully');
             toggleClosedBy(); // Set initial visibility for closedBy field
+            // Hide Print button when opened from acknowledge tab
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentTab = urlParams.get('tab');
+            if (currentTab && currentTab.toLowerCase() === 'acknowledge') {
+                const printBtn = document.querySelector('button[onclick="printCash()"]');
+                if (printBtn) {
+                    printBtn.style.display = 'none';
+                }
+            }
             
             // Initialize revision functionality
             const revisionContainer = document.getElementById('revisionContainer');
