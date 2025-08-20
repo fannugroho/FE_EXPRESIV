@@ -390,9 +390,6 @@ function populateFormData(data) {
     console.log('Track number:', data.trackNo);
     console.log('Invoice number:', data.u_bsi_invnum);
 
-    // Get status from approval data
-    const statusFromApproval = getStatusFromInvoice(data);
-
     // Debug log for requested fields from API
     console.log('API VALUE U_BSI_ShippingType:', data.U_BSI_ShippingType);
     console.log('API VALUE u_bsi_invnum:', data.u_bsi_invnum);
@@ -402,7 +399,7 @@ function populateFormData(data) {
         'DocNum': data.docNum || data.documentNumber || data.invoiceNumber || '',
         'CardCode': data.cardCode || data.customerCode || data.vendorCode || '',
         'CardName': data.cardName || data.customerName || data.vendorName || '',
-        'Status': statusFromApproval,
+        'Status': '', // Will be populated later after status is determined
         'address': data.address || data.customerAddress || data.billingAddress || '',
         'NumAtCard': data.numAtCard || data.kpinNumber || data.externalNumber || '',
         'DocCur': data.docCur || data.currency || data.docCurrency || 'IDR',
@@ -457,6 +454,25 @@ function populateFormData(data) {
         console.log(`Setting summary field ${id} = "${value}"`);
         OptimizedUtils.safeSetValue(id, value);
     });
+
+    // Populate status from approval summary first - before using it
+    console.log('📊 Raw API data received for status determination:', {
+        'Full arInvoiceApprovalSummary': data.arInvoiceApprovalSummary,
+        'arInvoiceApprovalSummary.approvalStatus': data.arInvoiceApprovalSummary?.approvalStatus,
+        'root.approvalStatus': data.approvalStatus,
+        'root.status': data.status,
+        'root.docStatus': data.docStatus,
+        'u_BSI_Expressiv_IsTransfered': data.u_BSI_Expressiv_IsTransfered,
+        'stagingID': data.stagingID,
+        'docNum': data.docNum
+    });
+    
+    const status = getStatusFromInvoice(data);
+    console.log('✅ Final determined status:', status);
+    
+    // Update the Status field in headerFields and set it to the form
+    headerFields.Status = status;
+    OptimizedUtils.safeSetValue('Status', status);
 
     // Check if submit button should be shown based on status
     updateSubmitButtonVisibility(status);
@@ -543,23 +559,10 @@ function populateFormData(data) {
     populateFooterTotals(data);
 
     // Populate table with invoice service details - use arInvoiceDetails instead of arInvoiceServiceDetails
-    populateInvoiceServiceDetails(data.arInvoiceDetails || [], data);
+    populateInvoiceServiceDetails(data.arInvoiceDetails || []);
 
     // Enable submit button after data is loaded
     enableSubmitButton();
-
-    // Populate status from approval summary
-    const status = getStatusFromInvoice(data);
-    console.log('📊 Determined invoice status:', status);
-    console.log('📊 API data status fields:', {
-        approvalStatus: data.arInvoiceApprovalSummary?.approvalStatus,
-        directStatus: data.status,
-        docStatus: data.docStatus,
-        transferStatus: data.u_BSI_Expressiv_IsTransfered,
-        stagingID: data.stagingID,
-        docNum: data.docNum
-    });
-    safeSetValue('Status', status);
 }
 
 // Populate footer totals fields with currency formatting (matching item page logic)
@@ -641,8 +644,44 @@ function populateFooterTotals(data) {
     }
 }
 
+// Helper function to format numbers with thousand separator
+function formatNumberWithCommas(value) {
+    if (!value || value === '' || value === null || value === undefined) return '';
+    
+    // Convert to number and check if it's valid
+    const number = parseFloat(value);
+    if (isNaN(number)) return value; // Return original value if not a number
+    
+    // Format with thousand separator (Indonesian style: 1.000.000,00)
+    return number.toLocaleString('id-ID', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+// Helper function to format quantity (no decimal places for whole numbers)
+function formatQuantity(value) {
+    if (!value || value === '' || value === null || value === undefined) return '';
+    
+    const number = parseFloat(value);
+    if (isNaN(number)) return value;
+    
+    // Check if it's a whole number
+    if (number % 1 === 0) {
+        return number.toLocaleString('id-ID', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        });
+    } else {
+        return number.toLocaleString('id-ID', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+}
+
 // Populate table with invoice service details
-function populateInvoiceServiceDetails(details, invoiceData) {
+function populateInvoiceServiceDetails(details) {
     const tableBody = document.getElementById('tableBody');
     tableBody.innerHTML = '';
 
@@ -660,6 +699,23 @@ function populateInvoiceServiceDetails(details, invoiceData) {
 
     details.forEach((detail, index) => {
         const row = document.createElement('tr');
+
+        // Format numeric values with thousand separators
+        const formattedQuantity = formatQuantity(detail.InvQty || detail.invQty || '');
+        const formattedPrice = formatNumberWithCommas(detail.U_BSI_SalPrice || detail.u_bsi_salprice || '');
+        const formattedLineTotal = formatNumberWithCommas(detail.lineTotal || '0.00');
+
+        // Debug log for number formatting (only for first row to avoid spam)
+        if (index === 0) {
+            console.log('💰 Service Details Number Formatting:', {
+                'Original Qty': detail.InvQty || detail.invQty,
+                'Formatted Qty': formattedQuantity,
+                'Original Price': detail.U_BSI_SalPrice || detail.u_bsi_salprice,
+                'Formatted Price': formattedPrice,
+                'Original Line Total': detail.lineTotal,
+                'Formatted Line Total': formattedLineTotal
+            });
+        }
 
         row.innerHTML = `
             <td class="p-2 border no-column">
@@ -684,13 +740,13 @@ function populateInvoiceServiceDetails(details, invoiceData) {
                 <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.unitMsr || ''}" disabled autocomplete="off" />
             </td>
             <td class="p-2 border quantity-column">
-                <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.InvQty || detail.invQty || ''}" disabled autocomplete="off" />
+                <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${formattedQuantity}" disabled autocomplete="off" />
             </td>
             <td class="p-2 border price-column">
-                <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.U_BSI_SalPrice || detail.u_bsi_salprice || ''}" disabled autocomplete="off" />
+                <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${formattedPrice}" disabled autocomplete="off" />
             </td>
             <td class="p-2 border line-total-column">
-                <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${detail.lineTotal || '0.00'}" disabled autocomplete="off" />
+                <input type="text" class="w-full p-2 border rounded bg-gray-100" value="${formattedLineTotal}" disabled autocomplete="off" />
             </td>
         `;
 
@@ -726,94 +782,99 @@ function formatDate(dateString) {
 function getStatusFromInvoice(invoice) {
     console.log('🔍 getStatusFromInvoice called with invoice:', invoice);
 
-    // Debug logging for arInvoiceApprovalSummary
-    console.log('👥 Invoice arInvoiceApprovalSummary:', invoice.arInvoiceApprovalSummary);
-    console.log('👥 Invoice arInvoiceApprovalSummary type:', typeof invoice.arInvoiceApprovalSummary);
-    console.log('👥 Invoice arInvoiceApprovalSummary is null:', invoice.arInvoiceApprovalSummary === null);
-    console.log('👥 Invoice arInvoiceApprovalSummary is undefined:', invoice.arInvoiceApprovalSummary === undefined);
+    // Debug logging for all possible status sources
+    console.log('📊 API Status Sources Debug:', {
+        'arInvoiceApprovalSummary': invoice.arInvoiceApprovalSummary,
+        'arInvoiceApprovalSummary?.approvalStatus': invoice.arInvoiceApprovalSummary?.approvalStatus,
+        'approvalStatus': invoice.approvalStatus,
+        'status': invoice.status,
+        'docStatus': invoice.docStatus,
+        'u_BSI_Expressiv_IsTransfered': invoice.u_BSI_Expressiv_IsTransfered,
+        'stagingID': invoice.stagingID,
+        'docNum': invoice.docNum
+    });
 
-    // Priority 1: Check if invoice has approval summary with approvalStatus
+    // Priority 1: Always check arInvoiceApprovalSummary.approvalStatus first (this is the most accurate)
     if (invoice.arInvoiceApprovalSummary && invoice.arInvoiceApprovalSummary.approvalStatus) {
-        const approvalStatus = invoice.arInvoiceApprovalSummary.approvalStatus;
-        console.log('✅ Using approvalStatus from arInvoiceApprovalSummary:', approvalStatus);
-        return approvalStatus;
+        const apiStatus = invoice.arInvoiceApprovalSummary.approvalStatus;
+        console.log('✅ PRIORITY 1: Using approvalStatus from arInvoiceApprovalSummary:', apiStatus);
+        console.log('📋 This should match your database status. If not, check API response.');
+        return apiStatus;
+    } else {
+        console.log('❌ PRIORITY 1: arInvoiceApprovalSummary.approvalStatus not found or empty');
+        if (!invoice.arInvoiceApprovalSummary) {
+            console.log('   - arInvoiceApprovalSummary is null/undefined');
+        } else if (!invoice.arInvoiceApprovalSummary.approvalStatus) {
+            console.log('   - approvalStatus field is missing or empty in arInvoiceApprovalSummary');
+        }
     }
 
-    // Priority 2: Check if invoice has direct approvalStatus field
-    if (invoice.approvalStatus) {
+    // Priority 2: Check direct approvalStatus field from invoice root
+    if (invoice.approvalStatus && invoice.approvalStatus.trim() !== '') {
         console.log('✅ Using direct approvalStatus field:', invoice.approvalStatus);
         return invoice.approvalStatus;
     }
 
-    // Priority 3: Check transfer status
-    if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') {
-        console.log('✅ Document is transferred, returning Received');
-        return 'Received';
-    }
-
-    // Priority 4: Check if it's a staging document (draft)
-    if (invoice.stagingID && invoice.stagingID.startsWith('STG')) {
-        console.log('✅ Document is staging (STG), returning Draft');
-        return 'Draft';
-    }
-
-    // Priority 5: Check if document has been transferred (received)
-    if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') {
-        console.log('✅ Document is transferred, returning Received');
-        return 'Received';
-    }
-
-    // Priority 6: Check if document is in preparation stage
-    if (invoice.docNum && invoice.docNum > 0) {
-        console.log('✅ Document has docNum > 0, returning Prepared');
-        return 'Prepared';
-    }
-
-    // Priority 7: Check individual status flags from approval summary
-    if (invoice.arInvoiceApprovalSummary) {
-        const summary = invoice.arInvoiceApprovalSummary;
-        console.log('👥 Checking individual status flags from approval summary:', summary);
-
-        if (summary.isRejected) {
-            console.log('✅ Status flag isRejected is true, returning Rejected');
-            return 'Rejected';
-        }
-        if (summary.isApproved) {
-            console.log('✅ Status flag isApproved is true, returning Approved');
-            return 'Approved';
-        }
-        if (summary.isAcknowledged) {
-            console.log('✅ Status flag isAcknowledged is true, returning Acknowledged');
-            return 'Acknowledged';
-        }
-        if (summary.isChecked) {
-            console.log('✅ Status flag isChecked is true, returning Checked');
-            return 'Checked';
-        }
-        if (summary.isReceived) {
-            console.log('✅ Status flag isReceived is true, returning Received');
-            return 'Received';
-        }
-        if (summary.isPrepared) {
-            console.log('✅ Status flag isPrepared is true, returning Prepared');
-            return 'Prepared';
-        }
-    }
-
-    // Priority 8: Check status field directly from invoice
-    if (invoice.status) {
-        console.log('✅ Using direct status field from invoice:', invoice.status);
+    // Priority 3: Check status field from invoice root 
+    if (invoice.status && invoice.status.trim() !== '') {
+        console.log('✅ Using status field from invoice root:', invoice.status);
         return invoice.status;
     }
 
-    // Priority 9: Check docStatus field
-    if (invoice.docStatus) {
-        console.log('✅ Using docStatus field from invoice:', invoice.docStatus);
+    // Priority 4: Check docStatus field
+    if (invoice.docStatus && invoice.docStatus.trim() !== '') {
+        console.log('✅ Using docStatus field:', invoice.docStatus);
         return invoice.docStatus;
     }
 
-    // Default to Draft for new documents
-    console.log('⚠️ No specific status found, defaulting to Draft');
+    // Priority 5: Check individual boolean flags from approval summary (fallback logic)
+    if (invoice.arInvoiceApprovalSummary) {
+        const summary = invoice.arInvoiceApprovalSummary;
+        console.log('👥 Checking individual boolean flags from approval summary:', summary);
+
+        // Check in logical order from highest to lowest approval level
+        if (summary.isReceived === true) {
+            console.log('✅ Boolean flag isReceived is true, returning Received');
+            return 'Received';
+        }
+        if (summary.isApproved === true) {
+            console.log('✅ Boolean flag isApproved is true, returning Approved');
+            return 'Approved';
+        }
+        if (summary.isChecked === true) {
+            console.log('✅ Boolean flag isChecked is true, returning Checked');
+            return 'Checked';
+        }
+        if (summary.isAcknowledged === true) {
+            console.log('✅ Boolean flag isAcknowledged is true, returning Acknowledged');
+            return 'Acknowledged';
+        }
+        if (summary.isPrepared === true) {
+            console.log('✅ Boolean flag isPrepared is true, returning Prepared');
+            return 'Prepared';
+        }
+        if (summary.isRejected === true) {
+            console.log('✅ Boolean flag isRejected is true, returning Rejected');
+            return 'Rejected';
+        }
+    }
+
+    // Priority 6: Check if document has been transferred to SAP
+    if (invoice.u_BSI_Expressiv_IsTransfered === 'Y') {
+        console.log('✅ Document is transferred to SAP (u_BSI_Expressiv_IsTransfered=Y), returning Received');
+        return 'Received';
+    }
+
+    // Priority 7: Default to Draft for any document without explicit status
+    // This ensures we match the database status when no explicit approval status is found
+    console.log('⚠️ No explicit status found in API response, defaulting to Draft (matching database)');
+    console.log('📊 Status determination details:', {
+        stagingID: invoice.stagingID,
+        docNum: invoice.docNum,
+        hasApprovalSummary: !!invoice.arInvoiceApprovalSummary,
+        transferStatus: invoice.u_BSI_Expressiv_IsTransfered,
+        note: 'Defaulting to Draft to match database status'
+    });
     return 'Draft';
 }
 
