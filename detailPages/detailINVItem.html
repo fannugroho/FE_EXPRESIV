@@ -1718,13 +1718,20 @@
                 </div>
             </div>
 
-            <!-- Rejection Remarks Display Section -->
-            <div class="mt-4" id="rejectionRemarksSection" style="display: none;">
-                <h3 class="text-lg font-semibold mb-2 text-red-600">Rejection Remarks</h3>
-                <div class="bg-red-50 p-4 rounded-lg border border-red-200">
-                    <textarea id="rejectionRemarks"
-                        class="w-full p-2 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"
-                        readonly autocomplete="off"></textarea>
+            <!-- Rejection Details Display Section -->
+            <div class="mt-4" id="rejectionDetailsSection" style="display: none;">
+                <div class="bg-red-50 p-6 rounded-lg border border-red-200">
+                    <h3 class="text-lg font-semibold mb-4 text-red-600">❌ Invoice Rejected</h3>
+                    
+                    <!-- Rejection Remarks -->
+                    <div class="mb-4">
+                        <h4 class="text-md font-semibold mb-2 text-red-700">Rejection Remarks</h4>
+                        <textarea id="rejectionRemarks"
+                            class="w-full p-3 border rounded-md bg-white text-sm text-gray-800 min-h-[60px] whitespace-pre-wrap"
+                            readonly autocomplete="off"></textarea>
+                    </div>
+
+
                 </div>
             </div>
 

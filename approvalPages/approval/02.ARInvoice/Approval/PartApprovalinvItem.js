@@ -3237,6 +3237,19 @@ const ButtonManager = {
     shouldShowButton: (buttonConfig, context) => {
         const { status, apiStatus, urlStatus, approval, currentKansaiId } = context;
 
+        // Debug logging for receiveButton
+        if (buttonConfig.id === 'receiveButton') {
+            console.log('🔍 receiveButton visibility check:', {
+                buttonId: buttonConfig.id,
+                status: status,
+                apiStatus: apiStatus,
+                urlStatus: urlStatus,
+                requiredStatus: buttonConfig.requiredStatus,
+                hideOnStatus: buttonConfig.visibilityRules?.hideOnStatus,
+                specialLogic: buttonConfig.visibilityRules?.specialLogic
+            });
+        }
+
         // Handle special logic buttons separately
         if (buttonConfig.visibilityRules?.specialLogic) {
             return ButtonManager.handleSpecialLogic(buttonConfig, context);
@@ -3244,12 +3257,23 @@ const ButtonManager = {
 
         // Check hide conditions
         if (buttonConfig.visibilityRules?.hideOnStatus?.includes(apiStatus)) {
+            if (buttonConfig.id === 'receiveButton') {
+                console.log('❌ receiveButton hidden by hideOnStatus:', apiStatus);
+            }
             return false;
         }
 
         // Check standard approval buttons
         if (buttonConfig.requiredStatus && buttonConfig.requiredStatus === status) {
-            return ButtonManager.checkApprovalConditions(buttonConfig, approval, currentKansaiId);
+            const result = ButtonManager.checkApprovalConditions(buttonConfig, approval, currentKansaiId);
+            if (buttonConfig.id === 'receiveButton') {
+                console.log('🔍 receiveButton approval conditions result:', result);
+            }
+            return result;
+        }
+
+        if (buttonConfig.id === 'receiveButton') {
+            console.log('❌ receiveButton: required status not met. Required:', buttonConfig.requiredStatus, 'Got:', status);
         }
 
         return false;
@@ -3317,6 +3341,7 @@ const ButtonManager = {
     // Main function to update button visibility
     updateButtons: (status) => {
         console.log('🔄 ButtonManager: Updating action buttons for status:', status);
+        console.log('🔍 ButtonManager: URL status parameter:', getUrlParameter('status'));
 
         // Hide all buttons first
         ButtonManager.hideAllButtons();
@@ -3377,6 +3402,11 @@ const ButtonManager = {
 // Legacy function for backward compatibility - now uses ButtonManager
 function updateActionButtons(status) {
     console.log('🔄 Legacy updateActionButtons called, delegating to ButtonManager');
+    console.log('🔍 updateActionButtons received status:', status);
+    console.log('🔍 URL parameters:', {
+        status: getUrlParameter('status'),
+        source: getUrlParameter('source')
+    });
     return ButtonManager.updateButtons(status);
 }
 
@@ -3406,16 +3436,16 @@ function handlePrintButtonVisibility() {
     const urlStatusLower = urlStatus ? urlStatus.toLowerCase() : '';
 
     // Show print button if BOTH conditions are met:
-    // 1. URL status is 'received' or 'approve' 
+    // 1. URL status is 'received', 'approve', or 'approved' 
     // 2. API status is 'Received' or 'Approved'
-    const urlCondition = urlStatusLower === 'received' || urlStatusLower === 'approve';
+    const urlCondition = urlStatusLower === 'received' || urlStatusLower === 'approve' || urlStatusLower === 'approved';
     const apiCondition = apiStatus === 'Received' || apiStatus === 'Approved';
     const showPrintButton = urlCondition && apiCondition;
 
     console.log('🖨️ ===== PRINT BUTTON LOGIC DEBUGGING =====');
     console.log('- API Status (dari dokumen):', apiStatus);
     console.log('- URL Status (dari parameter):', urlStatus);
-    console.log('- URL Condition (received/approve):', urlCondition);
+    console.log('- URL Condition (received/approve/approved):', urlCondition);
     console.log('- API Condition (Received/Approved):', apiCondition);
     console.log('- Should show print button:', showPrintButton);
     console.log('- Current button classes:', printBtn.className);
@@ -3432,7 +3462,7 @@ function handlePrintButtonVisibility() {
     } else {
         console.log('🎯 EXECUTING: Hide print button - conditions not met');
         if (!urlCondition) {
-            console.log('❌ URL condition failed - expected received/approve, got:', urlStatus);
+            console.log('❌ URL condition failed - expected received/approve/approved, got:', urlStatus);
         }
         if (!apiCondition) {
             console.log('❌ API condition failed - expected Received/Approved, got:', apiStatus);

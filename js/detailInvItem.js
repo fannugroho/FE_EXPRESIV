@@ -817,24 +817,42 @@ function populateFormData(data) {
             preparedBy: data.arInvoiceApprovalSummary.preparedBy
         });
 
-        // Handle rejection remarks if status is Rejected
-        if (data.arInvoiceApprovalSummary.approvalStatus === 'Rejected' && data.arInvoiceApprovalSummary.rejectionRemarks) {
-            const rejectionSection = document.getElementById('rejectionRemarksSection');
+        // Handle rejection details if status is Rejected
+        if (data.arInvoiceApprovalSummary.approvalStatus === 'Rejected') {
+            const rejectionSection = document.getElementById('rejectionDetailsSection');
             const rejectionTextarea = document.getElementById('rejectionRemarks');
 
             if (rejectionSection && rejectionTextarea) {
                 rejectionSection.style.display = 'block';
-                rejectionTextarea.value = data.arInvoiceApprovalSummary.rejectionRemarks;
-                console.log('✅ Rejection remarks displayed:', data.arInvoiceApprovalSummary.rejectionRemarks);
+                rejectionTextarea.value = data.arInvoiceApprovalSummary.rejectionRemarks || '';
+                
+                // Fill rejected invoice details
+                const setElementText = (id, value) => {
+                    const element = document.getElementById(id);
+                    if (element) element.textContent = value || '-';
+                };
+                
+                setElementText('rejectedInvoiceNumber', data.u_bsi_invnum || data.docNum);
+                setElementText('rejectedCustomerName', data.cardName);
+                setElementText('rejectedInvoiceDate', formatDate(data.docDate));
+                setElementText('rejectedDueDate', formatDate(data.docDueDate));
+                setElementText('rejectedCurrency', data.docCur || 'IDR');
+                setElementText('rejectedSubtotal', formatCurrencyIDR(data.netPrice || data.docTotal));
+                setElementText('rejectedTaxAmount', formatCurrencyIDR(data.vatSum || data.taxTotal));
+                setElementText('rejectedTotalAmount', formatCurrencyIDR(data.grandTotal || data.total));
+                setElementText('rejectedByName', data.arInvoiceApprovalSummary.rejectedByName);
+                setElementText('rejectedDate', formatDate(data.arInvoiceApprovalSummary.rejectedDate));
+                
+                console.log('✅ Rejection details displayed');
             } else {
-                console.warn('⚠️ Rejection remarks section elements not found');
+                console.warn('⚠️ Rejection details section elements not found');
             }
         } else {
-            // Hide the rejection remarks section if status is not Rejected
-            const rejectionSection = document.getElementById('rejectionRemarksSection');
+            // Hide the rejection details section if status is not Rejected
+            const rejectionSection = document.getElementById('rejectionDetailsSection');
             if (rejectionSection) {
                 rejectionSection.style.display = 'none';
-                console.log('✅ Rejection remarks section hidden (status not Rejected)');
+                console.log('✅ Rejection details section hidden (status not Rejected)');
             }
         }
     } else {
@@ -2570,12 +2588,27 @@ async function updateInvoiceStatusToRejected(remarks = '') {
         });
 
         const now = new Date().toISOString();
+        
+        // Create snapshot of current invoice data to preserve what was rejected
+        const invoiceSnapshot = {
+            invoiceNumber: invoiceData.u_bsi_invnum || invoiceData.docNum,
+            customerName: invoiceData.cardName,
+            invoiceDate: invoiceData.docDate,
+            dueDate: invoiceData.docDueDate,
+            currency: invoiceData.docCur,
+            subtotal: invoiceData.netPrice || invoiceData.docTotal,
+            taxAmount: invoiceData.vatSum || invoiceData.taxTotal,
+            totalAmount: invoiceData.grandTotal || invoiceData.total,
+            snapshotDate: now
+        };
+        
         const payload = {
             approvalStatus: 'Rejected',
             rejectedDate: now,
             rejectionRemarks: remarks,
             rejectedBy: (window.getCurrentUser && window.getCurrentUser()?.userId) || '',
             rejectedByName: getCurrentUserFullNameDetail(),
+            rejectedInvoiceSnapshot: JSON.stringify(invoiceSnapshot), // Save snapshot
             updatedAt: now,
         };
 
