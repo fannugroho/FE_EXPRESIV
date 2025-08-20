@@ -225,6 +225,15 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Page loaded successfully');
             toggleClosedBy(); // Set initial visibility for closedBy field
+            // Hide Print button when opened from acknowledge tab
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentTab = urlParams.get('tab');
+            if (currentTab && currentTab.toLowerCase() === 'acknowledge') {
+                const printBtn = document.querySelector('button[onclick="printCash()"]');
+                if (printBtn) {
+                    printBtn.style.display = 'none';
+                }
+            }
             
             // Initialize revision functionality
             const revisionContainer = document.getElementById('revisionContainer');
