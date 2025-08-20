@@ -1241,7 +1241,7 @@ async function populateTable(cashAdvanceDetails) {
                 <input type="text" value="${detail.description || ''}" class="w-full description" maxlength="200" required />
             </td>
             <td class="p-2 border">
-                <input type="number" value="${detail.amount ? parseFloat(detail.amount).toFixed(2) : '0.00'}" class="w-full total" maxlength="10" required step="0.01" oninput="calculateTotalAmount()" onblur="formatNumberWithDecimals(this)" />
+                <input type="number" value="${detail.amount ? parseFloat(detail.amount).toFixed(2) : '0.00'}" class="w-full total" required step="0.01" oninput="calculateTotalAmount()" onblur="formatNumberWithDecimals(this)" />
             </td>
             <td class="p-2 border text-center">
                 <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
@@ -1295,7 +1295,7 @@ async function addRow() {
             <input type="text" class="w-full description" maxlength="200" required />
         </td>
         <td class="p-2 border">
-            <input type="number" class="w-full total" maxlength="10" value="0.00" required step="0.01" oninput="calculateTotalAmount()" onblur="formatNumberWithDecimals(this)" />
+            <input type="number" class="w-full total" value="0.00" required step="0.01" oninput="calculateTotalAmount()" onblur="formatNumberWithDecimals(this)" />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>

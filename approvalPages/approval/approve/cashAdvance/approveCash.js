@@ -390,22 +390,62 @@ function rejectCash() {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Ask for rejection remarks
             Swal.fire({
                 title: 'Rejection Remarks',
-                text: 'Please provide remarks for rejection:',
-                input: 'textarea',
-                inputPlaceholder: 'Enter your remarks here...',
-                inputValidator: (value) => {
-                    if (!value || value.trim() === '') {
-                        return 'Remarks are required for rejection';
-                    }
-                },
+                html: `
+                    <div class="text-left">
+                        <div class="font-semibold">Rejection Remarks</div>
+                        <div class="text-sm text-gray-600 mb-2">Please provide remarks for rejection:</div>
+                        <textarea id="rejectionTextarea" class="swal2-textarea" style="height: 150px;"></textarea>
+                    </div>
+                `,
+                focusConfirm: false,
                 showCancelButton: true,
                 confirmButtonColor: '#dc3545',
                 cancelButtonColor: '#6c757d',
                 confirmButtonText: 'Submit Rejection',
-                cancelButtonText: 'Cancel'
+                cancelButtonText: 'Cancel',
+                didOpen: () => {
+                    const textarea = document.getElementById('rejectionTextarea');
+                    const userInfo = getUserInfo();
+                    const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+                    textarea.value = prefix;
+                    textarea.dataset.prefixLength = String(prefix.length);
+                    textarea.setSelectionRange(prefix.length, prefix.length);
+                    textarea.focus();
+
+                    const enforcePrefix = (el) => {
+                        const expectedPrefix = `[${userInfo.name} - ${userInfo.role}]: `;
+                        const prefixLength = parseInt(el.dataset.prefixLength || '0');
+                        if (!el.value.startsWith(expectedPrefix)) {
+                            const userText = el.value.slice(prefixLength);
+                            el.value = expectedPrefix + userText;
+                        }
+                        if (el.selectionStart < prefixLength) {
+                            el.setSelectionRange(prefixLength, prefixLength);
+                        }
+                    };
+
+                    textarea.addEventListener('input', (e) => enforcePrefix(e.target));
+                    textarea.addEventListener('keydown', (e) => {
+                        const el = e.target;
+                        const prefixLength = parseInt(el.dataset.prefixLength || '0');
+                        if ((e.key === 'Backspace' && el.selectionStart <= prefixLength) ||
+                            (e.key === 'ArrowLeft' && el.selectionStart <= prefixLength)) {
+                            e.preventDefault();
+                            el.setSelectionRange(prefixLength, prefixLength);
+                        }
+                    });
+                },
+                preConfirm: () => {
+                    const el = document.getElementById('rejectionTextarea');
+                    const prefixLength = parseInt(el.dataset.prefixLength || '0');
+                    if (!el.value || el.value.trim().length <= prefixLength) {
+                        Swal.showValidationMessage('Remarks are required for rejection');
+                        return false;
+                    }
+                    return el.value;
+                }
             }).then((remarksResult) => {
                 if (remarksResult.isConfirmed) {
                     updateCAStatusWithRemarks('reject', remarksResult.value);

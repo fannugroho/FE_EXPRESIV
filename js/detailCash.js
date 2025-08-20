@@ -1133,7 +1133,7 @@ async function addRow() {
             <input type="text" class="description w-full" maxlength="200" />
         </td>
         <td class="p-2 border">
-            <input type="text" class="total w-full" maxlength="10" required oninput="calculateTotalAmount()"/>
+            <input type="text" class="total w-full" required oninput="calculateTotalAmount()"/>
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -1175,7 +1175,8 @@ function calculateTotalAmount() {
     
     totalInputs.forEach(input => {
         // Only add to sum if the input has a valid numeric value
-        const value = input.value.trim();
+        // Remove commas before parsing to handle formatted values
+        const value = input.value.trim().replace(/,/g, '');
         if (value && !isNaN(parseFloat(value))) {
             sum += parseFloat(value);
         }
@@ -1190,42 +1191,91 @@ function calculateTotalAmount() {
 
 // Format with thousand separators and 2 decimals on blur
 function formatNumberWithDecimals(input) {
+    console.log('=== formatNumberWithDecimals DEBUG START ===');
+    console.log('Input element:', input);
+    console.log('Input value before processing:', input.value);
+    console.log('Input type:', input.type);
+    console.log('Input classList:', input.classList.toString());
+    
     let value = (input.value || '').toString().replace(/,/g, '').replace(/[^\d.]/g, '');
+    console.log('After removing commas and non-numeric chars:', value);
+    
     if (!value || value === '.') {
+        console.log('Empty or just decimal point, setting to 0.00');
         input.value = '0.00';
         calculateTotalAmount();
         return;
     }
+    
     const num = parseFloat(value);
+    console.log('After parseFloat:', num);
+    
     if (isNaN(num)) {
+        console.log('Not a valid number, setting to 0.00');
         input.value = '0.00';
         calculateTotalAmount();
         return;
     }
-    input.value = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    
+    const formattedValue = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    console.log('After toLocaleString formatting:', formattedValue);
+    
+    console.log('Setting input.value to:', formattedValue);
+    input.value = formattedValue;
+    
+    console.log('Final input.value after setting:', input.value);
+    console.log('=== formatNumberWithDecimals DEBUG END ===');
+    
     calculateTotalAmount();
 }
 
 // Real-time formatting with thousand separators; preserve typed decimals
 function formatNumberAsYouType(input) {
+    console.log('=== formatNumberAsYouType DEBUG START ===');
+    console.log('Input element:', input);
+    console.log('Input value before processing:', input.value);
+    
     let raw = (input.value || '').toString();
+    console.log('Raw value after toString():', raw);
+    
     raw = raw.replace(/,/g, '');
+    console.log('After removing commas:', raw);
+    
     // Keep only digits and one optional decimal point
     const firstDot = raw.indexOf('.');
     if (firstDot !== -1) {
         raw = raw.slice(0, firstDot + 1) + raw.slice(firstDot + 1).replace(/\./g, '');
+        console.log('After handling multiple decimal points:', raw);
     }
+    
     raw = raw.replace(/[^\d.]/g, '');
+    console.log('After removing non-numeric chars:', raw);
+    
     if (!raw) {
+        console.log('Empty value, setting to 0.00');
         input.value = '0.00';
         calculateTotalAmount();
         return;
     }
-    const parts = raw.split('.');
-    const intPart = parts[0] || '0';
-    const decPart = parts.length > 1 ? parts[1] : '';
-    const formattedInt = Number(intPart).toLocaleString('en-US');
-    input.value = decPart !== '' ? `${formattedInt}.${decPart}` : formattedInt;
+    
+    // Only format if the user has finished typing (no decimal point or decimal part is complete)
+    if (raw.indexOf('.') === -1 || raw.split('.')[1]?.length === 2) {
+        const parts = raw.split('.');
+        const intPart = parts[0] || '0';
+        const decPart = parts.length > 1 ? parts[1] : '';
+        const formattedInt = Number(intPart).toLocaleString('en-US');
+        const finalValue = decPart !== '' ? `${formattedInt}.${decPart}` : formattedInt;
+        console.log('Applying full formatting. Parts:', { intPart, decPart, formattedInt, finalValue });
+        input.value = finalValue;
+    } else {
+        // Just update the display without full formatting while typing
+        console.log('Partial input, just updating display with raw value:', raw);
+        input.value = raw;
+    }
+    
+    console.log('Final input.value after processing:', input.value);
+    console.log('=== formatNumberAsYouType DEBUG END ===');
+    
     calculateTotalAmount();
 }
 
@@ -1385,6 +1435,23 @@ async function populateCashAdvanceDetails(data) {
     }
 
     // Populate table with cash advance details
+    console.log('=== CASH ADVANCE DETAILS DEBUG ===');
+    console.log('Raw cashAdvanceDetails from API:', data.cashAdvanceDetails);
+    if (data.cashAdvanceDetails && data.cashAdvanceDetails.length > 0) {
+        data.cashAdvanceDetails.forEach((detail, index) => {
+            console.log(`Detail ${index + 1}:`, {
+                category: detail.category,
+                accountName: detail.accountName,
+                coa: detail.coa,
+                description: detail.description,
+                amount: detail.amount,
+                amountType: typeof detail.amount,
+                amountRaw: JSON.stringify(detail.amount)
+            });
+        });
+    }
+    console.log('=== END CASH ADVANCE DETAILS DEBUG ===');
+    
     await populateTable(data.cashAdvanceDetails || []);
     
     // Calculate and display total amount
@@ -1941,7 +2008,8 @@ async function populateTable(cashAdvanceDetails) {
                 <input type="text" class="description w-full" maxlength="200" value="${detail.description || ''}" />
             </td>
             <td class="p-2 border">
-                <input type="text" class="total w-full" maxlength="10" value="${detail.amount ? Number(detail.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}" required oninput="calculateTotalAmount()"/>
+                ${(() => { console.log(`DEBUG: detail.amount raw value: "${detail.amount}", type: ${typeof detail.amount}`); return ''; })()}
+                <input type="text" class="total w-full" value="${detail.amount ? Number(detail.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}" required oninput="calculateTotalAmount()"/>
             </td>
             <td class="p-2 border text-center">
                 <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -1977,6 +2045,17 @@ async function populateTable(cashAdvanceDetails) {
                 detail.accountName, 
                 detail.coa
             );
+        }
+
+        // Setup amount formatting for existing rows (same as new rows)
+        const amountInput = newRow.querySelector('.total');
+        if (amountInput) {
+            amountInput.addEventListener('blur', function() {
+                formatNumberWithDecimals(this);
+            });
+            amountInput.addEventListener('input', function() {
+                formatNumberAsYouType(this);
+            });
         }
     }
 
@@ -2232,15 +2311,28 @@ async function updateCashAdvance(isSubmit = false) {
         // Cash advance details
         const rows = document.querySelectorAll('#tableBody tr');
         
+        console.log('=== AMOUNT DEBUGGING START ===');
         rows.forEach((row, index) => {
             formData.append(`CashAdvanceDetails[${index}].Category`, row.querySelector('.category-input').value);
             formData.append(`CashAdvanceDetails[${index}].AccountName`, row.querySelector('.account-name').value);
             formData.append(`CashAdvanceDetails[${index}].Coa`, row.querySelector('.coa').value);
             formData.append(`CashAdvanceDetails[${index}].Description`, row.querySelector('.description').value);
+            
             const rawAmount = row.querySelector('.total').value || '0';
+            console.log(`Row ${index + 1} - Raw amount from DOM: "${rawAmount}"`);
+            
             const cleanedAmount = rawAmount.toString().replace(/,/g, '');
-            formData.append(`CashAdvanceDetails[${index}].Amount`, cleanedAmount);
+            console.log(`Row ${index + 1} - After removing commas: "${cleanedAmount}"`);
+            
+            const parsedAmount = parseFloat(cleanedAmount);
+            console.log(`Row ${index + 1} - After parseFloat: ${parsedAmount}`);
+            
+            // Normalize amount for backend: strip trailing .00 to avoid being interpreted as cents multiplier
+            const normalizedAmount = cleanedAmount.replace(/\.00$/, '');
+            console.log(`Row ${index + 1} - Final amount being sent to server: "${normalizedAmount}"`);
+            formData.append(`CashAdvanceDetails[${index}].Amount`, normalizedAmount);
         });
+        console.log('=== AMOUNT DEBUGGING END ===');
         
         // Handle attachments according to backend logic
         // Add existing attachments to keep (with their IDs)
@@ -2263,6 +2355,13 @@ async function updateCashAdvance(isSubmit = false) {
         console.log('New files to upload:', uploadedFiles);
 
         console.log("formData", formData);
+        
+        // Debug: Log all FormData entries
+        console.log('=== FORM DATA DEBUG START ===');
+        for (let [key, value] of formData.entries()) {
+            console.log(`FormData entry: ${key} = ${value}`);
+        }
+        console.log('=== FORM DATA DEBUG END ===');
 
         // Submit the form data
         makeAuthenticatedRequest(`/api/cash-advance/${cashAdvanceId}`, {
