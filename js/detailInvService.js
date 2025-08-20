@@ -520,6 +520,26 @@ function populateFormData(data) {
     loadApprovalDataFromLocalStorage();
 
     // Populate footer totals (align with Item page mapping & formatting)
+    console.log('💰 API data for footer totals:', {
+        docCur: data.docCur,
+        netPrice: data.netPrice,
+        discSum: data.discSum,
+        netPriceAfterDiscount: data.netPriceAfterDiscount,
+        dpp1112: data.dpp1112,
+        vatSum: data.vatSum,
+        wtSum: data.wtSum,
+        grandTotal: data.grandTotal
+    });
+
+    console.log('💰 Field mapping details for footer totals:');
+    console.log('💰 - API netPrice:', data.netPrice, '-> HTML field: netPrice');
+    console.log('💰 - API discSum:', data.discSum, '-> HTML field: discSum');
+    console.log('💰 - API netPriceAfterDiscount:', data.netPriceAfterDiscount, '-> HTML field: netPriceAfterDiscount');
+    console.log('💰 - API dpp1112:', data.dpp1112, '-> HTML field: dpp1112');
+    console.log('💰 - API vatSum:', data.vatSum, '-> HTML field: vatSum');
+    console.log('💰 - API wtSum:', data.wtSum, '-> HTML field: wtSum');
+    console.log('💰 - API grandTotal:', data.grandTotal, '-> HTML field: grandTotal');
+
     populateFooterTotals(data);
 
     // Populate table with invoice service details - use arInvoiceDetails instead of arInvoiceServiceDetails
@@ -548,19 +568,61 @@ function populateFooterTotals(data) {
             return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         };
 
-        // API fields mapping aligned with item page
-        // 1. Total: data.netPrice
-        safeSet('docTotal', `${currencyCode} ${formatCurrencyIDR(data.netPrice || 0)}`);
-        // 2. Discounted: data.discSum
-        safeSet('discSum', `${currencyCode} ${formatCurrencyIDR(data.discSum || 0)}`);
-        // 3. Sales Amount: data.netPriceAfterDiscount
-        safeSet('netPriceAfterDiscount', `${currencyCode} ${formatCurrencyIDR(data.netPriceAfterDiscount || 0)}`);
-        // 4. Tax Base Other Value: data.dpp1112
-        safeSet('dpp1112', `${currencyCode} ${formatCurrencyIDR(data.dpp1112 || 0)}`);
-        // 5. VAT 12%: data.vatSum
-        safeSet('vatSum', `${currencyCode} ${formatCurrencyIDR(data.vatSum || 0)}`);
-        // 6. GRAND TOTAL: data.grandTotal
-        safeSet('grandTotal', `${currencyCode} ${formatCurrencyIDR(data.grandTotal || 0)}`);
+        // Verify HTML fields exist before setting values
+        console.log('🔍 Verifying HTML fields exist in populateFooterTotals:');
+        console.log('🔍 - netPrice field found:', !!document.getElementById('netPrice'));
+        console.log('🔍 - discSum field found:', !!document.getElementById('discSum'));
+        console.log('🔍 - netPriceAfterDiscount field found:', !!document.getElementById('netPriceAfterDiscount'));
+        console.log('🔍 - dpp1112 field found:', !!document.getElementById('dpp1112'));
+        console.log('🔍 - vatSum field found:', !!document.getElementById('vatSum'));
+        console.log('🔍 - WTSum field found:', !!document.getElementById('WTSum'));
+        console.log('🔍 - grandTotal field found:', !!document.getElementById('grandTotal'));
+
+        // API fields mapping aligned with item page and HTML IDs
+        // 1. Total: data.netPrice -> HTML ID: "netPrice"
+        const totalValue = `${currencyCode} ${formatCurrencyIDR(data.netPrice || 0)}`;
+        console.log('💰 Setting netPrice field to:', totalValue);
+        safeSet('netPrice', totalValue);
+
+        // 2. Discounted: data.discSum -> HTML ID: "discSum"
+        const discountedValue = `${currencyCode} ${formatCurrencyIDR(data.discSum || 0)}`;
+        console.log('💰 Setting discSum field to:', discountedValue);
+        safeSet('discSum', discountedValue);
+
+        // 3. Sales Amount: data.netPriceAfterDiscount -> HTML ID: "netPriceAfterDiscount"
+        const salesValue = `${currencyCode} ${formatCurrencyIDR(data.netPriceAfterDiscount || 0)}`;
+        console.log('💰 Setting netPriceAfterDiscount field to:', salesValue);
+        safeSet('netPriceAfterDiscount', salesValue);
+
+        // 4. Tax Base Other Value: data.dpp1112 -> HTML ID: "dpp1112"
+        const taxBaseValue = `${currencyCode} ${formatCurrencyIDR(data.dpp1112 || 0)}`;
+        console.log('💰 Setting dpp1112 field to:', taxBaseValue);
+        safeSet('dpp1112', taxBaseValue);
+
+        // 5. VAT 12%: data.vatSum -> HTML ID: "vatSum"
+        const vatValue = `${currencyCode} ${formatCurrencyIDR(data.vatSum || 0)}`;
+        console.log('💰 Setting vatSum field to:', vatValue);
+        safeSet('vatSum', vatValue);
+
+        // 6. Withholding Tax: data.wtSum -> HTML ID: "WTSum"
+        const wtValue = `${currencyCode} ${formatCurrencyIDR(data.wtSum || 0)}`;
+        console.log('💰 Setting WTSum field to:', wtValue);
+        safeSet('WTSum', wtValue);
+
+        // 7. GRAND TOTAL: data.grandTotal -> HTML ID: "grandTotal"
+        const grandTotalValue = `${currencyCode} ${formatCurrencyIDR(data.grandTotal || 0)}`;
+        console.log('💰 Setting grandTotal field to:', grandTotalValue);
+        safeSet('grandTotal', grandTotalValue);
+
+        console.log('💰 Footer totals populated successfully:', {
+            netPrice: data.netPrice,
+            discSum: data.discSum,
+            netPriceAfterDiscount: data.netPriceAfterDiscount,
+            dpp1112: data.dpp1112,
+            vatSum: data.vatSum,
+            wtSum: data.wtSum,
+            grandTotal: data.grandTotal
+        });
     } catch (e) {
         console.error('Error populating footer totals:', e);
     }
@@ -1947,9 +2009,11 @@ function openInNewTabDetail(fileUrl, fileName) {
     const viewUrl = `${fileUrl}${fileUrl.includes('?') ? '&' : '?'}view=1&inline=1`;
     const newWindow = window.open(viewUrl, '_blank', 'noopener,noreferrer');
     if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
-        Swal.fire({ icon: 'warning', title: 'Popup Blocked', html: `
+        Swal.fire({
+            icon: 'warning', title: 'Popup Blocked', html: `
                 <p>Your browser blocked the popup. Please allow popups for this site or</p>
                 <a href="${viewUrl}" target="_blank" class="text-blue-600 underline">click here to view the document manually</a>
-            `, confirmButtonText: 'OK' });
+            `, confirmButtonText: 'OK'
+        });
     }
 }
