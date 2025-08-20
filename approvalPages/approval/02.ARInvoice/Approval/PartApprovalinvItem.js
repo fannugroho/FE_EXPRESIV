@@ -2212,7 +2212,7 @@ function formatAttachmentDate(dateString) {
     }
 }
 
-// Optimized attachment viewing
+// Optimized attachment viewing - Always open in new tab
 async function viewAttachment(stagingId, fileUrl, fileName) {
     try {
         console.log('🔄 Viewing attachment:', { stagingId, fileUrl, fileName });
@@ -2222,13 +2222,8 @@ async function viewAttachment(stagingId, fileUrl, fileName) {
             fileUrl :
             `${API_CONFIG.BASE_URL}${fileUrl.replace('/api', '')}`;
 
-        const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
-
-        if (fileExtension === 'pdf') {
-            await showPDFViewer(viewUrl, fileName);
-        } else {
-            openInNewTab(viewUrl, fileName);
-        }
+        // Always open in new tab regardless of file type
+        openInNewTab(viewUrl, fileName);
 
     } catch (error) {
         console.error('❌ Error viewing attachment:', error);
@@ -2300,22 +2295,45 @@ async function showPDFViewer(pdfUrl, fileName) {
     }
 }
 
-function openInNewTab(fileUrl, fileName) {
-    OptimizedUtils.showNotification(`Opening ${fileName}...`, 'info', 1500);
+async function openInNewTab(fileUrl, fileName) {
+    try {
+        OptimizedUtils.showNotification(`Opening ${fileName}...`, 'info', 1500);
 
-    const viewUrl = `${fileUrl}${fileUrl.includes('?') ? '&' : '?'}view=1&inline=1`;
-    const newWindow = window.open(viewUrl, '_blank', 'noopener,noreferrer');
-
-    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Popup Blocked',
-            html: `
-                <p>Your browser blocked the popup. Please allow popups for this site or</p>
-                <a href="${viewUrl}" target="_blank" class="text-blue-600 underline">click here to view the document manually</a>
-            `,
-            confirmButtonText: 'OK'
+        // Fetch the file and create blob URL
+        const response = await fetch(fileUrl, {
+            method: 'GET',
+            headers: { 'accept': '*/*' }
         });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        // Open blob URL in new tab
+        const newWindow = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+
+        if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+            // Fallback: create download link
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Clean up blob URL after some time
+        setTimeout(() => {
+            URL.revokeObjectURL(blobUrl);
+        }, 60000); // 1 minute
+
+    } catch (error) {
+        console.error('❌ Error opening file in new tab:', error);
+        OptimizedUtils.showNotification(`Failed to open ${fileName}. Please try again.`, 'error');
     }
 }
 
