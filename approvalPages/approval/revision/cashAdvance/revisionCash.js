@@ -1205,6 +1205,8 @@ async function populateForm(data) {
     await fetchCurrencies(cashAdvanceData);
     
     // Apply tab-based behavior after form is populated
+    // Ensure fixed fields remain locked even in revision
+    lockFixedFields();
     applyTabBasedBehavior();
 }
 
@@ -1241,7 +1243,7 @@ async function populateTable(cashAdvanceDetails) {
                 <input type="text" value="${detail.description || ''}" class="w-full description" maxlength="200" required />
             </td>
             <td class="p-2 border">
-                <input type="number" value="${detail.amount ? parseFloat(detail.amount).toFixed(2) : '0.00'}" class="w-full total" maxlength="10" required step="0.01" oninput="calculateTotalAmount()" onblur="formatNumberWithDecimals(this)" />
+                <input type="number" value="${detail.amount ? parseFloat(detail.amount).toFixed(2) : '0.00'}" class="w-full total" required step="0.01" oninput="calculateTotalAmount()" onblur="formatNumberWithDecimals(this)" />
             </td>
             <td class="p-2 border text-center">
                 <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
@@ -1295,7 +1297,7 @@ async function addRow() {
             <input type="text" class="w-full description" maxlength="200" required />
         </td>
         <td class="p-2 border">
-            <input type="number" class="w-full total" maxlength="10" value="0.00" required step="0.01" oninput="calculateTotalAmount()" onblur="formatNumberWithDecimals(this)" />
+            <input type="number" class="w-full total" value="0.00" required step="0.01" oninput="calculateTotalAmount()" onblur="formatNumberWithDecimals(this)" />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
@@ -2143,6 +2145,9 @@ function makeAllFieldsEditable() {
         fileInput.disabled = false;
         fileInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
     }
+    
+    // Keep specific fields locked (not editable) even in revision
+    lockFixedFields();
 }
 
 // Function to hide submit button
@@ -2222,5 +2227,37 @@ function showSubmitButton() {
     const submitButton = document.querySelector('button[onclick="submitRevision()"]');
     if (submitButton) {
         submitButton.style.display = 'inline-block';
+    }
+}
+
+// Lock fields that must not be edited in revision mode
+function lockFixedFields() {
+    try {
+        const cashAdvanceNo = document.getElementById('cashAdvanceNo');
+        const employeeNIK = document.getElementById('employeeNIK');
+        const employeeName = document.getElementById('employeeName');
+        const department = document.getElementById('departmentId');
+
+        if (cashAdvanceNo) {
+            cashAdvanceNo.readOnly = true;
+            cashAdvanceNo.disabled = true;
+            cashAdvanceNo.classList.add('bg-gray-100');
+        }
+        if (employeeNIK) {
+            employeeNIK.readOnly = true;
+            employeeNIK.disabled = true;
+            employeeNIK.classList.add('bg-gray-100');
+        }
+        if (employeeName) {
+            employeeName.readOnly = true;
+            employeeName.disabled = true;
+            employeeName.classList.add('bg-gray-100');
+        }
+        if (department) {
+            department.disabled = true;
+            department.classList.add('bg-gray-100');
+        }
+    } catch (e) {
+        console.warn('Failed to lock fixed fields:', e);
     }
 }

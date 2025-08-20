@@ -318,7 +318,7 @@ function addRow() {
             <input type="text" maxlength="30" class="w-full" required />
         </td>
         <td class="p-2 border">
-            <input type="number" maxlength="10" class="w-full" required />
+            <input type="number" class="w-full" required />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
