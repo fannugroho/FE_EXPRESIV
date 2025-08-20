@@ -89,6 +89,7 @@ class CashAdvancePrinter {
         
         // Set currency from API data
         this.setElementText('currency', this.cashAdvanceData.currency || 'Rp');
+        this.setElementText('estimatedCostCurrency', this.cashAdvanceData.currency || 'Rp');
         this.setElementText('returnCurrency', this.cashAdvanceData.currency || 'Rp');
 
         // Settlement Table
@@ -131,12 +132,12 @@ class CashAdvancePrinter {
             this.cashAdvanceData.cashAdvanceDetails.forEach(detail => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${detail.category || '-'}</td>
-                    <td>${detail.accountName || '-'}</td>
+                    <td>${this.cashAdvanceData.transactionType}</td>
                     <td>${detail.glAccount || detail.coa || '-'}</td>
+                    <td>${detail.accountName || '-'}</td>
                     <td>${detail.description || '-'}</td>
+                    <td>${this.cashAdvanceData.currency || '-'}</td>
                     <td>${this.formatCurrency(detail.amount)}</td>
-                    <td>-</td>
                 `;
                 tableBody.appendChild(row);
             });
@@ -158,7 +159,6 @@ class CashAdvancePrinter {
 
         // Set totals
         this.setElementText('totalDebit', this.formatCurrency(this.cashAdvanceData.totalAmount));
-        this.setElementText('totalCredit', '-');
     }
 
     setElementText(elementId, text) {

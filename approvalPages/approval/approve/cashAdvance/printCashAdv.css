@@ -98,11 +98,22 @@ body {
 }
 
 .department-field {
-    border-bottom: 1px solid #000;
     min-height: 20px;
     padding: 2px 5px;
     font-weight: bold;
     font-size: 12px;
+    position: relative;
+}
+
+.department-field::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 1px;
+    background-color: #000;
+    width: 50%;
+    min-width: 200px;
 }
 
 /* Recipient Section */
@@ -117,10 +128,21 @@ body {
 }
 
 .recipient-name {
-    border-bottom: 1px solid #000;
     min-height: 20px;
     padding: 2px 5px;
     font-weight: bold;
+    position: relative;
+}
+
+.recipient-name::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 1px;
+    background-color: #000;
+    width: 50%;
+    min-width: 200px;
 }
 
 /* Approval Section */
@@ -208,16 +230,38 @@ body {
 }
 
 .words-content {
-    border-bottom: 1px solid #000;
     min-height: 20px;
     padding: 2px 5px;
     font-style: italic;
+    position: relative;
+}
+
+.words-content::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 1px;
+    background-color: #000;
+    width: 50%;
+    min-width: 200px;
 }
 
 .purpose-content, .remarks-content {
-    border-bottom: 1px solid #000;
     min-height: 20px;
     padding: 2px 5px;
+    position: relative;
+}
+
+.purpose-content::after, .remarks-content::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 1px;
+    background-color: #000;
+    width: 50%;
+    min-width: 200px;
 }
 
 /* Settlement Table */
@@ -280,7 +324,7 @@ body {
 .settlement-table td:nth-child(5) {
     width: 12.5%;
     min-width: 80px;
-    text-align: right;
+    text-align: center;
 }
 
 .settlement-table th:nth-child(6), /* Credit */
@@ -303,9 +347,18 @@ body {
 }
 
 /* Total row alignment */
-.settlement-table tfoot td:last-child,
-.settlement-table tfoot td:nth-last-child(2) {
+.settlement-table tfoot td:last-child {
     text-align: right;
+}
+
+.settlement-table tfoot td:nth-last-child(2) {
+    text-align: center;
+}
+
+/* Currency column specific styling */
+.settlement-table td:nth-child(5) {
+    text-align: center !important;
+    font-weight: 500;
 }
 
 
@@ -322,8 +375,11 @@ body {
 .watermark-text {
     font-size: 9px;
     font-style: italic;
-    color: #666;
+    color: #000;
     font-family: 'Arial', sans-serif;
+    font-weight: 900;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
 }
 
 /* Print Actions */
@@ -340,12 +396,12 @@ body {
     font-size: 14px;
     cursor: pointer;
     border: 1px solid #333;
-    background: #fff;
-    color: #333;
+    background: #3b82f6;
+    color: #fff;
 }
 
 .print-btn:hover, .close-btn:hover {
-    background: #f0f0f0;
+    background: #2563eb;
 }
 
 /* Print Media Styles */
@@ -423,16 +479,29 @@ body {
         break-inside: avoid;
     }
     
-    /* Watermark print styles */
-    .watermark-section {
-        opacity: 0.3 !important;
-        margin: 15px 0 10px 0 !important;
+    /* Ensure currency column is centered in print */
+    .settlement-table td:nth-child(5) {
+        text-align: center !important;
     }
     
-    .watermark-text {
-        font-size: 8px !important;
-        color: #999 !important;
+    /* Ensure footer currency column is centered in print */
+    .settlement-table tfoot td:nth-last-child(2) {
+        text-align: center !important;
     }
+    
+            /* Watermark print styles */
+        .watermark-section {
+            opacity: 1 !important;
+            margin: 15px 0 10px 0 !important;
+        }
+        
+        .watermark-text {
+            font-size: 9px !important;
+            color: #000 !important;
+            font-weight: 900 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
     
     /* Prevent any unwanted transformations */
     * {
@@ -523,6 +592,7 @@ body {
     .settlement-table td:nth-child(5) {
         width: 15%;
         min-width: 60px;
+        text-align: center;
     }
     
     .settlement-table th:nth-child(6),

@@ -158,15 +158,7 @@
         
         <!-- Main Title -->
         <div class="main-title">
-            <h1>CASH ADVANCE</h1>
-        </div>
-        
-        <!-- Department Selection -->
-        <div class="department-section">
-            <div class="department-title">Department/Category:</div>
-            <div class="department-field">
-                <span id="departmentName">-</span>
-            </div>
+            <h1>CASH ADVANCE VOUCHER</h1>
         </div>
         
         <!-- Recipient Section -->
@@ -175,18 +167,26 @@
             <div class="recipient-name" id="recipientName">-</div>
         </div>
         
+        <!-- Department Selection -->
+        <div class="department-section">
+            <div class="department-title">Department:</div>
+            <div class="department-field">
+                <span id="departmentName">-</span>
+            </div>
+        </div>
+        
         <!-- Settlement Table -->
         <div class="settlement-section">
             <div class="table-title"></div>
             <table class="settlement-table">
                 <thead>
                     <tr>
-                        <th>Category</th>
-                        <th>Account Name</th>
+                        <th>Type of Transaction</th>
                         <th>GL Account (COA)</th>
+                        <th>Account Name</th>
                         <th>Description</th>
+                        <th>Currency</th>
                         <th>Debit</th>
-                        <th>Credit</th>
                     </tr>
                 </thead>
                 <tbody id="settlementTableBody">
@@ -194,9 +194,9 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="4"><strong>Total</strong></td>
+                        <td colspan="4" style="text-align: right;"><strong>Total</strong></td>
+                        <td id="currency"></td>
                         <td id="totalDebit">-</td>
-                        <td id="totalCredit">-</td>
                     </tr>
                 </tfoot>
             </table>
@@ -207,7 +207,7 @@
             <div class="cost-row">
                 <label>Estimated cost:</label>
                 <div class="cost-amount">
-                    <span class="currency" id="currency">Rp</span>
+                    <span class="currency" id="estimatedCostCurrency">Rp</span>
                     <span class="amount" id="totalAmount">-</span>
                 </div>
             </div>
