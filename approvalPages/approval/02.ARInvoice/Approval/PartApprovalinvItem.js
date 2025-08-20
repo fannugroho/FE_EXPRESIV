@@ -1571,15 +1571,15 @@ function createOptimizedItemRow(item, index) {
         // Item Only Columns - matching HTML header order exactly
         { class: 'item-code-column item-only', content: `<input type="text" class="item-code-input p-2 border rounded bg-gray-100" value="${item.itemCode || ''}" disabled />` },
         { class: 'bp-catalog-column item-only', content: `<input type="text" class="bp-catalog-input p-2 border rounded bg-gray-100" value="${item.catalogNo || ''}" disabled />` },
-        { class: 'description-column item-only', content: `<textarea class="w-full item-description bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.dscription || ''}</textarea>` },
-        { class: 'uom-column item-only', content: `<textarea class="w-full item-uom bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.unitMsr || ''}</textarea>` },
-        { class: 'packing-size-column item-only', content: `<textarea class="w-full item-packing-size bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.unitMsr2 || ''}</textarea>` },
-        { class: 'quantity-column item-only', content: `<textarea class="quantity-input item-sls-qty bg-gray-100 text-center currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.quantity) || ''}</textarea>` },
-        { class: 'quantity-column item-only', content: `<textarea class="quantity-input item-quantity bg-gray-100 text-center currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.invQty) || ''}</textarea>` },
-        { class: 'price-column item-only', content: `<textarea class="price-input item-sls-price bg-gray-100 text-right currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.u_bsi_salprice) || ''}</textarea>` },
-        { class: 'price-column item-only', content: `<textarea class="price-input item-price bg-gray-100 text-right currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.priceBefDi) || ''}</textarea>` },
+        { class: 'description-column item-only', content: `<textarea class="w-full item-description bg-gray-100 resize-none overflow-visible" disabled style="height: 40px;">${item.dscription || ''}</textarea>` },
+        { class: 'uom-column item-only', content: `<textarea class="w-full item-uom bg-gray-100 resize-none overflow-visible" disabled style="height: 40px;">${item.unitMsr || ''}</textarea>` },
+        { class: 'packing-size-column item-only', content: `<textarea class="w-full item-packing-size bg-gray-100 resize-none overflow-visible" disabled style="height: 40px;">${item.unitMsr2 || ''}</textarea>` },
+        { class: 'quantity-column item-only', content: `<textarea class="quantity-input item-sls-qty bg-gray-100 text-left currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.quantity) || ''}</textarea>` },
+        { class: 'quantity-column item-only', content: `<textarea class="quantity-input item-quantity bg-gray-100 text-left currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.invQty) || ''}</textarea>` },
+        { class: 'price-column item-only', content: `<textarea class="price-input item-sls-price bg-gray-100 text-left currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.u_bsi_salprice) || ''}</textarea>` },
+        { class: 'price-column item-only', content: `<textarea class="price-input item-price bg-gray-100 text-left currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.priceBefDi) || ''}</textarea>` },
         { class: 'tax-code-column item-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.vatgroup || ''}" />` },
-        { class: 'line-total-column item-only', content: `<textarea class="line-total-input item-line-total bg-gray-100 text-right currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.lineTotal) || ''}</textarea>` },
+        { class: 'line-total-column item-only', content: `<textarea class="line-total-input item-line-total bg-gray-100 text-left currency-value" disabled style="height: 40px;">${OptimizedUtils.formatCurrencyIDR(item.lineTotal) || ''}</textarea>` },
 
         // Service Only Columns (hidden in item mode)
         { class: 'description-column service-only', content: `<textarea class="w-full item-description bg-gray-100 resize-none overflow-auto" disabled style="height: 40px;">${item.dscription || ''}</textarea>` },
@@ -1588,9 +1588,9 @@ function createOptimizedItemRow(item, index) {
         { class: 'tax-code-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.vatgroup || ''}" />` },
         { class: 'wtax-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.wtLiable || 'N'}" />` },
         { class: 'uom-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100" disabled value="${item.unitMsr || ''}" />` },
-        { class: 'quantity-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100 text-center" disabled value="${OptimizedUtils.formatCurrencyIDR(item.invQty) || ''}" />` },
-        { class: 'price-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100 text-right" disabled value="${OptimizedUtils.formatCurrencyIDR(item.u_bsi_salprice) || ''}" />` },
-        { class: 'line-total-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100 text-right" disabled value="${OptimizedUtils.formatCurrencyIDR(item.lineTotal) || ''}" />` }
+        { class: 'quantity-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100 text-left" disabled value="${OptimizedUtils.formatCurrencyIDR(item.invQty) || ''}" />` },
+        { class: 'price-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100 text-left" disabled value="${OptimizedUtils.formatCurrencyIDR(item.u_bsi_salprice) || ''}" />` },
+        { class: 'line-total-column service-only', content: `<input type="text" class="w-full p-2 border rounded bg-gray-100 text-left" disabled value="${OptimizedUtils.formatCurrencyIDR(item.lineTotal) || ''}" />` }
     ];
 
     // Hidden columns for backward compatibility

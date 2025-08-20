@@ -179,22 +179,42 @@ This page supports TWO distinct modes for AR Invoice approvals:
 
         /* Enhanced table styling with horizontal scroll - matching receiveInvItem */
         .table-container {
-            background: white;
-            border-radius: 8px;
             overflow-x: auto;
             overflow-y: visible;
-            margin-top: 16px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            background: white;
             max-width: 100%;
-            max-height: none !important;
+        }
+
+        .table-container::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .table-container::-webkit-scrollbar-corner {
+            background: #f1f1f1;
         }
 
         #arInvTable {
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
-            min-width: 1100px;
-            table-layout: fixed;
+            min-width: auto;
+            table-layout: auto;
             border: none;
         }
 
@@ -227,9 +247,9 @@ This page supports TWO distinct modes for AR Invoice approvals:
             font-size: 13px;
             vertical-align: middle !important;
             background: white;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
         }
 
         #arInvTable tbody tr {
@@ -289,7 +309,7 @@ This page supports TWO distinct modes for AR Invoice approvals:
         /* Item Code column */
         .item-code-column {
             width: 140px !important;
-            min-width: 140px !important;
+            min-width: 120px !important;
         }
 
         .item-code-column input {
@@ -300,7 +320,7 @@ This page supports TWO distinct modes for AR Invoice approvals:
         /* BP Catalog column */
         .bp-catalog-column {
             width: 120px !important;
-            min-width: 120px !important;
+            min-width: 100px !important;
         }
 
         .bp-catalog-column input {
@@ -311,7 +331,7 @@ This page supports TWO distinct modes for AR Invoice approvals:
         /* Description column */
         .description-column {
             width: 250px !important;
-            min-width: 250px !important;
+            min-width: 200px !important;
         }
 
         .description-column textarea {
@@ -325,54 +345,54 @@ This page supports TWO distinct modes for AR Invoice approvals:
         /* UoM column */
         .uom-column {
             width: 80px !important;
-            min-width: 80px !important;
+            min-width: 60px !important;
         }
 
         /* Packing Size column */
         .packing-size-column {
             width: 100px !important;
-            min-width: 100px !important;
+            min-width: 80px !important;
         }
 
         .packing-size-column textarea {
-            text-align: center !important;
+            text-align: left !important;
         }
 
         /* Quantity column */
         .quantity-column {
             width: 100px !important;
-            min-width: 100px !important;
+            min-width: 80px !important;
         }
 
         .quantity-column textarea {
             width: 80px !important;
-            text-align: center !important;
+            text-align: left !important;
             font-family: inherit !important;
             font-size: 14px !important;
         }
 
         /* Price column */
         .price-column {
-            width: 180px !important;
-            min-width: 180px !important;
+            width: 150px !important;
+            min-width: 120px !important;
         }
 
         .price-column textarea {
-            width: 160px !important;
-            text-align: right !important;
+            width: 130px !important;
+            text-align: left !important;
             overflow-x: hidden;
             white-space: nowrap;
         }
 
         /* Line total column */
         .line-total-column {
-            width: 180px !important;
-            min-width: 180px !important;
+            width: 150px !important;
+            min-width: 120px !important;
         }
 
         .line-total-column textarea {
-            width: 160px !important;
-            text-align: right !important;
+            width: 130px !important;
+            text-align: left !important;
             overflow-x: hidden;
             white-space: nowrap;
         }
@@ -380,23 +400,23 @@ This page supports TWO distinct modes for AR Invoice approvals:
         /* Tax Code column */
         .tax-code-column {
             width: 80px !important;
-            min-width: 80px !important;
+            min-width: 60px !important;
         }
 
         .tax-code-column input {
-            text-align: center !important;
+            text-align: left !important;
         }
 
         /* WTax column */
         .wtax-column {
             width: 80px !important;
-            min-width: 80px !important;
+            min-width: 60px !important;
         }
 
         /* Account Name column */
         .account-name-column {
             width: 200px !important;
-            min-width: 200px !important;
+            min-width: 150px !important;
         }
 
         /* Account Code column */
