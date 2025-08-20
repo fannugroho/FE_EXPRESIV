@@ -3012,14 +3012,36 @@ function getSignatureCoordinatesForESign() {
 function formatDate(dateString) {
     if (!dateString) return '';
 
-    const date = new Date(dateString);
-    const options = {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric'
-    };
+    try {
+        // Parse the date string properly to avoid timezone shift
+        let date;
+        if (dateString.includes('T')) {
+            // If it's an ISO string, parse it directly
+            date = new Date(dateString);
+        } else {
+            // If it's just a date (YYYY-MM-DD), treat as local date
+            const parts = dateString.split('-');
+            if (parts.length === 3) {
+                date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            } else {
+                date = new Date(dateString);
+            }
+        }
 
-    return date.toLocaleDateString('en-US', options);
+        if (isNaN(date.getTime())) return '';
+
+        const options = {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+            timeZone: 'Asia/Jakarta' // Set consistent timezone
+        };
+
+        return date.toLocaleDateString('en-US', options);
+    } catch (error) {
+        console.error('Date formatting error:', error);
+        return '';
+    }
 }
 
 // Utility function to format currency (no forced rounding)
@@ -3297,8 +3319,29 @@ function formatDateForQR(dateString) {
     if (!dateString) return '';
 
     try {
-        const date = new Date(dateString);
-        return date.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+        // Parse the date string properly to avoid timezone shift
+        let date;
+        if (dateString.includes('T')) {
+            // If it's an ISO string, parse it directly
+            date = new Date(dateString);
+        } else {
+            // If it's just a date (YYYY-MM-DD), treat as local date
+            const parts = dateString.split('-');
+            if (parts.length === 3) {
+                date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            } else {
+                date = new Date(dateString);
+            }
+        }
+
+        if (isNaN(date.getTime())) return '';
+
+        // Format as YYYY-MM-DD without timezone conversion
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}`;
     } catch (error) {
         console.error('Error formatting date for QR code:', error);
         return '';

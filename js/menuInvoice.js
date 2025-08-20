@@ -8,6 +8,40 @@ const itemsPerPage = 10;
 // API Configuration - Using BASE_URL from auth.js
 const API_BASE_URL = `${BASE_URL}/api`;
 
+// Utility function to format date consistently without timezone issues
+function formatDate(dateString) {
+    if (!dateString) return '';
+    
+    try {
+        // Parse the date string properly to avoid timezone shift
+        let date;
+        if (dateString.includes('T')) {
+            // If it's an ISO string, parse it directly
+            date = new Date(dateString);
+        } else {
+            // If it's just a date (YYYY-MM-DD), treat as local date
+            const parts = dateString.split('-');
+            if (parts.length === 3) {
+                date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            } else {
+                date = new Date(dateString);
+            }
+        }
+
+        if (isNaN(date.getTime())) return '';
+
+        // Format as DD/MM/YYYY (British format) without timezone conversion
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        
+        return `${day}/${month}/${year}`;
+    } catch (error) {
+        console.error('Date formatting error:', error);
+        return '';
+    }
+}
+
 /*
  * UPDATED API IMPLEMENTATION
  * 
@@ -527,23 +561,9 @@ function displayInvoices() {
         const row = document.createElement('tr');
         row.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
 
-        // Handle both string and Date object for docDate
-        let docDate;
-        if (typeof invoice.docDate === 'string') {
-            docDate = new Date(invoice.docDate);
-        } else {
-            docDate = invoice.docDate;
-        }
-        const formattedDate = docDate.toLocaleDateString('en-GB');
-
-        // Handle both string and Date object for docDueDate
-        let dueDate;
-        if (typeof invoice.docDueDate === 'string') {
-            dueDate = new Date(invoice.docDueDate);
-        } else {
-            dueDate = invoice.docDueDate;
-        }
-        const formattedDueDate = dueDate.toLocaleDateString('en-GB');
+        // Format dates using consistent timezone-safe function
+        const formattedDate = formatDate(invoice.docDate);
+        const formattedDueDate = formatDate(invoice.docDueDate);
 
         // Get status from approvalStatus field, default to "Draft" if empty
         const status = getStatusFromInvoice(invoice);
@@ -680,7 +700,7 @@ async function switchTab(tab) {
                         return doc.cardName && doc.cardName.toLowerCase().includes(searchTerm);
                     case 'date':
                         const docDate = doc.docDate || doc.postingDate;
-                        return docDate && new Date(docDate).toLocaleDateString().toLowerCase().includes(searchTerm);
+                        return docDate && formatDate(docDate).toLowerCase().includes(searchTerm);
                     case 'status':
                         const status = getStatusFromInvoice(doc);
                         return status.toLowerCase().includes(searchTerm);
@@ -794,7 +814,7 @@ function performSearch() {
                     return invoice.cardName && invoice.cardName.toLowerCase().includes(searchTerm);
                 case 'date':
                     const docDate = invoice.docDate || invoice.postingDate;
-                    return docDate && new Date(docDate).toLocaleDateString().toLowerCase().includes(searchTerm);
+                    return docDate && formatDate(docDate).toLowerCase().includes(searchTerm);
                 case 'status':
                     const status = getStatusFromInvoice(invoice);
                     return status.toLowerCase().includes(searchTerm);
@@ -921,23 +941,9 @@ function downloadExcel() {
 
         // Format data for Excel
         const excelData = dataToExport.map((invoice, index) => {
-            // Handle both string and Date object for docDate
-            let docDate;
-            if (typeof invoice.docDate === 'string') {
-                docDate = new Date(invoice.docDate);
-            } else {
-                docDate = invoice.docDate;
-            }
-            const formattedDate = docDate.toLocaleDateString('en-GB');
-
-            // Handle both string and Date object for docDueDate
-            let dueDate;
-            if (typeof invoice.docDueDate === 'string') {
-                dueDate = new Date(invoice.docDueDate);
-            } else {
-                dueDate = invoice.docDueDate;
-            }
-            const formattedDueDate = dueDate.toLocaleDateString('en-GB');
+            // Format dates using consistent timezone-safe function
+            const formattedDate = formatDate(invoice.docDate);
+            const formattedDueDate = formatDate(invoice.docDueDate);
 
             return {
                 'No': index + 1,
@@ -977,23 +983,9 @@ function downloadPDF() {
 
         // Format data for PDF
         const pdfData = dataToExport.map((invoice, index) => {
-            // Handle both string and Date object for docDate
-            let docDate;
-            if (typeof invoice.docDate === 'string') {
-                docDate = new Date(invoice.docDate);
-            } else {
-                docDate = invoice.docDate;
-            }
-            const formattedDate = docDate.toLocaleDateString('en-GB');
-
-            // Handle both string and Date object for docDueDate
-            let dueDate;
-            if (typeof invoice.docDueDate === 'string') {
-                dueDate = new Date(invoice.docDueDate);
-            } else {
-                dueDate = invoice.docDueDate;
-            }
-            const formattedDueDate = dueDate.toLocaleDateString('en-GB');
+            // Format dates using consistent timezone-safe function
+            const formattedDate = formatDate(invoice.docDate);
+            const formattedDueDate = formatDate(invoice.docDueDate);
 
             return [
                 index + 1,
@@ -1018,7 +1010,7 @@ function downloadPDF() {
 
         // Add date
         doc.setFontSize(11);
-        doc.text(`Generated: ${new Date().toLocaleDateString('en-GB')}`, 14, 30);
+        doc.text(`Generated: ${formatDate(new Date().toISOString())}`, 14, 30);
 
         // Add table
         doc.autoTable({
