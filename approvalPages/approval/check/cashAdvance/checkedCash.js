@@ -97,6 +97,8 @@ function populateCADetails(data) {
     if (data.cashAdvanceDetails) populateCashAdvanceDetails(data.cashAdvanceDetails);
     if (data.attachments) displayAttachments(data.attachments);
     else displayAttachments([]);
+    // Show rejection info if applicable
+    displayRejectionRemarks(data);
     displayRevisedRemarks(data);
     makeAllFieldsReadOnly();
     const approvalMap = [
@@ -115,6 +117,58 @@ function populateCADetails(data) {
         el.classList.add('bg-gray-100');
       }
     });
+}
+
+// Function to display rejection remarks if available (mirrors detail page behavior)
+function displayRejectionRemarks(data) {
+    try {
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        const rejectionTextarea = document.getElementById('rejectionRemarks');
+        const rejectionInfo = document.getElementById('rejectionInfo');
+
+        if (!rejectionSection || !rejectionTextarea) return;
+
+        if (data.status !== 'Rejected') {
+            rejectionSection.style.display = 'none';
+            return;
+        }
+
+        let rejectionRemarks = '';
+        let rejectedByName = '';
+
+        if (data.rejectedRemarks) {
+            rejectionRemarks = data.rejectedRemarks;
+        } else if (data.remarksRejectByChecker) {
+            rejectionRemarks = data.remarksRejectByChecker;
+        } else if (data.remarksRejectByAcknowledger) {
+            rejectionRemarks = data.remarksRejectByAcknowledger;
+        } else if (data.remarksRejectByApprover) {
+            rejectionRemarks = data.remarksRejectByApprover;
+        } else if (data.remarksRejectByReceiver) {
+            rejectionRemarks = data.remarksRejectByReceiver;
+        } else if (data.remarks) {
+            rejectionRemarks = data.remarks;
+        }
+
+        if (data.rejectedByName) {
+            rejectedByName = data.rejectedByName;
+        }
+
+        if (rejectionRemarks && rejectionRemarks.trim() !== '') {
+            rejectionSection.style.display = 'block';
+            rejectionTextarea.value = rejectionRemarks;
+
+            if (rejectionInfo && rejectedByName) {
+                const nikPart = data.rejectedByNIK ? `(${data.rejectedByNIK})` : '';
+                const datePart = data.rejectedDate ? ` on ${new Date(data.rejectedDate).toLocaleDateString()}` : '';
+                rejectionInfo.innerHTML = `<span class="font-medium">Rejected by:</span> ${rejectedByName} ${nikPart}${datePart}`;
+            }
+        } else {
+            rejectionSection.style.display = 'none';
+        }
+    } catch (e) {
+        console.error('Error displaying rejection remarks:', e);
+    }
 }
 
 function populateCashAdvanceDetails(details) {
