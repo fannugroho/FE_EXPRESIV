@@ -1075,7 +1075,49 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Set up search functionality
     setupSearch();
+
+    // Add auto-refresh functionality
+    setupAutoRefresh();
 });
+
+// Function to setup auto-refresh functionality
+function setupAutoRefresh() {
+    // Refresh data when page becomes visible (user returns to tab)
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) {
+            console.log('Page became visible, refreshing data...');
+            fetchInvoiceData();
+        }
+    });
+
+    // Refresh data when window gains focus (user returns to window)
+    window.addEventListener('focus', function () {
+        console.log('Window gained focus, refreshing data...');
+        fetchInvoiceData();
+    });
+
+    // Refresh data when page is loaded from cache (back/forward navigation)
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+            console.log('Page loaded from cache, refreshing data...');
+            fetchInvoiceData();
+        }
+    });
+
+    // Refresh data when user navigates to this page
+    if (window.performance && window.performance.navigation) {
+        if (window.performance.navigation.type === window.performance.navigation.TYPE_NAVIGATE) {
+            console.log('Page navigated to, refreshing data...');
+            fetchInvoiceData();
+        }
+    }
+
+    // Additional refresh on page load for better reliability
+    setTimeout(() => {
+        console.log('Initial page load refresh...');
+        fetchInvoiceData();
+    }, 1000);
+}
 
 // Caching functionality for better performance
 function setupCaching() {
