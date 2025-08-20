@@ -1205,6 +1205,8 @@ async function populateForm(data) {
     await fetchCurrencies(cashAdvanceData);
     
     // Apply tab-based behavior after form is populated
+    // Ensure fixed fields remain locked even in revision
+    lockFixedFields();
     applyTabBasedBehavior();
 }
 
@@ -2143,6 +2145,9 @@ function makeAllFieldsEditable() {
         fileInput.disabled = false;
         fileInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
     }
+    
+    // Keep specific fields locked (not editable) even in revision
+    lockFixedFields();
 }
 
 // Function to hide submit button
@@ -2222,5 +2227,37 @@ function showSubmitButton() {
     const submitButton = document.querySelector('button[onclick="submitRevision()"]');
     if (submitButton) {
         submitButton.style.display = 'inline-block';
+    }
+}
+
+// Lock fields that must not be edited in revision mode
+function lockFixedFields() {
+    try {
+        const cashAdvanceNo = document.getElementById('cashAdvanceNo');
+        const employeeNIK = document.getElementById('employeeNIK');
+        const employeeName = document.getElementById('employeeName');
+        const department = document.getElementById('departmentId');
+
+        if (cashAdvanceNo) {
+            cashAdvanceNo.readOnly = true;
+            cashAdvanceNo.disabled = true;
+            cashAdvanceNo.classList.add('bg-gray-100');
+        }
+        if (employeeNIK) {
+            employeeNIK.readOnly = true;
+            employeeNIK.disabled = true;
+            employeeNIK.classList.add('bg-gray-100');
+        }
+        if (employeeName) {
+            employeeName.readOnly = true;
+            employeeName.disabled = true;
+            employeeName.classList.add('bg-gray-100');
+        }
+        if (department) {
+            department.disabled = true;
+            department.classList.add('bg-gray-100');
+        }
+    } catch (e) {
+        console.warn('Failed to lock fixed fields:', e);
     }
 }
