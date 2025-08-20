@@ -39,27 +39,37 @@
             border-collapse: collapse;
             width: 100%;
             max-width: 400px;
+            border: none !important;
         }
 
         .do-table th,
         .do-table td {
-            border: none;
+            border: none !important;
             padding: 1px 2px;
             text-align: left;
             font-size: 12px;
+            background-color: transparent !important;
         }
 
         .do-table th {
-            background-color: transparent;
+            background-color: transparent !important;
             font-weight: bold;
         }
 
         .do-table td {
-            background-color: transparent;
+            background-color: transparent !important;
         }
 
         .do-table tr:nth-child(even) td {
-            background-color: transparent;
+            background-color: transparent !important;
+        }
+
+        /* Remove any default table styling */
+        .do-table,
+        .do-table * {
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
         }
 
         @media print {
@@ -318,17 +328,67 @@
                 padding: 1px 0 !important;
             }
 
-            /* DO Numbers table print styling */
+            /* DO Numbers table print styling - Enhanced */
+            .order-table-container {
+                margin-top: 1px !important;
+                border: none !important;
+                background: transparent !important;
+            }
+
+            .order-table-container table {
+                border: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+
+            .order-table-container table * {
+                border: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+
             .do-table {
                 font-size: 8px !important;
                 page-break-inside: avoid !important;
+                border: none !important;
+                background: transparent !important;
+                border-collapse: collapse !important;
             }
 
             .do-table th,
             .do-table td {
-                border: 1px solid #000 !important;
+                border: none !important;
                 padding: 1px 2px !important;
                 font-size: 8px !important;
+                background-color: transparent !important;
+            }
+
+            .do-table tr {
+                border: none !important;
+                background: transparent !important;
+            }
+
+            .do-table tr:nth-child(even) {
+                background-color: transparent !important;
+            }
+
+            .do-table tr:nth-child(odd) {
+                background-color: transparent !important;
+            }
+
+            /* Force remove all borders and backgrounds */
+            .do-table,
+            .do-table *,
+            .do-table th,
+            .do-table td,
+            .do-table tr,
+            .do-table tbody,
+            .do-table thead {
+                border: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                outline: none !important;
+                border-collapse: collapse !important;
             }
 
             .order-section {
@@ -940,6 +1000,40 @@
                 width: 95%;
                 margin: 20px auto;
             }
+        }
+
+        /* Additional CSS to ensure clean DO Numbers table */
+        .order-table-container {
+            margin-top: 1px;
+            border: none !important;
+            background: transparent !important;
+        }
+
+        .order-table-container table {
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        .order-table-container table * {
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        /* Ensure no borders in any scenario */
+        .do-table,
+        .do-table *,
+        .do-table th,
+        .do-table td,
+        .do-table tr,
+        .do-table tbody,
+        .do-table thead {
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            outline: none !important;
+            border-collapse: collapse !important;
         }
     </style>
 </head>

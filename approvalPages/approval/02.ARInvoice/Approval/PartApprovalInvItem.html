@@ -2056,6 +2056,12 @@ This page supports TWO distinct modes for AR Invoice approvals:
                             class="btn-base btn-primary">
                             Start E-Signing Process
                         </button>
+
+                        <!-- New Optimized E-Signing Button -->
+                        <button onclick="startOptimizedESigningProcess()" id="startOptimizedESignBtn" disabled
+                            class="btn-base bg-purple-600 text-white ml-3">
+                            Start Optimized E-Signing
+                        </button>
                     </div>
                 </div>
 
@@ -2143,9 +2149,15 @@ This page supports TWO distinct modes for AR Invoice approvals:
                     <div class="border border-gray-200 rounded p-4">
                         <div class="flex items-center justify-between mb-4">
                             <h4 class="font-semibold">Signed Documents</h4>
-                            <button onclick="refreshDocumentList()" class="btn-base btn-primary text-sm">
-                                Refresh
-                            </button>
+                            <div class="flex space-x-2">
+                                <button onclick="refreshDocumentList()" class="btn-base btn-primary text-sm">
+                                    Refresh
+                                </button>
+                                <button onclick="downloadOptimizedSignedDocument()"
+                                    class="btn-base bg-green-600 text-white text-sm">
+                                    Download Optimized
+                                </button>
+                            </div>
                         </div>
                         <div id="existingSignedDocs" class="custom-scrollbar">
                             <!-- Documents akan di-load secara dinamis -->

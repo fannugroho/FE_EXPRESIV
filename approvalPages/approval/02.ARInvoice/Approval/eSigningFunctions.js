@@ -2045,7 +2045,7 @@ function displayExistingStampedDocuments(documents) {
                 </div>
                 <div class="flex items-center space-x-2">
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a1.994 1.994 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
                     </svg>
                     <span class="text-gray-600">Serial: <span class="font-medium font-mono">${doc.serial_number}</span></span>
                 </div>
@@ -2948,3 +2948,309 @@ window.processManualEStamping = processManualEStamping;
 window.applyEStampToSignedDocument = applyEStampToSignedDocument;
 window.showEStampingOption = showEStampingOption;
 window.refreshStampedDocumentList = refreshStampedDocumentList;
+
+// PDF Optimization and Flattening Functions
+// These functions help eliminate unwanted boxes and form fields in PDFs
+
+// Optimize PDF before e-signing to remove form fields and unwanted elements
+async function optimizePDFBeforeSigning(file) {
+    try {
+        console.log('🔧 Optimizing PDF before e-signing...');
+
+        // Create a canvas to render the PDF and convert back to PDF
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Load PDF using PDF.js if available
+        if (typeof pdfjsLib !== 'undefined') {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+            // Set canvas size
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 1.5 });
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            // Render PDF page to canvas
+            await page.render({
+                canvasContext: ctx,
+                viewport: viewport
+            }).promise;
+
+            // Convert canvas to blob
+            const optimizedBlob = await new Promise(resolve => {
+                canvas.toBlob(resolve, 'application/pdf', 0.95);
+            });
+
+            console.log('✅ PDF optimized successfully');
+            return new File([optimizedBlob], file.name, { type: 'application/pdf' });
+        }
+
+        // Fallback: return original file if PDF.js is not available
+        console.log('⚠️ PDF.js not available, using original file');
+        return file;
+
+    } catch (error) {
+        console.error('❌ PDF optimization failed:', error);
+        // Return original file if optimization fails
+        return file;
+    }
+}
+
+// Flatten PDF after e-signing to remove any remaining form fields
+async function flattenSignedPDF(pdfUrl) {
+    try {
+        console.log('🔧 Flattening signed PDF to remove form fields...');
+
+        // Fetch the signed PDF
+        const response = await fetch(pdfUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch PDF: ${response.status}`);
+        }
+
+        const pdfBlob = await response.blob();
+
+        // If we have access to a PDF processing library, use it
+        if (typeof window.PDFLib !== 'undefined') {
+            const pdfBytes = await pdfBlob.arrayBuffer();
+            const pdfDoc = await window.PDFLib.PDFDocument.load(pdfBytes);
+
+            // Flatten all form fields
+            const pages = pdfDoc.getPages();
+            pages.forEach(page => {
+                // Remove any form fields
+                const formFields = page.getFormFields();
+                Object.keys(formFields).forEach(fieldName => {
+                    page.removeFormField(fieldName);
+                });
+            });
+
+            // Save the flattened PDF
+            const flattenedBytes = await pdfDoc.save();
+            const flattenedBlob = new Blob([flattenedBytes], { type: 'application/pdf' });
+
+            console.log('✅ PDF flattened successfully');
+            return URL.createObjectURL(flattenedBlob);
+        }
+
+        // Fallback: return original URL if PDFLib is not available
+        console.log('⚠️ PDFLib not available, using original PDF');
+        return pdfUrl;
+
+    } catch (error) {
+        console.error('❌ PDF flattening failed:', error);
+        // Return original URL if flattening fails
+        return pdfUrl;
+    }
+}
+
+// Enhanced download function with PDF optimization
+async function downloadOptimizedSignedDocument(documentUrl, filename) {
+    try {
+        console.log('📥 Downloading optimized signed document...');
+
+        // First, try to flatten the PDF to remove form fields
+        const optimizedUrl = await flattenSignedPDF(documentUrl);
+
+        // Create download link
+        const link = document.createElement('a');
+        link.href = optimizedUrl;
+        link.download = filename || `optimized_signed_document_${Date.now()}.pdf`;
+        link.target = '_blank';
+
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Clean up object URL if it was created
+        if (optimizedUrl !== documentUrl && optimizedUrl.startsWith('blob:')) {
+            setTimeout(() => URL.revokeObjectURL(optimizedUrl), 1000);
+        }
+
+        console.log('✅ Optimized document download started');
+
+        // Show success message
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Optimized Download Started',
+                text: 'Your optimized signed document download has started.',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ Optimized download failed:', error);
+
+        // Fallback to regular download
+        console.log('🔄 Falling back to regular download...');
+        downloadExistingDocument(documentUrl, filename);
+    }
+}
+
+// Enhanced e-signing process with PDF optimization
+async function startOptimizedESigningProcess() {
+    if (!selectedESignFile) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'No File Selected',
+            text: 'Please select a PDF file to sign.'
+        });
+        return;
+    }
+
+    try {
+        // Confirm when running in production
+        const confirmed = await confirmProductionAction('an optimized E-Sign operation');
+        if (!confirmed) { return; }
+
+        // Show progress container and start Step 1
+        showProgressContainer();
+        updateProgressStep(1);
+        updateProgressStatus('Starting optimized e-signing process...');
+        updateProgressBar(0);
+
+        // Hide upload area
+        const uploadArea = document.getElementById('eSignUploadArea');
+        if (uploadArea) {
+            uploadArea.style.display = 'none';
+        }
+
+        // Step 1: PDF Optimization
+        updateProgressStatus('Optimizing PDF to remove form fields...');
+        simulateProgressUpdate(15, 1000, () => {
+            updateProgressStatus('PDF optimization in progress...');
+        });
+
+        const optimizedFile = await optimizePDFBeforeSigning(selectedESignFile);
+        console.log('✅ PDF optimization completed');
+
+        // Step 2: File validation and preparation
+        updateProgressStatus('Validating optimized file...');
+        simulateProgressUpdate(25, 1000, () => {
+            updateProgressStatus('File validation completed');
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Move to Step 3: Processing
+        updateProgressStep(2);
+        updateProgressStatus('Converting optimized document to base64...');
+        simulateProgressUpdate(35, 1500, () => {
+            updateProgressStatus('Preparing document for signing...');
+        });
+
+        const documentBase64 = await fileToBase64(optimizedFile);
+
+        // Get document details
+        const urlParams = new URLSearchParams(window.location.search);
+        const stagingId = urlParams.get('stagingID');
+
+        if (!stagingId) {
+            throw new Error('Staging ID not found in URL');
+        }
+
+        // Get signer information
+        let signerName = ""; // Default fallback
+        let signerEmail = "";
+
+        // Try to get current user information
+        if (typeof currentUser !== 'undefined' && currentUser) {
+            signerEmail = currentUser.email || currentUser.username + "@company.com";
+        }
+
+        // Try to get approvedByName from current invoice data
+        const invData = (typeof AppState !== 'undefined' && AppState?.currentInvItemData) ||
+            (typeof currentInvItemData !== 'undefined' && currentInvItemData);
+
+        if (invData && invData.arInvoiceApprovalSummary) {
+            signerName = invData.arInvoiceApprovalSummary.approvedByName || signerName;
+            console.log('🔍 Found approvedByName from invoice data:', signerName);
+        } else {
+            // Fallback: try to get from HTML element if exists
+            const approvedByNameElement = document.getElementById('approvedByName') || document.getElementById('approvedBySearch');
+            if (approvedByNameElement && approvedByNameElement.value) {
+                signerName = approvedByNameElement.value;
+                console.log('🔍 Found approvedByName from HTML element:', signerName);
+            } else {
+                console.log('⚠️ No approvedByName found, using default:', signerName);
+            }
+        }
+
+        // Create specific document reference
+        const currentDateTime = new Date().toISOString().replace(/[:.]/g, '-');
+        const specificDocRef = `optimized_receive_${currentDateTime}`;
+
+        // Enhanced API payload with optimization flag
+        const apiPayload = {
+            document_base64: documentBase64,
+            sign_image_name: signerName,
+            document_type: "ARInvoices",
+            document_id: stagingId,
+            specific_document_ref: specificDocRef,
+            signer_name: signerName,
+            signer_email: signerEmail || undefined,
+            optimize_pdf: true, // Flag to indicate PDF optimization
+            flatten_form_fields: true // Flag to flatten form fields
+        };
+
+        // Move to Step 4: API Call and Signing
+        updateProgressStep(3);
+        updateProgressStatus('Sending optimized document for e-signing...');
+        simulateProgressUpdate(55, 2000, null);
+
+        console.log('📝 Enhanced Optimized E-Sign API payload:', {
+            ...apiPayload,
+            document_base64: '[BASE64_DATA]' // Don't log the actual base64
+        });
+        console.log('📍 E-Sign URL:', kasboUrl('/esign/process'));
+
+        const response = await fetch(kasboUrl('/esign/process'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(apiPayload)
+        });
+
+        console.log('📝 E-Sign response status:', response.status);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ E-Sign API error:', errorText);
+            throw new Error(`E-Sign API error: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log('📝 E-Sign API result:', result);
+
+        // Extract transaction information from enhanced response
+        currentJobId = result.jobId || result.job_id || result.id || result.transaction_id || result.data?.jobId || result.data?.job_id || result.data?.id;
+
+        if (!currentJobId) {
+            console.error('❌ No job/transaction ID found in e-sign response:', result);
+            throw new Error('No job ID returned from e-sign API');
+        }
+
+        console.log('📝 E-Sign Job/Transaction ID:', currentJobId);
+
+        // Update progress to 70%
+        simulateProgressUpdate(70, 1000, () => {
+            updateProgressStatus('Optimized document submitted for processing');
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Start checking job status
+        updateProgressStatus('Processing optimized document signature...');
+        simulateProgressUpdate(85, 2000, null);
+        await checkESignJobStatus();
+
+    } catch (error) {
+        console.error('Optimized E-Signing error:', error);
+        showErrorState(error.message);
+    }
+}

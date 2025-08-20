@@ -15,25 +15,25 @@ function isStatusApproved() {
     const source = urlParams.get('source');
     const statusLower = status ? status.toLowerCase() : '';
     const sourceLower = source ? source.toLowerCase() : '';
-    
+
     console.log('🔍 isStatusApproved() check:');
     console.log('   - Original status:', status);
     console.log('   - Original source:', source);
     console.log('   - Status (lowercase):', statusLower);
     console.log('   - Source (lowercase):', sourceLower);
-    
+
     // Allow signatures for both "approved" and "received" status (case-insensitive)
     // Also check source parameter for "approve" action
     const isApproved = statusLower === 'approved';
     const isReceived = statusLower === 'received';
     const isApproveAction = sourceLower === 'approve'; // Check source=approve
     const shouldShow = isApproved || isReceived || isApproveAction;
-    
+
     console.log('   - Is Approved (status):', isApproved);
     console.log('   - Is Received (status):', isReceived);
     console.log('   - Is Approve Action (source):', isApproveAction);
     console.log('   - Should show signature:', shouldShow);
-    
+
     return shouldShow;
 }
 
@@ -105,10 +105,10 @@ function wrapText(text, maxLength) {
 function createDONumbersTable(doValues) {
     if (!doValues || doValues.length === 0) {
         return `
-            <table class="do-table">
+            <table class="do-table" style="border: none; background: transparent;">
                 <tbody>
-                    <tr>
-                        <td>-</td>
+                    <tr style="border: none; background: transparent;">
+                        <td style="border: none; background: transparent; padding: 1px 2px;">-</td>
                     </tr>
                 </tbody>
             </table>
@@ -116,7 +116,7 @@ function createDONumbersTable(doValues) {
     }
 
     let tableHTML = `
-        <table class="do-table">
+        <table class="do-table" style="border: none; background: transparent;">
             <tbody>
     `;
 
@@ -128,16 +128,16 @@ function createDONumbersTable(doValues) {
         if (secondDO) {
             // Two DO numbers in this row
             tableHTML += `
-                <tr>
-                    <td>${firstDO}</td>
-                    <td>${secondDO}</td>
+                <tr style="border: none; background: transparent;">
+                    <td style="border: none; background: transparent; padding: 1px 2px;">${firstDO}</td>
+                    <td style="border: none; background: transparent; padding: 1px 2px;">${secondDO}</td>
                 </tr>
             `;
         } else {
             // Only one DO number in this row (last row with odd count)
             tableHTML += `
-                <tr>
-                    <td>${firstDO}</td>
+                <tr style="border: none; background: transparent;">
+                    <td style="border: none; background: transparent; padding: 1px 2px;">${firstDO}</td>
                 </tr>
             `;
         }
@@ -162,7 +162,7 @@ function showLoadingIndicator() {
         if (!pagesContainer.dataset.originalContent) {
             pagesContainer.dataset.originalContent = pagesContainer.innerHTML;
         }
-        
+
         const loadingHTML = `
             <div id="loadingIndicator" class="page-container" style="text-align: center; padding: 50px;">
                 <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 2s linear infinite;"></div>
@@ -183,7 +183,7 @@ function showLoadingIndicator() {
 function hideLoadingIndicator() {
     const pagesContainer = document.getElementById('pagesContainer');
     const loadingIndicator = document.getElementById('loadingIndicator');
-    
+
     if (loadingIndicator && pagesContainer) {
         // Restore original content if it was stored
         if (pagesContainer.dataset.originalContent) {
@@ -202,14 +202,14 @@ async function loadInvoiceDataCoordinated(identifier) {
         console.log('⚠️ Data loading already in progress, skipping...');
         return;
     }
-    
+
     isLoading = true;
     isSignatureProcessed = false; // Reset signature flag for fresh loading
     showLoadingIndicator();
-    
+
     try {
         console.log('🔄 Starting coordinated data loading for:', identifier);
-        
+
         // Priority 1: Check parent window data
         if (window.opener && window.opener.currentInvItemData) {
             console.log('✅ Found data in parent window, using it...');
@@ -217,7 +217,7 @@ async function loadInvoiceDataCoordinated(identifier) {
             hideLoadingIndicator(); // Restore content first
             await new Promise(resolve => setTimeout(resolve, 100)); // Wait for DOM
             populateInvoiceData(parentData); // Populate directly
-            
+
             // Ensure signature is populated after DOM is ready
             setTimeout(() => {
                 if (isStatusApproved()) {
@@ -227,7 +227,7 @@ async function loadInvoiceDataCoordinated(identifier) {
             }, 200);
             return;
         }
-        
+
         // Priority 2: Check localStorage for complete data
         const storedData = localStorage.getItem(`invoice_${identifier}`);
         if (storedData) {
@@ -238,7 +238,7 @@ async function loadInvoiceDataCoordinated(identifier) {
                     hideLoadingIndicator(); // Restore content first
                     await new Promise(resolve => setTimeout(resolve, 100)); // Wait for DOM
                     populateInvoiceData(parsedData); // Populate directly
-                    
+
                     // Ensure signature is populated after DOM is ready
                     setTimeout(() => {
                         if (isStatusApproved()) {
@@ -254,18 +254,18 @@ async function loadInvoiceDataCoordinated(identifier) {
                 console.log('❌ Error parsing stored data, fetching from API...', error);
             }
         }
-        
+
         // Priority 3: Fetch from API
         console.log('🌐 Fetching fresh data from API...');
         const response = await fetch(`${API_BASE_URL}/ar-invoices/${identifier}/details`);
         const result = await response.json();
-        
+
         if (result.status && result.data) {
             console.log('✅ Successfully fetched data from API');
             hideLoadingIndicator(); // Restore content first
             await new Promise(resolve => setTimeout(resolve, 100)); // Wait for DOM
             populateInvoiceData(result.data); // Populate directly
-            
+
             // Ensure signature is populated after DOM is ready
             setTimeout(() => {
                 if (isStatusApproved()) {
@@ -273,7 +273,7 @@ async function loadInvoiceDataCoordinated(identifier) {
                     populateSignatureSync(result.data);
                 }
             }, 200);
-            
+
             // Save to localStorage for future use
             try {
                 localStorage.setItem(`invoice_${identifier}`, JSON.stringify(result.data));
@@ -284,7 +284,7 @@ async function loadInvoiceDataCoordinated(identifier) {
         } else {
             throw new Error(result.message || 'Failed to fetch invoice data');
         }
-        
+
     } catch (error) {
         console.error('❌ Error in coordinated data loading:', error);
         hideLoadingIndicator(); // Ensure content is restored on error
@@ -743,7 +743,7 @@ function populateInvoiceData(invoice) {
     console.log('🆔 Invoice ID:', invoice.docNum || invoice.u_bsi_invnum);
     console.log('📅 Date:', invoice.docDate);
     console.log('👤 Customer:', invoice.cardName);
-    
+
     // Store data globally for race condition prevention
     currentInvoiceData = invoice;
     isDataLoaded = true;
@@ -1047,20 +1047,20 @@ function populateInvoiceData(invoice) {
 
         console.log('✅ INVOICE DATA POPULATION COMPLETED SUCCESSFULLY');
         console.log('================================================');
-        
+
         // Ensure signature data is populated for approved status
         if (isStatusApproved()) {
             console.log('🔄 Ensuring signature population after data load...');
             setTimeout(() => {
                 isSignatureProcessed = false; // Reset flag to allow re-population
                 populateSignatureSync(invoice);
-                
+
                 // Double check after additional delay
                 setTimeout(() => {
                     const nameElement = document.getElementById('signatureName');
                     const hasSignatureName = nameElement && nameElement.textContent.trim();
                     const hasSignatureImage = document.querySelector('.signature-space img');
-                    
+
                     if (!hasSignatureName || !hasSignatureImage) {
                         console.log('⚠️ Signature still missing, trying once more...');
                         isSignatureProcessed = false;
@@ -1069,7 +1069,7 @@ function populateInvoiceData(invoice) {
                 }, 500);
             }, 200);
         }
-        
+
     } catch (error) {
         console.error('❌ ERROR IN POPULATE INVOICE DATA:', error);
         console.error('📍 Error stack:', error.stack);
@@ -1514,36 +1514,36 @@ function findSignatureImage(approverName) {
 // Synchronized signature population to prevent race conditions
 function populateSignatureSync(invoice) {
     console.log('🔄 SYNCHRONIZED SIGNATURE POPULATION STARTED');
-    
+
     // Prevent multiple executions
     if (isSignatureProcessed) {
         console.log('⚠️ Signature already processed, skipping');
         return;
     }
-    
+
     // Mark as processed immediately
     isSignatureProcessed = true;
-    
+
     // Wait for DOM to be ready
     const checkDOMReady = () => {
         const signatureNameElement = document.getElementById('signatureName');
         const signatureTitleElement = document.getElementById('signatureTitle');
         const signatureSpaceElement = document.querySelector('.signature-space');
-        
+
         return signatureNameElement && signatureTitleElement && signatureSpaceElement;
     };
-    
+
     const populateWhenReady = () => {
         if (!checkDOMReady()) {
             console.log('⏳ DOM not ready, retrying in 100ms...');
             setTimeout(populateWhenReady, 100);
             return;
         }
-        
+
         console.log('✅ DOM ready, proceeding with signature population');
         populateSignatureInformation(invoice);
     };
-    
+
     populateWhenReady();
 }
 
@@ -1632,7 +1632,7 @@ function populateSignatureInformation(invoice) {
     const urlParams = new URLSearchParams(window.location.search);
     const currentStatus = urlParams.get('status');
     const currentStatusLower = currentStatus ? currentStatus.toLowerCase() : '';
-    
+
     console.log('🖼️ Current status for signature image:', currentStatus);
     console.log('📍 Signature space element:', !!signatureSpaceElement);
 
@@ -1641,7 +1641,7 @@ function populateSignatureInformation(invoice) {
             // For APPROVED status only - show signature image
             const signatureImage = findSignatureImage(approvedByName);
             console.log('🖼️ Signature image lookup for APPROVED status:', signatureImage);
-            
+
             if (signatureImage) {
                 // Display signature image
                 const imagePath = `../../../../../image/${signatureImage}`;
@@ -2683,7 +2683,7 @@ function createAdditionalPage(items, pageNum, startIndex, isLastPage) {
             const urlParams = new URLSearchParams(window.location.search);
             const currentStatus = urlParams.get('status');
             const currentStatusLower = currentStatus ? currentStatus.toLowerCase() : '';
-            
+
             let signatureImageHTML = '';
             if (currentStatusLower === 'approved') {
                 const signatureImage = findSignatureImage(signatureData.name);
@@ -2864,10 +2864,10 @@ window.testSignatureImages = function () {
 };
 
 // Debug function to force signature population
-window.forceSignaturePopulation = function() {
+window.forceSignaturePopulation = function () {
     console.log('🔧 FORCE SIGNATURE POPULATION');
     isSignatureProcessed = false; // Reset flag
-    
+
     if (currentInvoiceData) {
         console.log('📄 Using current invoice data:', currentInvoiceData);
         populateSignatureSync(currentInvoiceData);
