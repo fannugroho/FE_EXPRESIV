@@ -120,7 +120,7 @@ function populateCashAdvanceDetails(details) {
                 <input type="text" value="${detail.description || ''}" class="description w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border">
-                <input type="number" value="${detail.amount ? parseFloat(detail.amount).toFixed(2) : '0.00'}" class="total w-full bg-gray-100" readonly />
+                <input type="text" value="${detail.amount ? Number(detail.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}" class="total w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border text-center">
                 <!-- Read-only view, no action buttons -->
@@ -140,20 +140,17 @@ function calculateTotalAmount() {
     let sum = 0;
     
     totalInputs.forEach(input => {
-        // Only add to sum if the input has a valid numeric value
-        const value = input.value.trim();
-        if (value && !isNaN(parseFloat(value))) {
-            sum += parseFloat(value);
+        // Handle values with thousand separators and decimals
+        const raw = (input.value || '').toString().replace(/,/g, '').trim();
+        if (raw && !isNaN(parseFloat(raw))) {
+            sum += parseFloat(raw);
         }
     });
     
-    // Format the sum with 2 decimal places
-    const formattedSum = sum.toFixed(2);
-    
-    // Update the total amount display
+    // Update the total amount display with thousand separators and 2 decimals
     const totalAmountDisplay = document.getElementById('totalAmountDisplay');
     if (totalAmountDisplay) {
-        totalAmountDisplay.textContent = formattedSum;
+        totalAmountDisplay.textContent = Number(sum).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 }
 
@@ -609,9 +606,10 @@ function printCash() {
     
     // Calculate total amount from table rows
     let totalAmount = 0;
-    const amountInputs = document.querySelectorAll('#tableBody .amount');
+    const amountInputs = document.querySelectorAll('#tableBody .amount, #tableBody .total');
     amountInputs.forEach(input => {
-        const amount = parseFloat(input.value) || 0;
+        const raw = (input.value || '').toString().replace(/,/g, '').trim();
+        const amount = parseFloat(raw) || 0;
         totalAmount += amount;
     });
     data.amount = totalAmount.toString();
