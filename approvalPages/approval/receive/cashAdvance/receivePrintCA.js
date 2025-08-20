@@ -86,6 +86,7 @@ class CashAdvancePrinter {
         this.setElementText('remarks', this.cashAdvanceData.remarks || '-');
         
         // Set currency from API data
+        this.setElementText('estimatedCostCurrency', this.cashAdvanceData.currency || 'Rp');
         this.setElementText('currency', this.cashAdvanceData.currency || 'Rp');
 
         // Settlement Table
@@ -99,6 +100,15 @@ class CashAdvancePrinter {
         if (date) {
             this.setElementText(dateId, this.formatDate(date));
         }
+        
+        // Handle approval stamp visibility for "Received by" section
+        if (nameId === 'receivedByName') {
+            if (!date || date === null || date === '') {
+                this.hideApprovalStamp('receivedByName');
+            } else {
+                this.showApprovalStamp('receivedByName');
+            }
+        }
     }
 
     populateSettlementTable() {
@@ -111,12 +121,12 @@ class CashAdvancePrinter {
             this.cashAdvanceData.cashAdvanceDetails.forEach(detail => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${detail.category || '-'}</td>
-                    <td>${detail.accountName || '-'}</td>
+                    <td>${this.cashAdvanceData.transactionType}</td>
                     <td>${detail.glAccount || detail.coa || '-'}</td>
+                    <td>${detail.accountName || '-'}</td>
                     <td>${detail.description || '-'}</td>
+                    <td>${this.cashAdvanceData.currency || '-'}</td>
                     <td>${this.formatCurrency(detail.amount)}</td>
-                    <td>-</td>
                 `;
                 tableBody.appendChild(row);
             });
@@ -138,7 +148,6 @@ class CashAdvancePrinter {
 
         // Set totals
         this.setElementText('totalDebit', this.formatCurrency(this.cashAdvanceData.totalAmount));
-        this.setElementText('totalCredit', '-');
     }
 
     setElementText(elementId, text) {
@@ -224,6 +233,34 @@ class CashAdvancePrinter {
         console.error(message);
         // You can implement a user-friendly error display here
         alert('Error: ' + message);
+    }
+
+    hideApprovalStamp(nameId) {
+        // Find the approval box containing the name element
+        const nameElement = document.getElementById(nameId);
+        if (nameElement) {
+            const approvalBox = nameElement.closest('.approval-box');
+            if (approvalBox) {
+                const stampElement = approvalBox.querySelector('.approval-stamp');
+                if (stampElement) {
+                    stampElement.classList.add('hidden');
+                }
+            }
+        }
+    }
+
+    showApprovalStamp(nameId) {
+        // Find the approval box containing the name element
+        const nameElement = document.getElementById(nameId);
+        if (nameElement) {
+            const approvalBox = nameElement.closest('.approval-box');
+            if (approvalBox) {
+                const stampElement = approvalBox.querySelector('.approval-stamp');
+                if (stampElement) {
+                    stampElement.classList.remove('hidden');
+                }
+            }
+        }
     }
 }
 
