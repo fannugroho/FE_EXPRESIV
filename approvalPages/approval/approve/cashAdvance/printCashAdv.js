@@ -177,7 +177,7 @@ class CashAdvancePrinter {
         }
 
         // Set totals
-        this.setElementText('totalDebit', this.formatCurrency(this.cashAdvanceData.totalAmount));
+        this.setElementText('totalProposedAmount', this.formatCurrency(this.cashAdvanceData.totalAmount));
     }
 
     updateAmountInWordsWithCurrency(currencyCode) {

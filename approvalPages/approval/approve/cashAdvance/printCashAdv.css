@@ -301,19 +301,24 @@ body {
     min-width: 120px;
 }
 
-.settlement-table th:nth-child(5), /* Debit */
+.settlement-table th:nth-child(5), /* Currency */
 .settlement-table td:nth-child(5) {
-    width: 12.5%;
-    min-width: 80px;
+    width: 10%;
+    min-width: 70px;
     text-align: center;
 }
 
-.settlement-table th:nth-child(6), /* Credit */
+.settlement-table th:nth-child(6), /* Proposed Amount */
 .settlement-table td:nth-child(6) {
-    width: 12.5%;
-    min-width: 80px;
+    width: 15%;
+    min-width: 100px;
     text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
+
+
 
 .settlement-table tbody tr {
     min-height: 30px;
@@ -633,21 +638,25 @@ body {
     
     .settlement-table th:nth-child(4),
     .settlement-table td:nth-child(4) {
-        width: 28%;
+        width: 25%;
         min-width: 100px;
     }
     
     .settlement-table th:nth-child(5),
     .settlement-table td:nth-child(5) {
-        width: 15%;
+        width: 12%;
         min-width: 60px;
         text-align: center;
     }
     
     .settlement-table th:nth-child(6),
     .settlement-table td:nth-child(6) {
-        width: 15%;
-        min-width: 60px;
+        width: 21%;
+        min-width: 80px;
+        text-align: right;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 }
 
