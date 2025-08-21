@@ -2263,12 +2263,9 @@ async function updateCashAdvance(isSubmit = false) {
         const departmentSelect = document.getElementById('departmentId');
         formData.append('DepartmentId', departmentSelect.value);
         
-        // Format dates
-        const submissionDate = document.getElementById('submissionDate').value;
-        if (submissionDate) {
-            // Send date value directly without timezone conversion
-            formData.append('SubmissionDate', submissionDate);
-        }
+        // Always use current date for submission
+        const currentDate = new Date().toISOString().split('T')[0];
+        formData.append('SubmissionDate', currentDate);
         
         // Use the transaction type from the select
         const transactionTypeSelect = document.getElementById('transactionType');

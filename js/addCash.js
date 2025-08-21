@@ -497,7 +497,9 @@ async function saveDocument(isSubmit = false) {
         formData.append('Purpose', document.getElementById("Purpose").value);
         formData.append('DepartmentId', document.getElementById("department").value);
         formData.append('Currency', document.getElementById("Currency").value);
-        formData.append('SubmissionDate', document.getElementById("SubmissionDate").value);
+        // Always use current date for submission
+        const currentDate = new Date().toISOString().split('T')[0];
+        formData.append('SubmissionDate', currentDate);
         formData.append('TransactionType', document.getElementById("TransactionType").value);
         formData.append('Remarks', document.getElementById("Remarks").value);
         
