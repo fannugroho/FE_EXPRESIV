@@ -1043,11 +1043,9 @@ async function addRow() {
     // Setup category dropdown for the new row
     await setupCategoryDropdown(newRow);
     
-    // Setup amount formatting events with caret preservation
+    // Setup amount input: format with thousand separators as the user types (no .00)
     const amountInput = newRow.querySelector('.total');
     if (amountInput) {
-        amountInput.value = '0.00';
-        amountInput.addEventListener('blur', function() { formatNumberWithDecimals(this); });
         amountInput.addEventListener('input', function() { formatNumberAsYouType(this); });
     }
 }

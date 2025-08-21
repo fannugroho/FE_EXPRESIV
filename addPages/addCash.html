@@ -137,7 +137,7 @@
                         <input type="text" class="description w-full" maxlength="200" autocomplete="off" />
                     </td>
                     <td class="p-2 border">
-                        <input type="text" value="0.00" class="total w-full" required autocomplete="off" onkeydown="handleAmountKeydown(this, event)" />
+                        <input type="text" class="total w-full" required autocomplete="off" onkeydown="handleAmountKeydown(this, event)" />
                     </td>
                     <td class="p-2 border text-center">
                         <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -379,24 +379,11 @@
         }
     }
     
-    // Initialize amount inputs
+    // Initialize amount inputs: format with thousand separators as you type (no auto-append of .00)
     document.addEventListener('DOMContentLoaded', function() {
         const amountInputs = document.querySelectorAll('.total');
         amountInputs.forEach(input => {
-            // Set default value
-            if (!input.value) {
-                input.value = '0.00';
-            }
-            
-            // Add event listeners
-            input.addEventListener('blur', function() {
-                formatNumberWithDecimals(this);
-            });
-            
-            input.addEventListener('input', function() {
-                // Format as user types for consistent display
-                formatNumberAsYouType(this);
-            });
+            input.addEventListener('input', function() { formatNumberAsYouType(this); });
         });
     });
     </script>
