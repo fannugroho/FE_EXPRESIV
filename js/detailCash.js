@@ -2903,7 +2903,7 @@ function displayAttachments(attachments) {
 
 async function fetchBusinessPartners() {
     try {
-        const response = await fetch(`${BASE_URL}/api/business-partners/type/employee`);
+        const response = await fetch(`${BASE_URL}/api/business-partners/type/all`);
         if (!response.ok) throw new Error('Network response was not ok: ' + response.statusText);
         const data = await parseJsonSafe(response);
         if (!data) throw new Error('Invalid JSON response for business partners');
