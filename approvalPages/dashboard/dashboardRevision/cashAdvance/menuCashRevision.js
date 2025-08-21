@@ -192,7 +192,7 @@ function updateTable(documents = []) {
         remarksHeader.style.display = currentTab === 'revision' ? 'table-cell' : 'none';
     }
     
-    paginatedDocs.forEach(doc => {
+    paginatedDocs.forEach((doc, index) => {
         const row = document.createElement('tr');
         row.classList.add('border-t', 'hover:bg-gray-100');
         
@@ -201,7 +201,7 @@ function updateTable(documents = []) {
         
         // Create row HTML
         let rowHTML = `
-            <td class="p-2">${doc.id ? doc.id.toString().substring(0, 10) : ''}</td>
+            <td class="p-2">${startIndex + index + 1}</td>
             <td class="p-2">${doc.cashAdvanceNo || '-'}</td>
             <td class="p-2">${doc.requesterName || '-'}</td>
             <td class="p-2">${doc.departmentName || '-'}</td>
@@ -336,8 +336,8 @@ function downloadExcel() {
     const workbook = XLSX.utils.book_new();
     
     // Prepare data for worksheet
-    const wsData = dataToExport.map(doc => ({
-        'ID': doc.id,
+    const wsData = dataToExport.map((doc, index) => ({
+        'Doc Number': index + 1,
         'Cash Advance Number': doc.cashAdvanceNo || '',
         'Requester': doc.requesterName || '',
         'Department': doc.departmentName || '',
@@ -376,8 +376,8 @@ function downloadPDF() {
     doc.text(`Cash Advance ${currentTab.charAt(0).toUpperCase() + currentTab.slice(1)} Report`, 14, 15);
     
     // Prepare table data
-    const tableData = dataToExport.map(doc => [
-        doc.id ? doc.id.substring(0, 10) : '',
+    const tableData = dataToExport.map((doc, index) => [
+        index + 1,
         doc.cashAdvanceNo || '',
         doc.requesterName || '',
         doc.departmentName || '',
@@ -387,7 +387,7 @@ function downloadPDF() {
     ]);
     
     // Define table headers based on current tab
-    let headers = ['ID', 'Cash Advance Number', 'Requester', 'Department', 'Submission Date', 'Status'];
+    let headers = ['Doc Number', 'Cash Advance Number', 'Requester', 'Department', 'Submission Date', 'Status'];
     if (currentTab === 'revision') {
         headers.push('Remarks');
     }
