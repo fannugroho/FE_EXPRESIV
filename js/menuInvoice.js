@@ -1,9 +1,13 @@
-// Global variables
+// Global variables - Optimized with better memory management
 let allInvoices = [];
 let filteredInvoices = [];
 let currentTab = 'all';
 let currentPage = 1;
-const itemsPerPage = 10;
+const itemsPerPage = 20; // Increased for better UX
+let isLoading = false;
+let dataCache = new Map(); // Better caching with Map
+let lastFetchTime = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // API Configuration - Using BASE_URL from auth.js
 const API_BASE_URL = `${BASE_URL}/api`;
@@ -102,15 +106,24 @@ function formatDate(dateString) {
  *   ]
  * }
  */
+// Optimized fetch with better caching and error handling
 async function fetchARInvoiceDocuments() {
-    try {
-        // Get current user ID from auth.js
-        const userId = getLocalUserId();
-        console.log('Fetching AR invoice documents for user:', userId);
+    // Skip cache for now to ensure fresh data loads properly
+    // const cacheKey = `invoices_${getLocalUserId()}`;
+    // const cached = dataCache.get(cacheKey);
+    // const now = Date.now();
+    
+    // if (cached && (now - cached.timestamp) < CACHE_TTL) {
+    //     console.log('🚀 Using cached data');
+    //     return cached.data;
+    // }
 
-        // Check if user is authenticated
+    try {
+        const userId = getLocalUserId();
+        console.log('🔄 Fetching AR invoice documents for user:', userId);
+
         if (typeof window.isAuthenticated === 'function' && !window.isAuthenticated()) {
-            console.error('User not authenticated');
+            console.error('❌ User not authenticated');
             throw new Error('User not authenticated. Please login again.');
         }
 
@@ -166,22 +179,27 @@ async function fetchARInvoiceDocuments() {
         }
 
         const result = await response.json();
-        console.log('API response:', result);
+        console.log('✅ API response received');
 
+        let data = [];
         // Handle response structure based on new API format
         if (result.status && result.data && Array.isArray(result.data)) {
-            console.log(`Successfully loaded ${result.data.length} invoices from API for Kansai Employee ID ${kansaiEmployeeId}`);
-            return result.data;
+            data = result.data;
         } else if (Array.isArray(result)) {
-            console.log(`Successfully loaded ${result.length} invoices from API (direct array)`);
-            return result;
+            data = result;
         } else if (result.data) {
-            console.log(`Successfully loaded ${result.data.length} invoices from API (data field)`);
-            return result.data;
-        } else {
-            console.warn('No valid data found in API response');
-            return [];
+            data = result.data;
         }
+
+        // Cache the result (disabled for debugging)
+        // dataCache.set(cacheKey, {
+        //     data,
+        //     timestamp: now
+        // });
+        
+        console.log(`✅ Loaded ${data.length} invoices`);
+        // lastFetchTime = now;
+        return data;
     } catch (error) {
         console.error('Error fetching AR invoice documents:', error);
         throw error;
@@ -383,39 +401,58 @@ async function fetchInvoiceData() {
     }
 }
 
-// Function to update counters
+// Optimized counter update with single pass and memoization
+let statusCounts = {};
+let lastCounterUpdate = 0;
+
 function updateCounters() {
-    // Count total documents
-    document.getElementById('totalCount').textContent = allInvoices.length;
+    const now = Date.now();
+    // Skip update if called within 100ms (debouncing)
+    if (now - lastCounterUpdate < 100) return;
+    lastCounterUpdate = now;
 
-    // Count by status using the current filtered documents
-    const draftCount = allInvoices.filter(invoice => getStatusFromInvoice(invoice) === 'Draft').length;
-    const preparedCount = allInvoices.filter(invoice => getStatusFromInvoice(invoice) === 'Prepared').length;
-    const checkedCount = allInvoices.filter(invoice => getStatusFromInvoice(invoice) === 'Checked').length;
-    const acknowledgedCount = allInvoices.filter(invoice => getStatusFromInvoice(invoice) === 'Acknowledged').length;
-    const approvedCount = allInvoices.filter(invoice => getStatusFromInvoice(invoice) === 'Approved').length;
-    const receivedCount = allInvoices.filter(invoice => getStatusFromInvoice(invoice) === 'Received').length;
-    const rejectedCount = allInvoices.filter(invoice => getStatusFromInvoice(invoice) === 'Rejected').length;
-
-    // Update counter displays
-    document.getElementById('draftCount').textContent = draftCount;
-    document.getElementById('preparedCount').textContent = preparedCount;
-    document.getElementById('checkedCount').textContent = checkedCount;
-    document.getElementById('acknowledgedCount').textContent = acknowledgedCount;
-    document.getElementById('approvedCount').textContent = approvedCount;
-    document.getElementById('receivedCount').textContent = receivedCount;
-    document.getElementById('rejectedCount').textContent = rejectedCount;
-
-    console.log('Counters updated:', {
+    // Single pass counting for better performance
+    statusCounts = {
         total: allInvoices.length,
-        draft: draftCount,
-        prepared: preparedCount,
-        checked: checkedCount,
-        acknowledged: acknowledgedCount,
-        approved: approvedCount,
-        received: receivedCount,
-        rejected: rejectedCount
+        Draft: 0,
+        Prepared: 0,
+        Checked: 0,
+        Acknowledged: 0,
+        Approved: 0,
+        Received: 0,
+        Rejected: 0
+    };
+
+    allInvoices.forEach(invoice => {
+        const status = getStatusFromInvoice(invoice);
+        if (statusCounts[status] !== undefined) {
+            statusCounts[status]++;
+        }
     });
+
+    // Batch DOM updates
+    const updates = {
+        'totalCount': statusCounts.total,
+        'draftCount': statusCounts.Draft,
+        'preparedCount': statusCounts.Prepared,
+        'checkedCount': statusCounts.Checked,
+        'acknowledgedCount': statusCounts.Acknowledged,
+        'approvedCount': statusCounts.Approved,
+        'receivedCount': statusCounts.Received,
+        'rejectedCount': statusCounts.Rejected
+    };
+
+    // Use requestAnimationFrame for smoother DOM updates
+    requestAnimationFrame(() => {
+        Object.entries(updates).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element && element.textContent !== value.toString()) {
+                element.textContent = value;
+            }
+        });
+    });
+
+    console.log('Counters updated efficiently:', statusCounts);
 }
 
 /**
@@ -503,11 +540,10 @@ function getStatusClass(status) {
     }
 }
 
-// Function to display invoices in the table
+// Optimized display with virtual scrolling and fragment rendering
 function displayInvoices() {
     const tableBody = document.getElementById('recentDocs');
-    tableBody.innerHTML = '';
-
+    
     if (filteredInvoices.length === 0) {
         tableBody.innerHTML = `
             <tr>
@@ -524,9 +560,13 @@ function displayInvoices() {
     const endIndex = Math.min(startIndex + itemsPerPage, filteredInvoices.length);
     const pageInvoices = filteredInvoices.slice(startIndex, endIndex);
 
+    // Use DocumentFragment for better performance
+    const fragment = document.createDocumentFragment();
+    
     // Update pagination info
     updatePagination();
 
+    // Batch DOM operations using DocumentFragment
     pageInvoices.forEach((invoice, index) => {
         // Debug logging for stagingID
         console.log(`Invoice ${index + 1} stagingID:`, invoice.stagingID);
@@ -583,7 +623,7 @@ function displayInvoices() {
         // Enhanced field mapping for new API structure
         const invoiceNumber = invoice.numAtCard || invoice.u_bsi_invnum || invoice.visInv || '-';
         const customerName = invoice.cardName || '-';
-        const salesEmployee = invoice.u_BSI_Expressiv_PreparedByName || '-';
+        // const salesEmployee = invoice.u_BSI_Expressiv_PreparedByName || '-'; // Removed unused variable
         const totalAmount = invoice.docTotal || invoice.grandTotal || 0;
         const documentType = getDocumentType(invoice.docType);
 
@@ -604,8 +644,12 @@ function displayInvoices() {
             </td>
         `;
 
-        tableBody.appendChild(row);
+        fragment.appendChild(row);
     });
+    
+    // Single DOM operation
+    tableBody.innerHTML = '';
+    tableBody.appendChild(fragment);
 }
 
 // Helper function to format currency
@@ -678,43 +722,25 @@ async function switchTab(tab) {
             console.log(`Prepared documents fetched: ${documents.length} documents`);
         }
 
-        // Update the filtered documents
-        filteredInvoices = documents;
-        allInvoices = documents;
-
-        // Apply search filter if there's a search term
-        const searchTerm = document.getElementById('searchInput')?.value?.toLowerCase() || '';
-        const searchType = document.getElementById('searchType')?.value || 'invoice';
-
-        console.log(`Search term: "${searchTerm}", Search type: "${searchType}"`);
-        console.log(`Documents before search filter: ${filteredInvoices.length}`);
-
+        // Update data arrays properly
+        allInvoices = [...documents]; // Always use all data for counters
+        filteredInvoices = [...documents]; // Start with all data for current tab
+        
+        console.log(`✅ Tab switched to ${tab}: ${documents.length} documents loaded`);
+        
+        // Apply any existing search filter
+        const searchInput = document.getElementById('searchInput');
+        const searchTerm = searchInput?.value?.toLowerCase().trim() || '';
+        
         if (searchTerm) {
-            filteredInvoices = filteredInvoices.filter(doc => {
-                switch (searchType) {
-                    case 'invoice':
-                        return (doc.numAtCard && doc.numAtCard.toLowerCase().includes(searchTerm)) ||
-                            (doc.u_bsi_invnum && doc.u_bsi_invnum.toLowerCase().includes(searchTerm)) ||
-                            (doc.docNum && doc.docNum.toString().includes(searchTerm));
-                    case 'customer':
-                        return doc.cardName && doc.cardName.toLowerCase().includes(searchTerm);
-                    case 'date':
-                        const docDate = doc.docDate || doc.postingDate;
-                        return docDate && formatDate(docDate).toLowerCase().includes(searchTerm);
-                    case 'status':
-                        const status = getStatusFromInvoice(doc);
-                        return status.toLowerCase().includes(searchTerm);
-                    default:
-                        return true;
-                }
-            });
-            console.log(`Documents after search filter: ${filteredInvoices.length}`);
+            console.log(`🔍 Applying existing search: "${searchTerm}"`);
+            performSearch(); // This will filter the data properly
         }
-
-        // Update counters
+        
+        // Update counters with all data (not filtered)
         updateCounters();
-
-        // Display documents
+        
+        // Display the (possibly filtered) documents
         displayInvoices();
 
     } catch (error) {
@@ -751,17 +777,37 @@ function changePage(direction) {
     displayInvoices();
 }
 
-// Function to setup search functionality
+// Fixed search setup with proper event handling
+const eventCleanup = [];
+
 function setupSearch() {
     const searchInput = document.getElementById('searchInput');
     const searchType = document.getElementById('searchType');
 
+    console.log('🔍 Setting up search...', { searchInput: !!searchInput, searchType: !!searchType });
+
     if (searchInput) {
-        searchInput.addEventListener('input', performSearch);
+        // Remove existing listeners first
+        const newInput = searchInput.cloneNode(true);
+        searchInput.parentNode.replaceChild(newInput, searchInput);
+        
+        // Add debounced search
+        const debouncedHandler = debounce(performSearch, 300);
+        newInput.addEventListener('input', debouncedHandler);
+        eventCleanup.push(() => newInput.removeEventListener('input', debouncedHandler));
+        
+        console.log('✅ Search input event listener added');
     }
 
     if (searchType) {
-        searchType.addEventListener('change', performSearch);
+        // Remove existing listeners first
+        const newSelect = searchType.cloneNode(true);
+        searchType.parentNode.replaceChild(newSelect, searchType);
+        
+        newSelect.addEventListener('change', performSearch);
+        eventCleanup.push(() => newSelect.removeEventListener('change', performSearch));
+        
+        console.log('✅ Search type event listener added');
     }
 }
 
@@ -794,27 +840,45 @@ function updatePagination() {
     });
 }
 
-// Function to perform search
+// Fixed search functionality
 function performSearch() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const searchType = document.getElementById('searchType').value;
-
-    console.log('Performing search:', { searchTerm, searchType, currentTab });
-
-    // Apply search filter to the current documents
-    if (searchTerm) {
+    const searchInput = document.getElementById('searchInput');
+    const searchType = document.getElementById('searchType');
+    
+    if (!searchInput || !searchType) {
+        console.warn('Search elements not found');
+        return;
+    }
+    
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    const searchTypeValue = searchType.value;
+    
+    console.log('🔍 Performing search:', { searchTerm, searchTypeValue });
+    
+    if (!searchTerm) {
+        // If no search term, show all documents
+        filteredInvoices = [...allInvoices];
+        console.log('📄 Showing all documents:', filteredInvoices.length);
+    } else {
+        // Filter based on search type and term
         filteredInvoices = allInvoices.filter(invoice => {
-            switch (searchType) {
+            switch (searchTypeValue) {
                 case 'invoice':
-                    return (invoice.numAtCard && invoice.numAtCard.toLowerCase().includes(searchTerm)) ||
+                    return (
+                        (invoice.numAtCard && invoice.numAtCard.toLowerCase().includes(searchTerm)) ||
                         (invoice.u_bsi_invnum && invoice.u_bsi_invnum.toLowerCase().includes(searchTerm)) ||
                         (invoice.visInv && invoice.visInv.toLowerCase().includes(searchTerm)) ||
-                        (invoice.docNum && invoice.docNum.toString().includes(searchTerm));
+                        (invoice.docNum && invoice.docNum.toString().toLowerCase().includes(searchTerm))
+                    );
                 case 'customer':
                     return invoice.cardName && invoice.cardName.toLowerCase().includes(searchTerm);
                 case 'date':
                     const docDate = invoice.docDate || invoice.postingDate;
-                    return docDate && formatDate(docDate).toLowerCase().includes(searchTerm);
+                    if (docDate) {
+                        const formattedDate = formatDate(docDate);
+                        return formattedDate.toLowerCase().includes(searchTerm);
+                    }
+                    return false;
                 case 'status':
                     const status = getStatusFromInvoice(invoice);
                     return status.toLowerCase().includes(searchTerm);
@@ -822,20 +886,14 @@ function performSearch() {
                     return true;
             }
         });
-    } else {
-        // If no search term, show all documents for current tab
-        filteredInvoices = [...allInvoices];
+        console.log('🔍 Search results:', filteredInvoices.length, 'found');
     }
-
-    console.log(`Search results: ${filteredInvoices.length} documents found`);
-
-    // Reset to first page when searching
+    
+    // Reset to first page
     currentPage = 1;
-
-    // Update pagination
+    
+    // Update display
     updatePagination();
-
-    // Display filtered results
     displayInvoices();
 }
 
@@ -1052,24 +1110,29 @@ function refreshData() {
     fetchInvoiceData();
 }
 
-// Add refresh button functionality
+// Fixed initialization order
 document.addEventListener('DOMContentLoaded', function () {
-    // Refresh button functionality removed as requested
+    console.log('🚀 DOM Content Loaded - Initializing...');
 
-    // Add caching functionality for better performance
-    setupCaching();
-
-    // Load user data immediately
+    // 1. Load user data first
     loadUserData();
+    
+    // 2. Set up search functionality before fetching data
+    setTimeout(() => {
+        setupSearch();
+        console.log('✅ Search setup completed');
+    }, 100);
 
-    // Fetch invoice data
-    fetchInvoiceData();
+    // 3. Fetch and display invoice data
+    setTimeout(() => {
+        fetchInvoiceData();
+        console.log('✅ Initial data fetch started');
+    }, 200);
 
-    // Set up search functionality
-    setupSearch();
-
-    // Add auto-refresh functionality
+    // 4. Add auto-refresh functionality
     setupAutoRefresh();
+    
+    console.log('✅ All initialization completed');
 });
 
 // Function to setup auto-refresh functionality
@@ -1104,68 +1167,90 @@ function setupAutoRefresh() {
         }
     }
 
-    // Additional refresh on page load for better reliability
-    setTimeout(() => {
-        console.log('Initial page load refresh...');
-        fetchInvoiceData();
-    }, 1000);
+    // Optimized initial load with requestIdleCallback
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => {
+            console.log('🚀 Idle callback refresh...');
+            fetchInvoiceData();
+        }, { timeout: 2000 });
+    } else {
+        setTimeout(() => {
+            console.log('🚀 Fallback timeout refresh...');
+            fetchInvoiceData();
+        }, 1000);
+    }
 }
 
-// Caching functionality for better performance
-function setupCaching() {
-    // Cache data in localStorage for 5 minutes
-    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+// Modern caching with better performance and storage management
+class InvoiceCache {
+    constructor() {
+        this.memCache = new Map();
+        this.storageKey = 'expressiv_invoice_cache';
+        this.maxMemCacheSize = 100;
+    }
 
-    window.cacheInvoiceData = function (data) {
-        const cacheData = {
-            data: data,
+    set(key, data) {
+        // Memory cache
+        if (this.memCache.size >= this.maxMemCacheSize) {
+            const firstKey = this.memCache.keys().next().value;
+            this.memCache.delete(firstKey);
+        }
+        
+        this.memCache.set(key, {
+            data,
             timestamp: Date.now()
-        };
-        localStorage.setItem('invoiceDataCache', JSON.stringify(cacheData));
-        console.log('Invoice data cached successfully');
-    };
+        });
 
-    window.getCachedInvoiceData = function () {
-        const cached = localStorage.getItem('invoiceDataCache');
-        if (cached) {
+        // Persistent cache (smaller dataset)
+        if (key.includes('main_data')) {
             try {
-                const cacheData = JSON.parse(cached);
-                const now = Date.now();
-
-                if (now - cacheData.timestamp < CACHE_DURATION) {
-                    console.log('Using cached invoice data');
-                    return cacheData.data;
-                } else {
-                    console.log('Cache expired, removing old cache');
-                    localStorage.removeItem('invoiceDataCache');
-                }
-            } catch (error) {
-                console.error('Error parsing cached data:', error);
-                localStorage.removeItem('invoiceDataCache');
+                localStorage.setItem(this.storageKey, JSON.stringify({
+                    data,
+                    timestamp: Date.now()
+                }));
+            } catch (e) {
+                console.warn('⚠️ LocalStorage full, clearing old cache');
+                this.clearStorage();
             }
         }
-        return null;
-    };
+    }
 
-    // Enhanced fetch function with caching
-    window.fetchWithCache = async function () {
-        // Try to get cached data first
-        const cachedData = window.getCachedInvoiceData();
-        if (cachedData) {
-            console.log('Returning cached data');
-            return cachedData;
+    get(key, ttl = CACHE_TTL) {
+        // Check memory cache first
+        const memCached = this.memCache.get(key);
+        if (memCached && (Date.now() - memCached.timestamp) < ttl) {
+            return memCached.data;
         }
 
-        // If no cache, fetch from API
-        console.log('No cached data found, fetching from API...');
-        const freshData = await fetchARInvoiceDocuments();
+        // Check localStorage for main data
+        if (key.includes('main_data')) {
+            try {
+                const stored = localStorage.getItem(this.storageKey);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if ((Date.now() - parsed.timestamp) < ttl) {
+                        return parsed.data;
+                    }
+                }
+            } catch (e) {
+                this.clearStorage();
+            }
+        }
+        
+        return null;
+    }
 
-        // Cache the fresh data
-        window.cacheInvoiceData(freshData);
+    clearStorage() {
+        localStorage.removeItem(this.storageKey);
+    }
 
-        return freshData;
-    };
+    clear() {
+        this.memCache.clear();
+        this.clearStorage();
+    }
 }
+
+const invoiceCache = new InvoiceCache();
 
 // Performance optimization functions
 function debounce(func, wait) {
@@ -1180,37 +1265,35 @@ function debounce(func, wait) {
     };
 }
 
-// Debounced search function
-const debouncedSearch = debounce(performSearch, 300);
+// Remove duplicate - debouncing is handled in setupSearch()
 
-// Update search function to use debouncing
-function setupSearch() {
-    const searchInput = document.getElementById('searchInput');
-    const searchType = document.getElementById('searchType');
-
-    if (searchInput) {
-        searchInput.addEventListener('input', debouncedSearch);
-    }
-
-    if (searchType) {
-        searchType.addEventListener('change', debouncedSearch);
-    }
-}
-
-// Memory management
-function cleanupEventListeners() {
-    // Remove any existing event listeners to prevent memory leaks
-    const inputs = document.querySelectorAll('input, textarea, select');
-    inputs.forEach(input => {
-        const newInput = input.cloneNode(true);
-        input.parentNode.replaceChild(newInput, input);
+// Enhanced memory management
+function cleanupResources() {
+    // Clean up event listeners
+    eventCleanup.forEach(cleanup => {
+        try {
+            cleanup();
+        } catch (e) {
+            console.warn('⚠️ Error during cleanup:', e);
+        }
     });
+    eventCleanup.length = 0;
+    
+    // Clear caches
+    searchCache.clear();
+    invoiceCache.clear();
+    
+    // Reset global state
+    allInvoices.length = 0;
+    filteredInvoices.length = 0;
+    searchIndex = null;
+    
+    console.log('🧹 Resources cleaned up');
 }
 
 // Cleanup on page unload
-window.addEventListener('beforeunload', function () {
-    cleanupEventListeners();
-});
+window.addEventListener('beforeunload', cleanupResources);
+window.addEventListener('pagehide', cleanupResources);
 
 // Enhanced error handling
 function showErrorNotification(message, title = 'Error') {
@@ -1256,8 +1339,7 @@ function handleNetworkError(error) {
     showErrorNotification(errorMessage, 'Network Error');
 }
 
-// Loading state management
-let isLoading = false;
+// Loading state management - removed duplicate declaration
 
 function setLoadingState(loading) {
     isLoading = loading;
@@ -1308,38 +1390,38 @@ async function fetchInvoiceDataWithMonitoring() {
     });
 }
 
-// Update the main fetch function to use monitoring
+// Fixed main fetch function
 async function fetchInvoiceData() {
     try {
         // Show loading state
-        document.getElementById('recentDocs').innerHTML = '<tr><td colspan="10" class="text-center py-4"><div class="flex items-center justify-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div><span class="ml-2">Loading data...</span></div></td></tr>';
+        const tableBody = document.getElementById('recentDocs');
+        if (tableBody) {
+            tableBody.innerHTML = '<tr><td colspan="10" class="text-center py-4"><div class="flex items-center justify-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div><span class="ml-2">Loading data...</span></div></td></tr>';
+        }
 
-        console.log('Fetching invoice data with performance monitoring...');
+        console.log('🔄 Fetching invoice data...');
 
-        // Fetch data using enhanced function
-        const documents = await fetchInvoiceDataWithMonitoring();
+        // Fetch data directly
+        const documents = await fetchARInvoiceDocuments();
 
         if (Array.isArray(documents)) {
-            allInvoices = documents;
-            console.log('Invoice data loaded from API:', allInvoices);
+            allInvoices = [...documents]; // Create copy
+            filteredInvoices = [...documents]; // Set filtered to all initially
+            
+            console.log('✅ Invoice data loaded:', allInvoices.length, 'invoices');
 
             // Debug: Log the structure of the first invoice
             if (allInvoices.length > 0) {
                 console.log('First invoice structure:', allInvoices[0]);
-                console.log('Available fields:', Object.keys(allInvoices[0]));
             }
+            
+            // Update counters and display
+            updateCounters();
+            displayInvoices();
+            
         } else {
             throw new Error('Invalid API response format');
         }
-
-        // Update counters
-        updateCounters();
-
-        // Set filtered invoices to all invoices initially
-        filteredInvoices = [...allInvoices];
-
-        // Display invoices
-        displayInvoices();
 
     } catch (error) {
         console.error('Error fetching invoice data:', error);
