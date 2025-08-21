@@ -34,7 +34,7 @@ const OptimizedUtils = {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
-            
+
             return `${year}-${month}-${day}`;
         } catch (error) {
             console.warn('Date formatting error:', error);
@@ -486,10 +486,10 @@ function populateFormData(data) {
         'stagingID': data.stagingID,
         'docNum': data.docNum
     });
-    
+
     const status = getStatusFromInvoice(data);
     console.log('✅ Final determined status:', status);
-    
+
     // Update the Status field in headerFields and set it to the form
     headerFields.Status = status;
     OptimizedUtils.safeSetValue('Status', status);
@@ -675,11 +675,11 @@ function populateFooterTotals(data) {
 // Helper function to format numbers with thousand separator
 function formatNumberWithCommas(value) {
     if (!value || value === '' || value === null || value === undefined) return '';
-    
+
     // Convert to number and check if it's valid
     const number = parseFloat(value);
     if (isNaN(number)) return value; // Return original value if not a number
-    
+
     // Format with thousand separator (Indonesian style: 1.000.000,00)
     return number.toLocaleString('id-ID', {
         minimumFractionDigits: 2,
@@ -690,10 +690,10 @@ function formatNumberWithCommas(value) {
 // Helper function to format quantity (no decimal places for whole numbers)
 function formatQuantity(value) {
     if (!value || value === '' || value === null || value === undefined) return '';
-    
+
     const number = parseFloat(value);
     if (isNaN(number)) return value;
-    
+
     // Check if it's a whole number
     if (number % 1 === 0) {
         return number.toLocaleString('id-ID', {
@@ -842,23 +842,26 @@ function getStatusFromInvoice(invoice) {
         'docNum': invoice.docNum
     });
 
+
     // Priority 1: Always check arInvoiceApprovalSummary.approvalStatus first (this is the most accurate)
-    if (invoice.arInvoiceApprovalSummary && invoice.arInvoiceApprovalSummary.approvalStatus) {
+    if (invoice.arInvoiceApprovalSummary) {
         const apiStatus = invoice.arInvoiceApprovalSummary.approvalStatus;
-        console.log('✅ PRIORITY 1: Using approvalStatus from arInvoiceApprovalSummary:', apiStatus);
-        console.log('📋 This should match your database status. If not, check API response.');
-        return apiStatus;
-    } else {
-        console.log('❌ PRIORITY 1: arInvoiceApprovalSummary.approvalStatus not found or empty');
-        if (!invoice.arInvoiceApprovalSummary) {
-            console.log('   - arInvoiceApprovalSummary is null/undefined');
-        } else if (!invoice.arInvoiceApprovalSummary.approvalStatus) {
-            console.log('   - approvalStatus field is missing or empty in arInvoiceApprovalSummary');
+        if (apiStatus === null || apiStatus === undefined || apiStatus === '') {
+            console.log('✅ approvalStatus is null/empty, treating as Draft');
+            return 'Draft';
+        } else {
+            console.log('✅ PRIORITY 1: Using approvalStatus from arInvoiceApprovalSummary:', apiStatus);
+            console.log('📋 This should match your database status. If not, check API response.');
+            return apiStatus;
         }
     }
 
     // Priority 2: Check direct approvalStatus field from invoice root
-    if (invoice.approvalStatus && invoice.approvalStatus.trim() !== '') {
+    if (invoice.approvalStatus === null || invoice.approvalStatus === undefined || (typeof invoice.approvalStatus === 'string' && invoice.approvalStatus.trim() === '')) {
+        // treat as Draft
+        console.log('✅ direct approvalStatus is null/empty, treating as Draft');
+        return 'Draft';
+    } else if (invoice.approvalStatus && invoice.approvalStatus.trim() !== '') {
         console.log('✅ Using direct approvalStatus field:', invoice.approvalStatus);
         return invoice.approvalStatus;
     }
@@ -2381,7 +2384,7 @@ async function updateInvoiceStatusToRejectedService(remarks = '') {
         });
 
         const now = new Date().toISOString();
-        
+
         // Create snapshot of current invoice data to preserve what was rejected
         const invoiceSnapshot = {
             invoiceNumber: invoiceData.u_bsi_invnum || invoiceData.docNum,
@@ -2394,7 +2397,7 @@ async function updateInvoiceStatusToRejectedService(remarks = '') {
             totalAmount: invoiceData.grandTotal || invoiceData.total,
             snapshotDate: now
         };
-        
+
         const payload = {
             approvalStatus: 'Rejected',
             rejectedDate: now,
@@ -2419,7 +2422,7 @@ async function updateInvoiceStatusToRejectedService(remarks = '') {
         }
 
         console.log('✅ Invoice status updated to Rejected successfully');
-        
+
         // Update local data
         if (invoiceData.arInvoiceApprovalSummary) {
             invoiceData.arInvoiceApprovalSummary.approvalStatus = 'Rejected';
@@ -2490,17 +2493,17 @@ function getCurrentUserFullNameDetailService() {
 // Function to display rejection details
 function displayRejectionDetails(data) {
     console.log('🔴 Displaying rejection details for rejected invoice');
-    
+
     const rejectionSection = document.getElementById('rejectionDetailsSection');
     const rejectionTextarea = document.getElementById('rejectionRemarks');
 
     if (rejectionSection && rejectionTextarea) {
         // Show rejection section
         rejectionSection.style.display = 'block';
-        
+
         // Fill rejection remarks
         rejectionTextarea.value = data.arInvoiceApprovalSummary.rejectionRemarks || '';
-        
+
         // Helper function to safely set element text
         const setElementText = (id, value) => {
             const element = document.getElementById(id);
@@ -2510,7 +2513,7 @@ function displayRejectionDetails(data) {
                 console.warn(`⚠️ Element with id '${id}' not found`);
             }
         };
-        
+
         // Fill rejected invoice details
         setElementText('rejectedInvoiceNumber', data.u_bsi_invnum || data.docNum);
         setElementText('rejectedCustomerName', data.cardName);
@@ -2522,7 +2525,7 @@ function displayRejectionDetails(data) {
         setElementText('rejectedTotalAmount', OptimizedUtils.formatCurrencyIDR(data.grandTotal || data.total));
         setElementText('rejectedByName', data.arInvoiceApprovalSummary.rejectedByName);
         setElementText('rejectedDate', formatDate(data.arInvoiceApprovalSummary.rejectedDate));
-        
+
         console.log('✅ Rejection details displayed successfully');
     } else {
         console.warn('⚠️ Rejection details section or textarea not found');
@@ -2532,7 +2535,7 @@ function displayRejectionDetails(data) {
 // Function to hide rejection details
 function hideRejectionDetails() {
     console.log('🔴 Hiding rejection details section');
-    
+
     const rejectionSection = document.getElementById('rejectionDetailsSection');
     if (rejectionSection) {
         rejectionSection.style.display = 'none';

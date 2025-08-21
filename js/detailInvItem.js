@@ -825,13 +825,13 @@ function populateFormData(data) {
             if (rejectionSection && rejectionTextarea) {
                 rejectionSection.style.display = 'block';
                 rejectionTextarea.value = data.arInvoiceApprovalSummary.rejectionRemarks || '';
-                
+
                 // Fill rejected invoice details
                 const setElementText = (id, value) => {
                     const element = document.getElementById(id);
                     if (element) element.textContent = value || '-';
                 };
-                
+
                 setElementText('rejectedInvoiceNumber', data.u_bsi_invnum || data.docNum);
                 setElementText('rejectedCustomerName', data.cardName);
                 setElementText('rejectedInvoiceDate', formatDate(data.docDate));
@@ -842,7 +842,7 @@ function populateFormData(data) {
                 setElementText('rejectedTotalAmount', formatCurrencyIDR(data.grandTotal || data.total));
                 setElementText('rejectedByName', data.arInvoiceApprovalSummary.rejectedByName);
                 setElementText('rejectedDate', formatDate(data.arInvoiceApprovalSummary.rejectedDate));
-                
+
                 console.log('✅ Rejection details displayed');
             } else {
                 console.warn('⚠️ Rejection details section elements not found');
@@ -1129,15 +1129,25 @@ function getStatusFromInvoice(invoice) {
     console.log('👥 Invoice arInvoiceApprovalSummary is null:', invoice.arInvoiceApprovalSummary === null);
     console.log('👥 Invoice arInvoiceApprovalSummary is undefined:', invoice.arInvoiceApprovalSummary === undefined);
 
+
     // Priority 1: Check if invoice has approval summary with approvalStatus
-    if (invoice.arInvoiceApprovalSummary && invoice.arInvoiceApprovalSummary.approvalStatus) {
+    if (invoice.arInvoiceApprovalSummary) {
         const approvalStatus = invoice.arInvoiceApprovalSummary.approvalStatus;
-        console.log('✅ Using approvalStatus from arInvoiceApprovalSummary:', approvalStatus);
-        return approvalStatus;
+        if (approvalStatus === null || approvalStatus === undefined || approvalStatus === '') {
+            console.log('✅ approvalStatus is null/empty, treating as Draft');
+            return 'Draft';
+        } else {
+            console.log('✅ Using approvalStatus from arInvoiceApprovalSummary:', approvalStatus);
+            return approvalStatus;
+        }
     }
 
     // Priority 2: Check if invoice has direct approvalStatus field
-    if (invoice.approvalStatus) {
+    if (invoice.approvalStatus === null || invoice.approvalStatus === undefined || invoice.approvalStatus === '') {
+        // treat as Draft
+        console.log('✅ direct approvalStatus is null/empty, treating as Draft');
+        return 'Draft';
+    } else if (invoice.approvalStatus) {
         console.log('✅ Using direct approvalStatus field:', invoice.approvalStatus);
         return invoice.approvalStatus;
     }
@@ -2588,7 +2598,7 @@ async function updateInvoiceStatusToRejected(remarks = '') {
         });
 
         const now = new Date().toISOString();
-        
+
         // Create snapshot of current invoice data to preserve what was rejected
         const invoiceSnapshot = {
             invoiceNumber: invoiceData.u_bsi_invnum || invoiceData.docNum,
@@ -2601,7 +2611,7 @@ async function updateInvoiceStatusToRejected(remarks = '') {
             totalAmount: invoiceData.grandTotal || invoiceData.total,
             snapshotDate: now
         };
-        
+
         const payload = {
             approvalStatus: 'Rejected',
             rejectedDate: now,
