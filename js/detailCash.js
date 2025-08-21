@@ -1010,13 +1010,6 @@ if (docTypeElement) {
 
 function previewPDF(event) {
     const files = event.target.files;
-    const totalExistingFiles = attachmentsToKeep.length + uploadedFiles.length;
-
-    if (files.length + totalExistingFiles > 5) {
-        alert('Maximum 5 PDF files are allowed.');
-        event.target.value = ''; // Clear the file input
-        return;
-    }
 
     Array.from(files).forEach(file => {
         if (file.type === 'application/pdf') {
@@ -1133,7 +1126,7 @@ async function addRow() {
             <input type="text" class="description w-full" maxlength="200" />
         </td>
         <td class="p-2 border">
-            <input type="text" class="total w-full" required oninput="calculateTotalAmount()"/>
+            <input type="text" class="total w-full" required onkeydown="handleAmountKeydown(this, event)" />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -1229,54 +1222,102 @@ function formatNumberWithDecimals(input) {
     calculateTotalAmount();
 }
 
-// Real-time formatting with thousand separators; preserve typed decimals
+// Real-time formatting with thousand separators; preserve cursor position
 function formatNumberAsYouType(input) {
-    console.log('=== formatNumberAsYouType DEBUG START ===');
-    console.log('Input element:', input);
-    console.log('Input value before processing:', input.value);
+    const oldValue = (input.value || '').toString();
+    const selectionStart = input.selectionStart || 0;
     
-    let raw = (input.value || '').toString();
-    console.log('Raw value after toString():', raw);
-    
-    raw = raw.replace(/,/g, '');
-    console.log('After removing commas:', raw);
-    
-    // Keep only digits and one optional decimal point
+    // Count digits before cursor position for cursor restoration
+    const digitsBeforeCaret = oldValue.slice(0, selectionStart).replace(/[^0-9]/g, '').length;
+
+    // Clean the input: remove all non-numeric except decimal point
+    let raw = oldValue.replace(/,/g, '');
     const firstDot = raw.indexOf('.');
     if (firstDot !== -1) {
+        // Keep only the first decimal point
         raw = raw.slice(0, firstDot + 1) + raw.slice(firstDot + 1).replace(/\./g, '');
-        console.log('After handling multiple decimal points:', raw);
     }
-    
-    raw = raw.replace(/[^\d.]/g, '');
-    console.log('After removing non-numeric chars:', raw);
-    
+    raw = raw.replace(/[^0-9.]/g, '');
+
     if (!raw) {
-        console.log('Empty value, setting to 0.00');
-        input.value = '0.00';
+        input.value = '';
+        try { input.setSelectionRange(0, 0); } catch (e) {}
         calculateTotalAmount();
         return;
     }
+
+    // Split into integer and decimal parts
+    const parts = raw.split('.');
+    let intPart = parts[0] || '';
+    let decPart = parts.length > 1 ? parts[1] : '';
     
-    // Only format if the user has finished typing (no decimal point or decimal part is complete)
-    if (raw.indexOf('.') === -1 || raw.split('.')[1]?.length === 2) {
-        const parts = raw.split('.');
-        const intPart = parts[0] || '0';
-        const decPart = parts.length > 1 ? parts[1] : '';
-        const formattedInt = Number(intPart).toLocaleString('en-US');
-        const finalValue = decPart !== '' ? `${formattedInt}.${decPart}` : formattedInt;
-        console.log('Applying full formatting. Parts:', { intPart, decPart, formattedInt, finalValue });
-        input.value = finalValue;
-    } else {
-        // Just update the display without full formatting while typing
-        console.log('Partial input, just updating display with raw value:', raw);
-        input.value = raw;
+    // Limit decimal part to 2 digits
+    if (decPart.length > 2) {
+        decPart = decPart.substring(0, 2);
     }
     
-    console.log('Final input.value after processing:', input.value);
-    console.log('=== formatNumberAsYouType DEBUG END ===');
+    // Remove leading zeros from integer part (but keep at least one digit)
+    intPart = intPart.replace(/^0+/, '') || '0';
     
+    // Format integer part with thousand separators
+    const formattedInt = intPart ? Number(intPart).toLocaleString('en-US') : '0';
+    
+    // Construct the new value
+    const newValue = decPart !== '' ? `${formattedInt}.${decPart}` : formattedInt;
+    input.value = newValue;
+
+    // Restore cursor position based on digit count before cursor
+    let newPos = 0;
+    let seenDigits = 0;
+    for (let i = 0; i < newValue.length; i++) {
+        if (/\d/.test(newValue[i])) {
+            seenDigits++;
+            if (seenDigits >= digitsBeforeCaret) {
+                newPos = i + 1;
+                break;
+            }
+        }
+        if (i === newValue.length - 1) {
+            newPos = newValue.length;
+        }
+    }
+    
+    try { 
+        input.setSelectionRange(newPos, newPos); 
+    } catch (e) {}
+
     calculateTotalAmount();
+}
+
+// Function to handle keydown events for amount input
+function handleAmountKeydown(input, event) {
+    const key = event.key;
+    const cursorPos = input.selectionStart;
+    const value = input.value;
+    
+    // Allow navigation keys
+    if (['ArrowLeft', 'ArrowRight', 'Home', 'End', 'Tab'].includes(key)) {
+        return true;
+    }
+    
+    // Allow backspace and delete
+    if (key === 'Backspace' || key === 'Delete') {
+        return true;
+    }
+    
+    // Allow decimal point only if it doesn't already exist
+    if (key === '.' && !value.includes('.')) {
+        return true;
+    }
+    
+    // Allow only numeric characters
+    if (/^\d$/.test(key)) {
+        return true;
+    }
+    
+    // Prevent other keys
+    event.preventDefault();
+    return false;
 }
 
 function confirmDelete() {
@@ -2263,12 +2304,9 @@ async function updateCashAdvance(isSubmit = false) {
         const departmentSelect = document.getElementById('departmentId');
         formData.append('DepartmentId', departmentSelect.value);
         
-        // Format dates
-        const submissionDate = document.getElementById('submissionDate').value;
-        if (submissionDate) {
-            // Send date value directly without timezone conversion
-            formData.append('SubmissionDate', submissionDate);
-        }
+        // Always use current date for submission
+        const currentDate = new Date().toISOString().split('T')[0];
+        formData.append('SubmissionDate', currentDate);
         
         // Use the transaction type from the select
         const transactionTypeSelect = document.getElementById('transactionType');

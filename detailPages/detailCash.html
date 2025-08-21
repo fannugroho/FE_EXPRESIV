@@ -31,6 +31,22 @@
             outline: none;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
         }
+        
+        /* Amount input styling */
+        .total {
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        .total:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+            background-color: #ffffff;
+        }
+        
+        .total:hover {
+            border-color: #60a5fa;
+        }
     </style>
 </head>
 
@@ -82,7 +98,7 @@
                     <option value="" disabled selected>Select Currency</option>
                 </select>
                 <h3 class="text-lg font-semibold mb-2">Submission Date</h3>
-                <input type="date" id="submissionDate" class="w-full p-2 border rounded">
+                <input type="date" id="submissionDate" class="w-full p-2 border rounded bg-gray-100" readonly>
                 <h3 class="text-lg font-semibold mb-2">Status</h3>
                 <select id="status" class="w-full p-2 border rounded bg-gray-100" disabled>
                     <option value="Draft">Draft</option>
@@ -146,7 +162,7 @@
                         <input type="text" class="description w-full" maxlength="200" />
                     </td>
                     <td class="p-2 border">
-                        <input type="text" class="total w-full" required oninput="calculateTotalAmount()"/>
+                        <input type="text" class="total w-full" required onkeydown="handleAmountKeydown(this, event)" />
                     </td>
                     <td class="p-2 border text-center">
                         <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -327,6 +343,10 @@
         // Panggil fungsi saat halaman dimuat untuk mengatur status awal
         document.addEventListener('DOMContentLoaded', function() {
             toggleClosedByVisibility();
+            
+            // Set current date to Submission Date field
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('submissionDate').value = today;
         });
     </script>
 
@@ -336,31 +356,117 @@
             let value = (input.value || '').toString().replace(/,/g, '').replace(/[^\d.]/g, '');
             if (!value || value === '.') {
                 input.value = '0.00';
+                calculateTotalAmount();
                 return;
             }
             const num = parseFloat(value);
             if (isNaN(num)) {
                 input.value = '0.00';
+                calculateTotalAmount();
                 return;
             }
             input.value = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            calculateTotalAmount();
         }
 
-        // Real-time formatting with thousand separators; preserve typed decimals
+        // Real-time formatting with thousand separators; preserve cursor position
         function formatNumberAsYouType(input) {
-            let raw = (input.value || '').toString();
-            raw = raw.replace(/,/g, '').replace(/[^\d.]/g, '');
+            const oldValue = (input.value || '').toString();
+            const selectionStart = input.selectionStart || 0;
+            
+            // Count digits before cursor position for cursor restoration
+            const digitsBeforeCaret = oldValue.slice(0, selectionStart).replace(/[^0-9]/g, '').length;
+
+            // Clean the input: remove all non-numeric except decimal point
+            let raw = oldValue.replace(/,/g, '');
+            const firstDot = raw.indexOf('.');
+            if (firstDot !== -1) {
+                // Keep only the first decimal point
+                raw = raw.slice(0, firstDot + 1) + raw.slice(firstDot + 1).replace(/\./g, '');
+            }
+            raw = raw.replace(/[^0-9.]/g, '');
+
             if (!raw) {
-                input.value = '0.00';
+                input.value = '';
+                try { input.setSelectionRange(0, 0); } catch (e) {}
+                calculateTotalAmount();
                 return;
             }
+
+            // Split into integer and decimal parts
             const parts = raw.split('.');
-            const intPart = parts[0] || '0';
-            const decPart = parts.length > 1 ? parts[1] : '';
-            const formattedInt = Number(intPart).toLocaleString('en-US');
-            input.value = decPart !== '' ? `${formattedInt}.${decPart}` : formattedInt;
+            let intPart = parts[0] || '';
+            let decPart = parts.length > 1 ? parts[1] : '';
+            
+            // Limit decimal part to 2 digits
+            if (decPart.length > 2) {
+                decPart = decPart.substring(0, 2);
+            }
+            
+            // Remove leading zeros from integer part (but keep at least one digit)
+            intPart = intPart.replace(/^0+/, '') || '0';
+            
+            // Format integer part with thousand separators
+            const formattedInt = intPart ? Number(intPart).toLocaleString('en-US') : '0';
+            
+            // Construct the new value
+            const newValue = decPart !== '' ? `${formattedInt}.${decPart}` : formattedInt;
+            input.value = newValue;
+
+            // Restore cursor position based on digit count before cursor
+            let newPos = 0;
+            let seenDigits = 0;
+            for (let i = 0; i < newValue.length; i++) {
+                if (/\d/.test(newValue[i])) {
+                    seenDigits++;
+                    if (seenDigits >= digitsBeforeCaret) {
+                        newPos = i + 1;
+                        break;
+                    }
+                }
+                if (i === newValue.length - 1) {
+                    newPos = newValue.length;
+                }
+            }
+            
+            try { 
+                input.setSelectionRange(newPos, newPos); 
+            } catch (e) {}
+
+                        calculateTotalAmount();
         }
 
+        // Function to handle keydown events for amount input
+        function handleAmountKeydown(input, event) {
+            const key = event.key;
+            const cursorPos = input.selectionStart;
+            const value = input.value;
+            
+            // Allow navigation keys
+            if (['ArrowLeft', 'ArrowRight', 'Home', 'End', 'Tab'].includes(key)) {
+                return true;
+            }
+            
+            // Allow backspace and delete
+            if (key === 'Backspace' || key === 'Delete') {
+                return true;
+            }
+            
+            // Allow decimal point only if it doesn't already exist
+            if (key === '.' && !value.includes('.')) {
+                return true;
+            }
+            
+            // Allow only numeric characters
+            if (/^\d$/.test(key)) {
+                return true;
+            }
+            
+            // Prevent other keys
+            event.preventDefault();
+            return false;
+        }
+        
         function calculateTotalAmount() {
             const amountInputs = document.querySelectorAll('.total');
             let total = 0;

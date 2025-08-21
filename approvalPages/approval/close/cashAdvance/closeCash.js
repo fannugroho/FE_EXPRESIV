@@ -17,6 +17,16 @@ window.onload = function() {
     if (currentTab === 'closed' || currentTab === 'rejected') {
         hideCloseButton();
     }
+    
+    // Hide revision buttons if viewing from closed tab
+    if (currentTab === 'closed') {
+        hideRevisionButtons();
+        // Also hide the revision container
+        const revisionContainer = document.getElementById('revisionContainer');
+        if (revisionContainer) {
+            revisionContainer.style.display = 'none';
+        }
+    }
 };
 
 function fetchCADetails(caId) {
@@ -298,6 +308,20 @@ function hideCloseButton() {
     }
 }
 
+// Function to hide revision buttons
+function hideRevisionButtons() {
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
+    const revisionButton = document.getElementById('revisionButton');
+    
+    if (addRevisionBtn) {
+        addRevisionBtn.style.display = 'none';
+    }
+    
+    if (revisionButton) {
+        revisionButton.style.display = 'none';
+    }
+}
+
 // Function to toggle closedBy visibility based on transaction type
 function toggleClosedBy() {
     const transactionType = document.getElementById('typeTransaction').value;
@@ -433,6 +457,14 @@ function checkRevisionContainer() {
     const addBtn = document.getElementById('addRevisionBtn');
     const revisionFields = document.querySelectorAll('#revisionContainer textarea');
     
+    // If viewing from closed tab, don't show the revision container
+    if (currentTab === 'closed') {
+        if (container) {
+            container.style.display = 'none';
+        }
+        return;
+    }
+    
     if (revisionFields.length === 0) {
         container.classList.add('hidden');
         addBtn.textContent = '+ Add revision';
@@ -447,6 +479,14 @@ function updateAddButtonState() {
     const container = document.getElementById('revisionContainer');
     const currentUser = getUserInfo();
     const currentFieldCount = container.querySelectorAll('textarea').length;
+    
+    // If viewing from closed tab, don't show the add revision button
+    if (currentTab === 'closed') {
+        if (addBtn) {
+            addBtn.style.display = 'none';
+        }
+        return;
+    }
     
     // Check if user can add more fields
     const canAddMore = currentFieldCount < MAX_REVISION_FIELDS && !revisionFieldsByUser.has(currentUser.name);
@@ -541,6 +581,14 @@ function handleRevisionInput(event) {
 function checkRevisionButton() {
     const revisionButton = document.getElementById('revisionButton');
     const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    // If viewing from closed tab, don't show the revision button
+    if (currentTab === 'closed') {
+        if (revisionButton) {
+            revisionButton.style.display = 'none';
+        }
+        return;
+    }
     
     let hasContent = false;
     
