@@ -204,13 +204,6 @@
         
         <!-- Cost and Purpose -->
         <div class="cost-purpose-section">
-            <div class="cost-row">
-                <label>Estimated cost:</label>
-                <div class="cost-amount">
-                    <span class="currency" id="estimatedCostCurrency">Rp</span>
-                    <span class="amount" id="totalAmount">-</span>
-                </div>
-            </div>
             <div class="cost-words">
                 <label>in words:</label>
                 <div class="words-content" id="amountInWords">-</div>
@@ -284,9 +277,14 @@
             <div class="watermark-text">Generate by Expressiv System</div>
         </div>
         
+        <!-- Pagination Footer -->
+        <div class="pagination-footer">
+            <div class="page-number">Page <span id="currentPage">1</span></div>
+        </div>
+        
         <!-- Print Button -->
         <div class="print-actions">
-            <button onclick="window.print()" class="print-btn">Print Voucher</button>
+            <button onclick="printVoucherWithPagination()" class="print-btn">Print Voucher</button>
             <button onclick="window.close()" class="close-btn">Close</button>
         </div>
     </div>

@@ -198,33 +198,14 @@ body {
     margin-bottom: 25px;
 }
 
-.cost-row, .cost-words, .purpose-row, .remarks-row {
+.cost-words, .purpose-row, .remarks-row {
     margin-bottom: 15px;
 }
 
-.cost-row label, .cost-words label, .purpose-row label, .remarks-row label {
+.cost-words label, .purpose-row label, .remarks-row label {
     font-weight: bold;
     display: block;
     margin-bottom: 5px;
-}
-
-.cost-amount {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.currency {
-    font-weight: bold;
-    font-size: 14px;
-}
-
-.amount {
-    font-weight: bold;
-    font-size: 16px;
-    border-bottom: 1px solid #000;
-    min-width: 150px;
-    padding: 2px 5px;
 }
 
 .words-content {
@@ -376,6 +357,25 @@ body {
     print-color-adjust: exact;
 }
 
+/* Pagination Footer */
+.pagination-footer {
+    position: relative;
+    margin: 15px 0 10px 0;
+    text-align: right;
+}
+
+.page-number {
+    font-size: 10px;
+    color: #666;
+    font-family: 'Arial', sans-serif;
+    font-weight: 500;
+}
+
+.page-number span {
+    font-weight: bold;
+    color: #000;
+}
+
 /* Print Actions */
 .print-actions {
     text-align: center;
@@ -495,6 +495,26 @@ body {
         font-weight: 900 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+    }
+    
+    /* Pagination footer print styles */
+    .pagination-footer {
+        margin: 10px 0 5px 0 !important;
+        text-align: right !important;
+        position: relative !important;
+    }
+    
+    .page-number {
+        font-size: 9px !important;
+        color: #000 !important;
+        font-weight: 500 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    .page-number span {
+        font-weight: bold !important;
+        color: #000 !important;
     }
     
     /* Prevent any unwanted transformations */
