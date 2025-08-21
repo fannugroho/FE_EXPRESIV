@@ -100,6 +100,9 @@
             <thead class="bg-purple-100">
                 <br>
                 <tr>
+                    <th class="p-2">Category</th>
+                    <th class="p-2">Account Name</th>
+                    <th class="p-2">GL Account (COA)</th>
                     <th class="p-2">Description</th>
                     <th class="p-2">Amount</th>
                     <th class="p-2">Action</th>
@@ -108,10 +111,19 @@
             <tbody id="tableBody">
                 <tr>
                     <td class="p-2 border">
-                        <input type="text" maxlength="200" class="w-full" required />
+                        <input type="text" class="category-input w-full bg-gray-100" readonly />
                     </td>                                                                            
                     <td class="p-2 border">
-                        <input type="number" maxlength="10" class="w-full" required />
+                        <input type="text" class="account-name w-full bg-gray-100" readonly />
+                    </td>
+                    <td class="p-2 border">
+                        <input type="number" class="coa w-full bg-gray-100" readonly />
+                    </td>
+                    <td class="p-2 border">
+                        <input type="text" class="description w-full bg-gray-100" readonly />
+                    </td>
+                    <td class="p-2 border">
+                        <input type="text" class="amount w-full bg-gray-100" readonly />
                     </td>
                     <td class="p-2 border text-center">
                         <span class="text-gray-400">View Only</span>
@@ -119,6 +131,12 @@
                 </tr>
             </tbody>
         </table>
+        <div class="flex justify-end mt-2">
+          <div class="w-1/4 flex items-center justify-between bg-gray-100 p-2 rounded">
+            <span class="font-bold">Total Amount:</span>
+            <span id="totalAmountDisplay" class="font-bold text-xl text-blue-700">0.00</span>
+          </div>
+        </div>
         
         <!-- Tombol Tambah Baris 
         <button onclick="addRow()" class="mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
@@ -139,6 +157,16 @@
                     <span id="revisedCount" class="text-sm font-bold text-blue-600">0</span>
                 </div>
                 <!-- Dynamic revision content will be inserted here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Revision Remarks Section -->
+        <div class="mt-4">
+            <div class="flex justify-between items-center">
+                <button onclick="toggleRevisionField()" id="addRevisionBtn" class="text-blue-500 hover:text-blue-700 font-medium">+ Add revision</button>
+            </div>
+            <div id="revisionContainer" class="hidden">
+                <!-- Revision fields will be added here by JavaScript -->
             </div>
         </div>
 
@@ -191,6 +219,9 @@
                     Close
                 </button>
             </div>
+            <button onclick="reviseCash()" id="revisionButton" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32 opacity-50 cursor-not-allowed">
+                Revision
+            </button>
         </div>
     </div>
     <script>
@@ -202,6 +233,15 @@
             const revisionContainer = document.getElementById('revisionContainer');
             
             // Use event delegation to handle input events on all textareas
+            revisionContainer.addEventListener('input', function(event) {
+                if (event.target.tagName === 'TEXTAREA') {
+                    // Handle revision input events if needed
+                }
+            });
+            
+            // Initialize button states
+            updateAddButtonState();
+            checkRevisionButton();
         });
 
         function toggleClosedBy() {
