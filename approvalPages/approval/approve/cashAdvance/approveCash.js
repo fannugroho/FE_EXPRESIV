@@ -295,7 +295,7 @@ function populateCashAdvanceDetails(details) {
                 <input type="text" value="${detail.description || ''}" class="description w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border">
-                <input type="text" value="${detail.amount ? Number(detail.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}" class="total w-full bg-gray-100" readonly />
+                <input type="text" value="${detail.amount ? Number(detail.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}" class="amount w-full" placeholder="0.00" oninput="handleAmountInput(this)" onblur="formatAmountOnBlur(this)" onkeydown="handleAmountKeydown(this, event)" />
             </td>
             <td class="p-2 border text-center">
                 <!-- Read-only view, no action buttons -->
@@ -311,10 +311,10 @@ function populateCashAdvanceDetails(details) {
 
 // Function to calculate total amount from all rows
 function calculateTotalAmount() {
-    const totalInputs = document.querySelectorAll('.total');
+    const amountInputs = document.querySelectorAll('.amount');
     let sum = 0;
     
-    totalInputs.forEach(input => {
+    amountInputs.forEach(input => {
         // Handle values with thousand separators and decimals
         const raw = (input.value || '').toString().replace(/,/g, '').trim();
         if (raw && !isNaN(parseFloat(raw))) {

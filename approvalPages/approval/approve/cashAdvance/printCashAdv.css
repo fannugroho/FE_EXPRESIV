@@ -200,33 +200,14 @@ body {
     margin-bottom: 25px;
 }
 
-.cost-row, .cost-words, .purpose-row, .remarks-row {
+.cost-words, .purpose-row, .remarks-row {
     margin-bottom: 15px;
 }
 
-.cost-row label, .cost-words label, .purpose-row label, .remarks-row label {
+.cost-words label, .purpose-row label, .remarks-row label {
     font-weight: bold;
     display: block;
     margin-bottom: 5px;
-}
-
-.cost-amount {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.currency {
-    font-weight: bold;
-    font-size: 14px;
-}
-
-.amount {
-    font-weight: bold;
-    font-size: 16px;
-    border-bottom: 1px solid #000;
-    min-width: 150px;
-    padding: 2px 5px;
 }
 
 .words-content {
@@ -320,19 +301,24 @@ body {
     min-width: 120px;
 }
 
-.settlement-table th:nth-child(5), /* Debit */
+.settlement-table th:nth-child(5), /* Currency */
 .settlement-table td:nth-child(5) {
-    width: 12.5%;
-    min-width: 80px;
+    width: 10%;
+    min-width: 70px;
     text-align: center;
 }
 
-.settlement-table th:nth-child(6), /* Credit */
+.settlement-table th:nth-child(6), /* Proposed Amount */
 .settlement-table td:nth-child(6) {
-    width: 12.5%;
-    min-width: 80px;
+    width: 15%;
+    min-width: 100px;
     text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
+
+
 
 .settlement-table tbody tr {
     min-height: 30px;
@@ -380,6 +366,54 @@ body {
     font-weight: 900;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+}
+
+/* Pagination Section */
+.pagination-section {
+    text-align: right;
+    margin: 10px 0 15px 0;
+    padding-right: 20px;
+}
+
+.page-number {
+    font-size: 10px;
+    color: #666;
+    font-family: 'Arial', sans-serif;
+    font-weight: 500;
+}
+
+.page-number span {
+    font-weight: bold;
+    color: #000;
+}
+
+/* CSS Counter for automatic page numbering */
+@page {
+    counter-increment: page;
+}
+
+.page-number::after {
+    content: counter(page);
+    font-weight: bold;
+    color: #000;
+}
+
+/* Initialize page counter */
+body {
+    counter-reset: page 1;
+}
+
+/* Ensure page counter works in print */
+@media print {
+    body {
+        counter-reset: page 1;
+    }
+    
+    .page-number::after {
+        content: counter(page);
+        font-weight: bold !important;
+        color: #000 !important;
+    }
 }
 
 /* Print Actions */
@@ -502,6 +536,26 @@ body {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
+        
+        /* Pagination print styles */
+        .pagination-section {
+            text-align: right !important;
+            margin: 10px 0 15px 0 !important;
+            padding-right: 20px !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+        
+        .page-number {
+            font-size: 10px !important;
+            color: #000 !important;
+            font-weight: 500 !important;
+        }
+        
+        .page-number span {
+            font-weight: bold !important;
+            color: #000 !important;
+        }
     
     /* Prevent any unwanted transformations */
     * {
@@ -584,21 +638,25 @@ body {
     
     .settlement-table th:nth-child(4),
     .settlement-table td:nth-child(4) {
-        width: 28%;
+        width: 25%;
         min-width: 100px;
     }
     
     .settlement-table th:nth-child(5),
     .settlement-table td:nth-child(5) {
-        width: 15%;
+        width: 12%;
         min-width: 60px;
         text-align: center;
     }
     
     .settlement-table th:nth-child(6),
     .settlement-table td:nth-child(6) {
-        width: 15%;
-        min-width: 60px;
+        width: 21%;
+        min-width: 80px;
+        text-align: right;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 }
 

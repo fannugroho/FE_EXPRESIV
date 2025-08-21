@@ -4,16 +4,42 @@ class CashAdvancePrinter {
         this.apiBaseUrl = 'https://expressiv-be-sb.idsdev.site/api';
         this.cashAdvanceId = this.getCashAdvanceIdFromUrl();
         this.cashAdvanceData = null;
+        this.currencyData = null;
         
         this.init();
     }
 
     init() {
         if (this.cashAdvanceId) {
-            this.loadCashAdvanceData();
+            this.loadCurrencyData().then(() => {
+                this.loadCashAdvanceData();
+            });
         } else {
             const currentUrl = window.location.href;
             this.showError(`Cash Advance ID not found in URL. Current URL: ${currentUrl}. Expected parameters: id, cashAdvanceId, ca-id, or cashAdvanceNo`);
+        }
+        
+    }
+
+    async loadCurrencyData() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/MasterCurrency`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.status && result.data) {
+                this.currencyData = result.data;
+                console.log('Currency data loaded:', this.currencyData);
+            } else {
+                throw new Error(result.message || 'Failed to load currency data');
+            }
+        } catch (error) {
+            console.error('Error loading currency data:', error);
+            this.showError(`Failed to load currency data: ${error.message}`);
         }
     }
 
@@ -79,28 +105,23 @@ class CashAdvancePrinter {
         this.setApprovalInfo('receivedByName', 'receivedDate', 
             this.cashAdvanceData.receivedName, this.cashAdvanceData.receivedDate);
 
-
-
         // Cost and Purpose
-        this.setElementText('totalAmount', this.formatCurrency(this.cashAdvanceData.totalAmount));
         this.setElementText('amountInWords', this.numberToWords(this.cashAdvanceData.totalAmount));
         this.setElementText('purpose', this.cashAdvanceData.purpose || '-');
         this.setElementText('remarks', this.cashAdvanceData.remarks || '-');
         
         // Set currency from API data
         this.setElementText('currency', this.cashAdvanceData.currency || 'Rp');
-        this.setElementText('estimatedCostCurrency', this.cashAdvanceData.currency || 'Rp');
         this.setElementText('returnCurrency', this.cashAdvanceData.currency || 'Rp');
 
         // Settlement Table
         this.populateSettlementTable();
-
-
-
-
+        
+        // Update amount in words with currency name after settlement table is populated
+        if (this.cashAdvanceData.currency) {
+            this.updateAmountInWordsWithCurrency(this.cashAdvanceData.currency);
+        }
     }
-
-
 
     setApprovalInfo(nameId, dateId, name, date) {
         if (name) {
@@ -119,8 +140,6 @@ class CashAdvancePrinter {
             }
         }
     }
-
-
 
     populateSettlementTable() {
         const tableBody = document.getElementById('settlementTableBody');
@@ -158,7 +177,32 @@ class CashAdvancePrinter {
         }
 
         // Set totals
-        this.setElementText('totalDebit', this.formatCurrency(this.cashAdvanceData.totalAmount));
+        this.setElementText('totalProposedAmount', this.formatCurrency(this.cashAdvanceData.totalAmount));
+    }
+
+    updateAmountInWordsWithCurrency(currencyCode) {
+        if (!this.currencyData || !currencyCode) return;
+        
+        console.log('Updating amount in words with currency code:', currencyCode);
+        console.log('Available currencies:', this.currencyData.map(c => `${c.code}: ${c.name}`));
+        
+        // Find currency name by code
+        const currency = this.currencyData.find(c => c.code === currencyCode);
+        if (currency) {
+            console.log('Found currency:', currency);
+            const amountInWordsElement = document.getElementById('amountInWords');
+            if (amountInWordsElement) {
+                const currentText = amountInWordsElement.textContent;
+                console.log('Current amount in words:', currentText);
+                // Remove any existing currency name and append the new one
+                const textWithoutCurrency = currentText.replace(/\s+\w+$/, '');
+                const newText = `${textWithoutCurrency} ${currency.name}`;
+                amountInWordsElement.textContent = newText;
+                console.log('Updated amount in words:', newText);
+            }
+        } else {
+            console.warn(`Currency with code '${currencyCode}' not found in currency data`);
+        }
     }
 
     setElementText(elementId, text) {
@@ -197,7 +241,7 @@ class CashAdvancePrinter {
 
 
     numberToWords(num) {
-        if (num === null || num === undefined || num === 0) return 'Zero Rupiah';
+        if (num === null || num === undefined || num === 0) return 'Zero';
         
         const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
         const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
@@ -233,7 +277,7 @@ class CashAdvancePrinter {
         const wholePart = Math.floor(num);
         const decimalPart = Math.round((num - wholePart) * 100);
         
-        let result = convert(wholePart) + ' Rupiah';
+        let result = convert(wholePart);
         
         if (decimalPart > 0) {
             result += ' and ' + convert(decimalPart) + ' Cents';

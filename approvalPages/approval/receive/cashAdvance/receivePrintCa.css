@@ -198,33 +198,14 @@ body {
     margin-bottom: 25px;
 }
 
-.cost-row, .cost-words, .purpose-row, .remarks-row {
+.cost-words, .purpose-row, .remarks-row {
     margin-bottom: 15px;
 }
 
-.cost-row label, .cost-words label, .purpose-row label, .remarks-row label {
+.cost-words label, .purpose-row label, .remarks-row label {
     font-weight: bold;
     display: block;
     margin-bottom: 5px;
-}
-
-.cost-amount {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.currency {
-    font-weight: bold;
-    font-size: 14px;
-}
-
-.amount {
-    font-weight: bold;
-    font-size: 16px;
-    border-bottom: 1px solid #000;
-    min-width: 150px;
-    padding: 2px 5px;
 }
 
 .words-content {
@@ -291,44 +272,45 @@ body {
     background-color: #f0f0f0;
     font-weight: bold;
     text-align: center;
+    white-space: nowrap;
 }
 
 /* Set specific column widths for better layout */
 .settlement-table th:nth-child(1), /* Type of Transaction */
 .settlement-table td:nth-child(1) {
-    width: 15%;
+    width: 14%;
     min-width: 80px;
 }
 
 .settlement-table th:nth-child(2), /* GL Account (COA) */
 .settlement-table td:nth-child(2) {
-    width: 15%;
+    width: 14%;
     min-width: 80px;
 }
 
 .settlement-table th:nth-child(3), /* Account Name */
 .settlement-table td:nth-child(3) {
-    width: 20%;
+    width: 19%;
     min-width: 100px;
 }
 
 .settlement-table th:nth-child(4), /* Description */
 .settlement-table td:nth-child(4) {
-    width: 25%;
+    width: 24%;
     min-width: 120px;
 }
 
 .settlement-table th:nth-child(5), /* Currency */
 .settlement-table td:nth-child(5) {
-    width: 12.5%;
+    width: 14%;
     min-width: 80px;
     text-align: center;
 }
 
-.settlement-table th:nth-child(6), /* Debit */
+.settlement-table th:nth-child(6), /* Proposed Amount */
 .settlement-table td:nth-child(6) {
-    width: 12.5%;
-    min-width: 80px;
+    width: 15%;
+    min-width: 100px;
     text-align: right;
 }
 
@@ -374,6 +356,25 @@ body {
     font-weight: 900;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+}
+
+/* Pagination Footer */
+.pagination-footer {
+    position: relative;
+    margin: 15px 0 10px 0;
+    text-align: right;
+}
+
+.page-number {
+    font-size: 10px;
+    color: #666;
+    font-family: 'Arial', sans-serif;
+    font-weight: 500;
+}
+
+.page-number span {
+    font-weight: bold;
+    color: #000;
 }
 
 /* Print Actions */
@@ -497,6 +498,26 @@ body {
         print-color-adjust: exact !important;
     }
     
+    /* Pagination footer print styles */
+    .pagination-footer {
+        margin: 10px 0 5px 0 !important;
+        text-align: right !important;
+        position: relative !important;
+    }
+    
+    .page-number {
+        font-size: 9px !important;
+        color: #000 !important;
+        font-weight: 500 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    .page-number span {
+        font-weight: bold !important;
+        color: #000 !important;
+    }
+    
     /* Prevent any unwanted transformations */
     * {
         transform: none !important;
@@ -556,39 +577,39 @@ body {
     /* Adjust column widths for mobile */
     .settlement-table th:nth-child(1),
     .settlement-table td:nth-child(1) {
-        width: 12%;
+        width: 11%;
         min-width: 60px;
     }
     
     .settlement-table th:nth-child(2),
     .settlement-table td:nth-child(2) {
-        width: 12%;
+        width: 11%;
         min-width: 60px;
     }
     
     .settlement-table th:nth-child(3),
     .settlement-table td:nth-child(3) {
-        width: 18%;
+        width: 17%;
         min-width: 80px;
     }
     
     .settlement-table th:nth-child(4),
     .settlement-table td:nth-child(4) {
-        width: 28%;
+        width: 27%;
         min-width: 100px;
     }
     
     .settlement-table th:nth-child(5),
     .settlement-table td:nth-child(5) {
-        width: 15%;
+        width: 16%;
         min-width: 60px;
         text-align: center;
     }
     
     .settlement-table th:nth-child(6),
     .settlement-table td:nth-child(6) {
-        width: 15%;
-        min-width: 60px;
+        width: 18%;
+        min-width: 80px;
     }
 }
 

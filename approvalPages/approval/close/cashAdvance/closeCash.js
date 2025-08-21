@@ -17,6 +17,16 @@ window.onload = function() {
     if (currentTab === 'closed' || currentTab === 'rejected') {
         hideCloseButton();
     }
+    
+    // Hide revision buttons if viewing from closed tab
+    if (currentTab === 'closed') {
+        hideRevisionButtons();
+        // Also hide the revision container
+        const revisionContainer = document.getElementById('revisionContainer');
+        if (revisionContainer) {
+            revisionContainer.style.display = 'none';
+        }
+    }
 };
 
 function fetchCADetails(caId) {
@@ -103,17 +113,50 @@ function populateCashAdvanceDetails(details) {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td class="p-2 border">
-                <input type="text" value="${detail.description || ''}" class="w-full bg-gray-100" readonly />
+                <input type="text" value="${detail.category || ''}" class="category-input w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border">
-                <input type="number" value="${detail.amount || ''}" class="w-full bg-gray-100" readonly />
+                <input type="text" value="${detail.accountName || ''}" class="account-name w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="number" value="${detail.coa || ''}" class="coa w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${detail.description || ''}" class="description w-full bg-gray-100" readonly />
+            </td>
+            <td class="p-2 border">
+                <input type="text" value="${detail.amount ? Number(detail.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}" class="total w-full bg-gray-100" readonly />
             </td>
             <td class="p-2 border text-center">
                 <!-- Read-only view, no action buttons -->
+                <span class="text-gray-400">View Only</span>
             </td>
         `;
         tableBody.appendChild(row);
     });
+    
+    // Calculate total amount after populating all rows
+    calculateTotalAmount();
+}
+
+// Function to calculate total amount from all rows
+function calculateTotalAmount() {
+    const totalInputs = document.querySelectorAll('.total');
+    let sum = 0;
+    
+    totalInputs.forEach(input => {
+        // Handle values with thousand separators and decimals
+        const raw = (input.value || '').toString().replace(/,/g, '').trim();
+        if (raw && !isNaN(parseFloat(raw))) {
+            sum += parseFloat(raw);
+        }
+    });
+    
+    // Update the total amount display with thousand separators and 2 decimals
+    const totalAmountDisplay = document.getElementById('totalAmountDisplay');
+    if (totalAmountDisplay) {
+        totalAmountDisplay.textContent = Number(sum).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
 }
 
 // Function to fetch all dropdown options
@@ -265,6 +308,20 @@ function hideCloseButton() {
     }
 }
 
+// Function to hide revision buttons
+function hideRevisionButtons() {
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
+    const revisionButton = document.getElementById('revisionButton');
+    
+    if (addRevisionBtn) {
+        addRevisionBtn.style.display = 'none';
+    }
+    
+    if (revisionButton) {
+        revisionButton.style.display = 'none';
+    }
+}
+
 // Function to toggle closedBy visibility based on transaction type
 function toggleClosedBy() {
     const transactionType = document.getElementById('typeTransaction').value;
@@ -278,6 +335,280 @@ function toggleClosedBy() {
         if (closedBySection) {
             closedBySection.style.display = 'none';
         }
+    }
+}
+
+// Global variables to track revision fields
+let revisionFieldsByUser = new Map(); // Track which users have added fields
+const MAX_REVISION_FIELDS = 4;
+
+// Toggle revision container visibility and add first field
+function toggleRevisionField() {
+    const container = document.getElementById('revisionContainer');
+    const addBtn = document.getElementById('addRevisionBtn');
+    const currentUser = getUserInfo();
+    const currentFieldCount = container.querySelectorAll('textarea').length;
+    
+    // Check if user can add a field
+    if (currentFieldCount >= MAX_REVISION_FIELDS) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Maximum Limit',
+            text: `Maximum ${MAX_REVISION_FIELDS} revision field allowed`
+        });
+        return;
+    }
+    
+    if (revisionFieldsByUser.has(currentUser.name)) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Already exist',
+            text: 'You already added a revision field. Each user can only add one field.'
+        });
+        return;
+    }
+    
+    if (container.classList.contains('hidden')) {
+        // Show container and add first field
+        container.classList.remove('hidden');
+        addRevisionField();
+    } else {
+        // Add another field
+        addRevisionField();
+    }
+}
+
+// Add revision field functionality
+function addRevisionField() {
+    const container = document.getElementById('revisionContainer');
+    const currentUser = getUserInfo();
+    const currentFieldCount = container.querySelectorAll('textarea').length;
+    
+    // Check if maximum fields reached
+    if (currentFieldCount >= MAX_REVISION_FIELDS) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Maximum Limit',
+            text: `Maximum ${MAX_REVISION_FIELDS} revision field allowed`
+        });
+        return;
+    }
+    
+    // Check if current user already has a field
+    if (revisionFieldsByUser.has(currentUser.name)) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Already exist',
+            text: 'You already added a revision field. Each user can only add one field.'
+        });
+        return;
+    }
+    
+    // Create wrapper div for the textarea and delete button
+    const fieldWrapper = document.createElement('div');
+    fieldWrapper.className = 'flex items-center space-x-2 mt-2';
+    fieldWrapper.dataset.userName = currentUser.name; // Store user name in wrapper
+    
+    // Create textarea
+    const newField = document.createElement('textarea');
+    newField.className = 'w-full p-2 border rounded-md';
+    newField.placeholder = 'Enter additional revision details';
+    
+    // Add event listener for input to handle protected prefix
+    newField.addEventListener('input', handleRevisionInput);
+    
+    // Initialize with user prefix
+    initializeWithUserPrefix(newField);
+    
+    // Create delete button
+    const deleteButton = document.createElement('button');
+    deleteButton.innerHTML = '&times;'; // × symbol
+    deleteButton.className = 'bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 focus:outline-none';
+    deleteButton.title = 'Hapus field revision ini';
+    deleteButton.onclick = function() {
+        // Remove user from tracking when field is deleted
+        const userName = fieldWrapper.dataset.userName;
+        revisionFieldsByUser.delete(userName);
+        
+        fieldWrapper.remove();
+        checkRevisionContainer(); // Check if container should be hidden
+        updateAddButtonState(); // Update add button state
+        checkRevisionButton(); // Update revision button state
+    };
+    
+    // Add textarea and delete button to wrapper
+    fieldWrapper.appendChild(newField);
+    fieldWrapper.appendChild(deleteButton);
+    
+    // Add wrapper to container
+    container.appendChild(fieldWrapper);
+    
+    // Track that this user has added a field
+    revisionFieldsByUser.set(currentUser.name, true);
+    
+    // Update the add button state and revision button state
+    updateAddButtonState();
+    checkRevisionButton();
+}
+
+// Check if revision container should be hidden when all fields are removed
+function checkRevisionContainer() {
+    const container = document.getElementById('revisionContainer');
+    const addBtn = document.getElementById('addRevisionBtn');
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    // If viewing from closed tab, don't show the revision container
+    if (currentTab === 'closed') {
+        if (container) {
+            container.style.display = 'none';
+        }
+        return;
+    }
+    
+    if (revisionFields.length === 0) {
+        container.classList.add('hidden');
+        addBtn.textContent = '+ Add revision';
+        // Clear the tracking map when container is hidden
+        revisionFieldsByUser.clear();
+    }
+}
+
+// Update add button state based on current conditions
+function updateAddButtonState() {
+    const addBtn = document.getElementById('addRevisionBtn');
+    const container = document.getElementById('revisionContainer');
+    const currentUser = getUserInfo();
+    const currentFieldCount = container.querySelectorAll('textarea').length;
+    
+    // If viewing from closed tab, don't show the add revision button
+    if (currentTab === 'closed') {
+        if (addBtn) {
+            addBtn.style.display = 'none';
+        }
+        return;
+    }
+    
+    // Check if user can add more fields
+    const canAddMore = currentFieldCount < MAX_REVISION_FIELDS && !revisionFieldsByUser.has(currentUser.name);
+    
+    if (canAddMore) {
+        addBtn.style.opacity = '1';
+        addBtn.style.cursor = 'pointer';
+        addBtn.style.pointerEvents = 'auto';
+        if (currentFieldCount === 0) {
+            addBtn.textContent = '+ Add revision';
+        } else {
+            addBtn.textContent = '+ Add more revision';
+        }
+    } else {
+        addBtn.style.opacity = '0.5';
+        addBtn.style.cursor = 'not-allowed';
+        addBtn.style.pointerEvents = 'none';
+        
+        if (currentFieldCount >= MAX_REVISION_FIELDS) {
+            addBtn.textContent = `Max ${MAX_REVISION_FIELDS} fields reached`;
+        } else if (revisionFieldsByUser.has(currentUser.name)) {
+            addBtn.textContent = ' ';
+        }
+    }
+}
+
+// Function to get current user information
+function getUserInfo() {
+    // Use functions from auth.js to get user information
+    let userName = 'Unknown User';
+    let userRole = 'Closer'; // Default role for this page since we're on the close page
+    
+    try {
+        // Get user info from getCurrentUser function in auth.js
+        const currentUser = getCurrentUser();
+        if (currentUser && currentUser.username) {
+            userName = currentUser.username;
+        }
+        
+        // Get user role based on the current page
+        // Since we're on the close page, the role is Closer
+    } catch (e) {
+        console.error('Error getting user info:', e);
+    }
+    
+    return { name: userName, role: userRole };
+}
+
+// Function to initialize textarea with user prefix
+function initializeWithUserPrefix(textarea) {
+    const userInfo = getUserInfo();
+    const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+    textarea.value = prefix;
+    
+    // Store the prefix length as a data attribute
+    textarea.dataset.prefixLength = prefix.length;
+    
+    // Set selection range after the prefix
+    textarea.setSelectionRange(prefix.length, prefix.length);
+    textarea.focus();
+}
+
+// Function to handle input and protect the prefix
+function handleRevisionInput(event) {
+    const textarea = event.target;
+    const prefixLength = parseInt(textarea.dataset.prefixLength || '0');
+    
+    // If user tries to modify content before the prefix length
+    if (textarea.selectionStart < prefixLength || textarea.selectionEnd < prefixLength) {
+        // Restore the prefix
+        const userInfo = getUserInfo();
+        const prefix = `[${userInfo.name} - ${userInfo.role}]: `;
+        
+        // Only restore if the prefix is damaged
+        if (!textarea.value.startsWith(prefix)) {
+            const userText = textarea.value.substring(prefixLength);
+            textarea.value = prefix + userText;
+            
+            // Reset cursor position after the prefix
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        } else {
+            // Just move cursor after prefix
+            textarea.setSelectionRange(prefixLength, prefixLength);
+        }
+    }
+    
+    // Check revision button state after input
+    checkRevisionButton();
+}
+
+// Check if revision remarks are filled to enable/disable revision button
+function checkRevisionButton() {
+    const revisionButton = document.getElementById('revisionButton');
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    // If viewing from closed tab, don't show the revision button
+    if (currentTab === 'closed') {
+        if (revisionButton) {
+            revisionButton.style.display = 'none';
+        }
+        return;
+    }
+    
+    let hasContent = false;
+    
+    // Check if there are any revision fields and if they have content
+    if (revisionFields.length > 0) {
+        revisionFields.forEach(field => {
+            const prefixLength = parseInt(field.dataset.prefixLength || '0');
+            // Check if there's content beyond the prefix
+            if (field.value.trim().length > prefixLength) {
+                hasContent = true;
+            }
+        });
+    }
+    
+    if (hasContent) {
+        revisionButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        revisionButton.disabled = false;
+    } else {
+        revisionButton.classList.add('opacity-50', 'cursor-not-allowed');
+        revisionButton.disabled = true;
     }
 }
 
@@ -315,10 +646,19 @@ function addRow() {
 
     newRow.innerHTML = `
         <td class="p-2 border">
-            <input type="text" maxlength="30" class="w-full" required />
+            <input type="text" class="category-input w-full" required />
         </td>
         <td class="p-2 border">
-            <input type="number" class="w-full" required />
+            <input type="text" class="account-name w-full" required />
+        </td>
+        <td class="p-2 border">
+            <input type="number" class="coa w-full" required />
+        </td>
+        <td class="p-2 border">
+            <input type="text" class="description w-full" required />
+        </td>
+        <td class="p-2 border">
+            <input type="number" class="amount w-full" required />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">
@@ -448,13 +788,22 @@ function printCash() {
     let hasValidItems = false;
     
     rows.forEach(row => {
-        const descriptionInput = row.querySelector('input[type="text"]');
-        const amountInput = row.querySelector('input[type="number"]');
+        const categoryInput = row.querySelector('.category-input');
+        const accountNameInput = row.querySelector('.account-name');
+        const coaInput = row.querySelector('.coa');
+        const descriptionInput = row.querySelector('.description');
+        const amountInput = row.querySelector('.amount, .total');
         
-        if (descriptionInput && amountInput && 
+        if (categoryInput && accountNameInput && coaInput && descriptionInput && amountInput && 
+            categoryInput.value.trim() !== '' && 
+            accountNameInput.value.trim() !== '' && 
+            coaInput.value.trim() !== '' && 
             descriptionInput.value.trim() !== '' && 
             amountInput.value.trim() !== '') {
             tableItems.push({
+                category: categoryInput.value,
+                accountName: accountNameInput.value,
+                coa: coaInput.value,
                 description: descriptionInput.value,
                 amount: amountInput.value
             });
@@ -584,6 +933,7 @@ function updateCAStatus(status) {
     });
 }
 
+// Function to update CA status with remarks
 function updateCAStatusWithRemarks(status, remarks) {
     if (!caId) {
         Swal.fire({
@@ -613,8 +963,13 @@ function updateCAStatusWithRemarks(status, remarks) {
     };
 
     // Show loading
+    let actionText = 'Processing';
+    if (status === 'close') actionText = 'Closing';
+    else if (status === 'reject') actionText = 'Rejecting';
+    else if (status === 'revise') actionText = 'Submitting Revision';
+    
     Swal.fire({
-        title: 'Processing...',
+        title: `${actionText}...`,
         text: 'Please wait while we process your request.',
         allowOutsideClick: false,
         didOpen: () => {
@@ -631,10 +986,15 @@ function updateCAStatusWithRemarks(status, remarks) {
     })
     .then(response => {
         if (response.ok) {
+            let successMessage = 'Operation completed successfully';
+            if (status === 'close') successMessage = 'CA closed successfully';
+            else if (status === 'reject') successMessage = 'CA rejected successfully';
+            else if (status === 'revise') successMessage = 'Revision submitted successfully';
+            
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
-                text: 'Operation completed successfully',
+                text: successMessage,
                 timer: 2000,
                 showConfirmButton: false
             }).then(() => {
@@ -643,16 +1003,21 @@ function updateCAStatusWithRemarks(status, remarks) {
             });
         } else {
             return response.json().then(errorData => {
-                throw new Error(errorData.message || `Failed to process request. Status: ${response.status}`);
+                throw new Error(errorData.message || `Failed to ${status} CA. Status: ${response.status}`);
             });
         }
     })
     .catch(error => {
         console.error('Error:', error);
+        let errorAction = 'processing';
+        if (status === 'close') errorAction = 'closing';
+        else if (status === 'reject') errorAction = 'rejecting';
+        else if (status === 'revise') errorAction = 'submitting revision for';
+        
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'Error processing request: ' + error.message
+            text: `Error ${errorAction} CA: ` + error.message
         });
     });
 }
@@ -665,6 +1030,43 @@ function submitRevision() {
         title: 'Not Applicable',
         text: 'Revision is not applicable for closing cash advances.'
     });
+}
+
+// Function to handle revision for Cash Advance
+function reviseCash() {
+    const revisionFields = document.querySelectorAll('#revisionContainer textarea');
+    
+    // Check if there are any revision fields
+    if (revisionFields.length === 0) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please add revision field first'
+        });
+        return;
+    }
+    
+    let allRemarks = '';
+    
+    revisionFields.forEach((field, index) => {
+        // Include the entire content including the prefix
+        if (field.value.trim() !== '') {
+            if (allRemarks !== '') allRemarks += '\n\n';
+            allRemarks += field.value.trim();
+        }
+    });
+    
+    if (allRemarks.trim() === '') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Please fill revision field first'
+        });
+        return;
+    }
+    
+    // Call the updateCAStatusWithRemarks function with 'revise' status
+    updateCAStatusWithRemarks('revise', allRemarks);
 }
 
 // Function to display revised remarks from API
