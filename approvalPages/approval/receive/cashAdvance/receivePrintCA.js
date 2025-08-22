@@ -347,10 +347,13 @@ class CashAdvancePrinter {
 
     updatePageNumbers() {
         const pageNumberElement = document.getElementById('currentPage');
-        if (pageNumberElement) {
-            // For single page documents, always show page 1
+        const totalPagesElement = document.getElementById('totalPages');
+        
+        if (pageNumberElement && totalPagesElement) {
+            // For single page documents, always show page 1 of 1
             // For multi-page documents, this would be updated dynamically
             pageNumberElement.textContent = '1';
+            totalPagesElement.textContent = '1';
         }
     }
 

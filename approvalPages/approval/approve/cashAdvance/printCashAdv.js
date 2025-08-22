@@ -121,6 +121,9 @@ class CashAdvancePrinter {
         if (this.cashAdvanceData.currency) {
             this.updateAmountInWordsWithCurrency(this.cashAdvanceData.currency);
         }
+        
+        // Update page numbering
+        this.updatePageNumbers();
     }
 
     setApprovalInfo(nameId, dateId, name, date) {
@@ -319,11 +322,42 @@ class CashAdvancePrinter {
             }
         }
     }
+
+    updatePageNumbers() {
+        // Calculate total pages based on content height
+        const container = document.querySelector('.print-container');
+        if (container) {
+            const containerHeight = container.scrollHeight;
+            const pageHeight = 1123; // A4 page height in pixels (297mm)
+            const totalPages = Math.ceil(containerHeight / pageHeight);
+            
+            // Update the total pages display
+            const totalPagesElement = document.getElementById('totalPages');
+            if (totalPagesElement) {
+                totalPagesElement.textContent = totalPages;
+            }
+            
+            // Set current page to 1 (first page)
+            const currentPageElement = document.getElementById('currentPage');
+            if (currentPageElement) {
+                currentPageElement.textContent = '1';
+            }
+        }
+    }
 }
 
 // Initialize the printer when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-    new CashAdvancePrinter();
+    window.cashAdvancePrinter = new CashAdvancePrinter();
+});
+
+// Handle print events to update page numbers
+window.addEventListener('beforeprint', () => {
+    // Update page numbers before printing
+    const printer = window.cashAdvancePrinter;
+    if (printer && printer.updatePageNumbers) {
+        printer.updatePageNumbers();
+    }
 });
 
 // Add print functionality

@@ -387,33 +387,17 @@ body {
     color: #000;
 }
 
-/* CSS Counter for automatic page numbering */
-@page {
-    counter-increment: page;
+/* Page numbering styles */
+.page-number {
+    font-size: 10px;
+    color: #666;
+    font-family: 'Arial', sans-serif;
+    font-weight: 500;
 }
 
-.page-number::after {
-    content: counter(page);
+.page-number span {
     font-weight: bold;
     color: #000;
-}
-
-/* Initialize page counter */
-body {
-    counter-reset: page 1;
-}
-
-/* Ensure page counter works in print */
-@media print {
-    body {
-        counter-reset: page 1;
-    }
-    
-    .page-number::after {
-        content: counter(page);
-        font-weight: bold !important;
-        color: #000 !important;
-    }
 }
 
 /* Print Actions */
@@ -553,6 +537,12 @@ body {
         }
         
         .page-number span {
+            font-weight: bold !important;
+            color: #000 !important;
+        }
+        
+        /* Ensure page numbers are visible in print */
+        #currentPage, #totalPages {
             font-weight: bold !important;
             color: #000 !important;
         }
