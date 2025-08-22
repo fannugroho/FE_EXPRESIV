@@ -1924,7 +1924,7 @@ function getSuperiorLevelForField(fieldId) {
         'Approval.AcknowledgedById': 'AC',
         'Approval.ApprovedById': 'AP',
         'Approval.ReceivedById': 'RE',
-        'Approval.ClosedById': 'RE'
+        'Approval.ClosedById': 'CL'
     };
     return levelMap[fieldId] || null;
 }
@@ -2069,8 +2069,8 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
     const documentType = 'CA'; // Cash Advance
     const fieldIds = ['Approval.PreparedById', 'Approval.CheckedById', 'Approval.AcknowledgedById', 'Approval.ApprovedById', 'Approval.ReceivedById'];
     
-    // Add closedBy only for Personal Loan
-    if (transactionType === 'Personal Loan') {
+    // Add closedBy for Personal Loan and other Cash Advance types that have CL superior level
+    if (transactionType === 'Personal Loan' || transactionType === 'LO') {
         fieldIds.push('Approval.ClosedById');
     }
     

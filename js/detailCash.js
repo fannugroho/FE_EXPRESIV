@@ -3263,7 +3263,7 @@ function getSuperiorLevelForField(fieldId) {
         'Approval.AcknowledgedById': 'AC',
         'Approval.ApprovedById': 'AP',
         'Approval.ReceivedById': 'RE',
-        'Approval.ClosedById': 'RE'
+        'Approval.ClosedById': 'CL'
     };
     return levelMap[fieldId] || null;
 }
@@ -3573,7 +3573,7 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
             { id: 'Approval.AcknowledgedById', level: 'AC' },
             { id: 'Approval.ApprovedById', level: 'AP' },
             { id: 'Approval.ReceivedById', level: 'RE' },
-            { id: 'Approval.ClosedById', level: 'RE' }
+            { id: 'Approval.ClosedById', level: 'CL' }
         ];
         
         console.log(`Will populate ${approvalFields.length} approval fields:`, approvalFields.map(f => f.id));
