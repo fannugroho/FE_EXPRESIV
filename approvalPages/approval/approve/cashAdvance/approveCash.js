@@ -393,7 +393,7 @@ function rejectCash() {
                     <div class="text-left">
                         <div class="font-semibold">Rejection Remarks</div>
                         <div class="text-sm text-gray-600 mb-2">Please provide remarks for rejection:</div>
-                        <textarea id="rejectionTextarea" class="swal2-textarea" style="height: 150px;"></textarea>
+                        <textarea id="rejectionTextarea" class="swal2-textarea" style="height: 150px; width: 100%; margin-left: 0; margin-right: 0;"></textarea>
                     </div>
                 `,
                 focusConfirm: false,
