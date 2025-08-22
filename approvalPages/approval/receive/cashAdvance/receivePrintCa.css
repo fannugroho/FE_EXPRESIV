@@ -377,6 +377,15 @@ body {
     color: #000;
 }
 
+/* Ensure consistent spacing between page number elements */
+.page-number span:first-child {
+    margin-right: 2px;
+}
+
+.page-number span:last-child {
+    margin-left: 2px;
+}
+
 /* Print Actions */
 .print-actions {
     text-align: center;
@@ -516,6 +525,15 @@ body {
     .page-number span {
         font-weight: bold !important;
         color: #000 !important;
+    }
+    
+    /* Ensure consistent spacing between page number elements in print */
+    .page-number span:first-child {
+        margin-right: 2px !important;
+    }
+    
+    .page-number span:last-child {
+        margin-left: 2px !important;
     }
     
     /* Prevent any unwanted transformations */
