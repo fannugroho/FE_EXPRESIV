@@ -64,12 +64,18 @@ async function getAvailableCategories(departmentId, transactionType) {
 async function getAvailableAccountNames(category, departmentId, transactionType) {
     if (!category || !departmentId || !transactionType) return [];
 
+    console.log(`🔍 getAvailableAccountNames called with:`, { category, departmentId, transactionType });
+    
     try {
-        const response = await fetch(`${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
+        const url = `${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`;
+        console.log(`🔍 API URL:`, url);
+        
+        const response = await fetch(url);
         if (!response.ok) {
             throw new Error('Failed to fetch account names');
         }
         const data = await parseJsonSafe(response);
+        console.log(`🔍 API response:`, data);
         return data.data || data; // Handle both wrapped and direct array responses
     } catch (error) {
         console.error('Error fetching account names:', error);
@@ -475,6 +481,8 @@ async function populateAccountNameDropdownForInitialLoad(row, category, departme
     
     // Get available account names for the selected category
     const accountNames = await getAvailableAccountNames(category, departmentId, transactionType);
+    console.log(`🔍 populateAccountNameDropdownForInitialLoad - API returned ${accountNames.length} account names:`, accountNames);
+    console.log(`🔍 Looking for existing account name: "${existingAccountName}" in results`);
     
     // Check if existing account name exists in the fetched options
     let existingAccountNameFound = false;
@@ -493,9 +501,11 @@ async function populateAccountNameDropdownForInitialLoad(row, category, departme
     
     // Add other available options
     accountNames.forEach(item => {
+        console.log(`🔍 Checking item:`, item);
         // Skip if this is the same as the existing account name
         if (existingAccountName && item.accountName === existingAccountName) {
             existingAccountNameFound = true;
+            console.log(`✅ Found matching account name: "${item.accountName}"`);
             return;
         }
         
@@ -509,6 +519,7 @@ async function populateAccountNameDropdownForInitialLoad(row, category, departme
     
     // If existing account name doesn't exist in current options, mark it as historical
     if (existingAccountName && !existingAccountNameFound) {
+        console.log(`⚠️ Account name "${existingAccountName}" not found in API results - marking as historical`);
         // Update the existing option to show it's historical
         const existingOption = accountNameSelect.querySelector(`option[value="${existingAccountName}"]`);
         if (existingOption) {
@@ -518,6 +529,34 @@ async function populateAccountNameDropdownForInitialLoad(row, category, departme
             existingOption.style.color = '#6b7280'; // Gray color to indicate historical
         }
         console.log(`Marked account name as historical: ${existingAccountName}`);
+    } else if (existingAccountName && existingAccountNameFound) {
+        console.log(`✅ Account name "${existingAccountName}" found in API results - keeping as normal`);
+    }
+    
+    // If we have a valid COA for the existing account name, don't mark it as historical
+    // This prevents marking valid data as historical when the API might have issues
+    if (existingAccountName && existingCoa && existingCoa.trim() !== '') {
+        const existingOption = accountNameSelect.querySelector(`option[value="${existingAccountName}"]`);
+        if (existingOption) {
+            console.log(`✅ Account name "${existingAccountName}" has valid COA "${existingCoa}" - ensuring it's not marked as historical`);
+            existingOption.textContent = existingAccountName; // Remove any "(Historical)" text
+            existingOption.dataset.remarks = '';
+            existingOption.style.fontStyle = 'normal';
+            existingOption.style.color = 'inherit';
+        }
+    }
+    
+    // Additional safety check: if the API returned no results but we have valid data,
+    // ensure we don't mark it as historical
+    if (accountNames.length === 0 && existingAccountName && existingCoa && existingCoa.trim() !== '') {
+        console.log(`⚠️ API returned no results, but we have valid data for "${existingAccountName}" with COA "${existingCoa}" - treating as valid`);
+        const existingOption = accountNameSelect.querySelector(`option[value="${existingAccountName}"]`);
+        if (existingOption) {
+            existingOption.textContent = existingAccountName;
+            existingOption.dataset.remarks = '';
+            existingOption.style.fontStyle = 'normal';
+            existingOption.style.color = 'inherit';
+        }
     }
     
     // Set the COA if we have it
