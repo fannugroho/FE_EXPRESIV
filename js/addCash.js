@@ -1043,11 +1043,9 @@ async function addRow() {
     // Setup category dropdown for the new row
     await setupCategoryDropdown(newRow);
     
-    // Setup amount formatting events with caret preservation
+    // Setup amount input: format with thousand separators as the user types (no .00)
     const amountInput = newRow.querySelector('.total');
     if (amountInput) {
-        amountInput.value = '0.00';
-        amountInput.addEventListener('blur', function() { formatNumberWithDecimals(this); });
         amountInput.addEventListener('input', function() { formatNumberAsYouType(this); });
     }
 }
@@ -1555,7 +1553,7 @@ function populateTransactionTypeSelect(transactionTypes) {
             const closedBySection = document.getElementById('closedBySection');
             const closedByLabel = document.getElementById('Approval.ClosedByIdLabel');
             
-            if (this.value === 'Personal Loan') {
+            if (this.value === 'Personal Loan' || this.value === 'LO') {
                 closedBySection.style.display = 'block';
                 closedByLabel.style.display = 'block';
             } else {
@@ -1736,7 +1734,7 @@ function getSuperiorLevelForField(fieldId) {
         'Approval.AcknowledgedById': 'AC',
         'Approval.ApprovedById': 'AP',
         'Approval.ReceivedById': 'RE',
-        'Approval.ClosedById': 'RE' // Use same level as ReceivedById
+        'Approval.ClosedById': 'CL' // Use CL level for Closed By
     };
     return levelMap[fieldId] || null;
 }
@@ -1959,7 +1957,7 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
             { id: 'Approval.AcknowledgedById', level: 'AC' },
             { id: 'Approval.ApprovedById', level: 'AP' },
             { id: 'Approval.ReceivedById', level: 'RE' },
-            { id: 'Approval.ClosedById', level: 'RE' } // Use same level as ReceivedById
+            { id: 'Approval.ClosedById', level: 'CL' } // Use CL level for Closed By
         ];
         
         

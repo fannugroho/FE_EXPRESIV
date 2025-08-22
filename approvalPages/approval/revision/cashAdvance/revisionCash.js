@@ -6,6 +6,30 @@ let cashAdvanceData = null;
 let caId;
 let currentTab;
 
+// Currency formatting utility function
+function formatCurrency(amount) {
+    if (!amount && amount !== 0) return '0.00';
+    let num;
+    if (typeof amount === 'string') {
+        num = parseFloat(amount.replace(/,/g, ''));
+    } else {
+        num = Number(amount);
+    }
+
+    if (isNaN(num)) return '0.00';
+
+    return num.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+// Function to parse formatted currency back to number
+function parseCurrency(formattedValue) {
+    if (!formattedValue) return 0;
+    return parseFloat(formattedValue.toString().replace(/,/g, '')) || 0;
+}
+
 // Function to get available categories based on department and transaction type from API
 async function getAvailableCategories(departmentId, transactionType) {
     if (!departmentId || !transactionType) return [];
@@ -27,12 +51,18 @@ async function getAvailableCategories(departmentId, transactionType) {
 async function getAvailableAccountNames(category, departmentId, transactionType) {
     if (!category || !departmentId || !transactionType) return [];
     
+    console.log(`🔍 getAvailableAccountNames called with:`, { category, departmentId, transactionType });
+    
     try {
-        const response = await fetch(`${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
+        const url = `${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`;
+        console.log(`🔍 API URL:`, url);
+        
+        const response = await fetch(url);
         if (!response.ok) {
             throw new Error('Failed to fetch account names');
         }
         const data = await response.json();
+        console.log(`🔍 API response:`, data);
         return data.data || data;
     } catch (error) {
         console.error('Error fetching account names:', error);
@@ -364,6 +394,9 @@ async function populateAccountNameDropdownForInitialLoad(row, category, departme
     }
     
     const accountNames = await getAvailableAccountNames(category, departmentId, transactionType);
+    console.log(`🔍 populateAccountNameDropdownForInitialLoad - API returned ${accountNames.length} account names:`, accountNames);
+    console.log(`🔍 Looking for existing account name: "${existingAccountName}" in results`);
+    
     let existingAccountNameFound = false;
     
     if (existingAccountName) {
@@ -378,8 +411,10 @@ async function populateAccountNameDropdownForInitialLoad(row, category, departme
     }
     
     accountNames.forEach(item => {
+        console.log(`🔍 Checking item:`, item);
         if (existingAccountName && item.accountName === existingAccountName) {
             existingAccountNameFound = true;
+            console.log(`✅ Found matching account name: "${item.accountName}"`);
             return;
         }
         
@@ -392,6 +427,7 @@ async function populateAccountNameDropdownForInitialLoad(row, category, departme
     });
     
     if (existingAccountName && !existingAccountNameFound) {
+        console.log(`⚠️ Account name "${existingAccountName}" not found in API results - marking as historical`);
         const existingOption = accountNameSelect.querySelector(`option[value="${existingAccountName}"]`);
         if (existingOption) {
             existingOption.textContent = `${existingAccountName} (Historical)`;
@@ -400,6 +436,34 @@ async function populateAccountNameDropdownForInitialLoad(row, category, departme
             existingOption.style.color = '#6b7280';
         }
         console.log(`Marked account name as historical: ${existingAccountName}`);
+    } else if (existingAccountName && existingAccountNameFound) {
+        console.log(`✅ Account name "${existingAccountName}" found in API results - keeping as normal`);
+    }
+    
+    // If we have a valid COA for the existing account name, don't mark it as historical
+    // This prevents marking valid data as historical when the API might have issues
+    if (existingAccountName && existingCoa && existingCoa.trim() !== '') {
+        const existingOption = accountNameSelect.querySelector(`option[value="${existingAccountName}"]`);
+        if (existingOption) {
+            console.log(`✅ Account name "${existingAccountName}" has valid COA "${existingCoa}" - ensuring it's not marked as historical`);
+            existingOption.textContent = existingAccountName; // Remove any "(Historical)" text
+            existingOption.dataset.remarks = '';
+            existingOption.style.fontStyle = 'normal';
+            existingOption.style.color = 'inherit';
+        }
+    }
+    
+    // Additional safety check: if the API returned no results but we have valid data,
+    // ensure we don't mark it as historical
+    if (accountNames.length === 0 && existingAccountName && existingCoa && existingCoa.trim() !== '') {
+        console.log(`⚠️ API returned no results, but we have valid data for "${existingAccountName}" with COA "${existingCoa}" - treating as valid`);
+        const existingOption = accountNameSelect.querySelector(`option[value="${existingAccountName}"]`);
+        if (existingOption) {
+            existingOption.textContent = existingAccountName;
+            existingOption.dataset.remarks = '';
+            existingOption.style.fontStyle = 'normal';
+            existingOption.style.color = 'inherit';
+        }
     }
     
     if (existingCoa && coaInput) {
@@ -977,7 +1041,7 @@ function populateTransactionTypeSelect(transactionTypes) {
 }
 
 function fetchBusinessPartners() {
-    fetch(`${BASE_URL}/api/business-partners/type/employee`)
+    fetch(`${BASE_URL}/api/business-partners/type/all`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -1243,7 +1307,7 @@ async function populateTable(cashAdvanceDetails) {
                 <input type="text" value="${detail.description || ''}" class="w-full description" maxlength="200" required />
             </td>
             <td class="p-2 border">
-                <input type="number" value="${detail.amount ? parseFloat(detail.amount).toFixed(2) : '0.00'}" class="w-full total" required step="0.01" oninput="calculateTotalAmount()" onblur="formatNumberWithDecimals(this)" />
+                <input type="text" value="${detail.amount ? formatCurrency(detail.amount) : '0.00'}" class="w-full total" required oninput="calculateTotalAmount()" onblur="formatCurrencyInput(this)" />
             </td>
             <td class="p-2 border text-center">
                 <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
@@ -1297,7 +1361,7 @@ async function addRow() {
             <input type="text" class="w-full description" maxlength="200" required />
         </td>
         <td class="p-2 border">
-            <input type="number" class="w-full total" value="0.00" required step="0.01" oninput="calculateTotalAmount()" onblur="formatNumberWithDecimals(this)" />
+            <input type="text" class="w-full total" value="0.00" required oninput="calculateTotalAmount()" onblur="formatCurrencyInput(this)" />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
@@ -1322,15 +1386,16 @@ function calculateTotalAmount() {
     let sum = 0;
     
     totalInputs.forEach(input => {
-        // Only add to sum if the input has a valid numeric value
+        // Parse the formatted currency value
         const value = input.value.trim();
-        if (value && !isNaN(parseFloat(value))) {
-            sum += parseFloat(value);
+        if (value) {
+            const parsedValue = parseCurrency(value);
+            sum += parsedValue;
         }
     });
     
-    // Format the sum with 2 decimal places
-    const formattedSum = sum.toFixed(2);
+    // Format the sum with currency formatting
+    const formattedSum = formatCurrency(sum);
     
     // Update the total amount display
     const totalAmountDisplay = document.getElementById('totalAmountDisplay');
@@ -1339,9 +1404,9 @@ function calculateTotalAmount() {
     }
 }
 
-// Simple number formatting with .00 decimal places
-function formatNumberWithDecimals(input) {
-    // Get the numeric value
+// Currency input formatting function
+function formatCurrencyInput(input) {
+    // Get the numeric value, removing any non-digit characters except decimal point
     let value = input.value.replace(/[^\d.]/g, '');
     
     // Handle empty input
@@ -1350,10 +1415,18 @@ function formatNumberWithDecimals(input) {
         return;
     }
     
-    // Convert to number and format with 2 decimal places
+    // Ensure only one decimal point
+    const parts = value.split('.');
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Convert to number and format with currency formatting
     const numericValue = parseFloat(value);
     if (!isNaN(numericValue)) {
-        input.value = numericValue.toFixed(2);
+        input.value = formatCurrency(numericValue);
+    } else {
+        input.value = '0.00';
     }
 }
 
@@ -1674,7 +1747,9 @@ async function updateCashAdvance(isSubmit = false) {
             formData.append(`CashAdvanceDetails[${detailIndex}][AccountName]`, accountName || '');
             formData.append(`CashAdvanceDetails[${detailIndex}][Coa]`, coa || '');
             formData.append(`CashAdvanceDetails[${detailIndex}][Description]`, description);
-            formData.append(`CashAdvanceDetails[${detailIndex}][Amount]`, amount);
+            // Parse the formatted currency value before sending
+            const parsedAmount = parseCurrency(amount);
+            formData.append(`CashAdvanceDetails[${detailIndex}][Amount]`, parsedAmount);
             detailIndex++;
         }
     });
@@ -1849,7 +1924,7 @@ function getSuperiorLevelForField(fieldId) {
         'Approval.AcknowledgedById': 'AC',
         'Approval.ApprovedById': 'AP',
         'Approval.ReceivedById': 'RE',
-        'Approval.ClosedById': 'RE'
+        'Approval.ClosedById': 'CL'
     };
     return levelMap[fieldId] || null;
 }
@@ -1994,8 +2069,8 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
     const documentType = 'CA'; // Cash Advance
     const fieldIds = ['Approval.PreparedById', 'Approval.CheckedById', 'Approval.AcknowledgedById', 'Approval.ApprovedById', 'Approval.ReceivedById'];
     
-    // Add closedBy only for Personal Loan
-    if (transactionType === 'Personal Loan') {
+    // Add closedBy for Personal Loan and other Cash Advance types that have CL superior level
+    if (transactionType === 'Personal Loan' || transactionType === 'LO') {
         fieldIds.push('Approval.ClosedById');
     }
     
@@ -2028,7 +2103,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add event listeners for formatting
         input.addEventListener('blur', function() {
-            formatNumberWithDecimals(this);
+            formatCurrencyInput(this);
         });
         
         input.addEventListener('input', function() {

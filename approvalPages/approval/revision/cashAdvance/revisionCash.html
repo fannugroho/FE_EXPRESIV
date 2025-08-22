@@ -248,8 +248,8 @@
             const transactionType = document.getElementById('transactionType').value;
             const closedBySection = document.getElementById('closedBySection');
             
-            // Show Closed By field only for Personal Loan
-            if (transactionType === 'Personal Loan') {
+            // Show Closed By field for Personal Loan and other Cash Advance types that have CL superior level
+            if (transactionType === 'Personal Loan' || transactionType === 'LO') {
                 closedBySection.style.display = 'block';
             } else {
                 closedBySection.style.display = 'none';
