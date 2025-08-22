@@ -6,30 +6,6 @@ let cashAdvanceData = null;
 let caId;
 let currentTab;
 
-// Currency formatting utility function
-function formatCurrency(amount) {
-    if (!amount && amount !== 0) return '0.00';
-    let num;
-    if (typeof amount === 'string') {
-        num = parseFloat(amount.replace(/,/g, ''));
-    } else {
-        num = Number(amount);
-    }
-
-    if (isNaN(num)) return '0.00';
-
-    return num.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
-}
-
-// Function to parse formatted currency back to number
-function parseCurrency(formattedValue) {
-    if (!formattedValue) return 0;
-    return parseFloat(formattedValue.toString().replace(/,/g, '')) || 0;
-}
-
 // Function to get available categories based on department and transaction type from API
 async function getAvailableCategories(departmentId, transactionType) {
     if (!departmentId || !transactionType) return [];
@@ -1307,7 +1283,7 @@ async function populateTable(cashAdvanceDetails) {
                 <input type="text" value="${detail.description || ''}" class="w-full description" maxlength="200" required />
             </td>
             <td class="p-2 border">
-                <input type="text" value="${detail.amount ? formatCurrency(detail.amount) : '0.00'}" class="w-full total" required oninput="calculateTotalAmount()" onblur="formatCurrencyInput(this)" />
+                <input type="text" value="${detail.amount ? new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(detail.amount)) : '0.00'}" class="w-full total" required step="0.01" oninput="formatNumberAsYouType(this); calculateTotalAmount()" onblur="formatNumberWithDecimals(this)" />
             </td>
             <td class="p-2 border text-center">
                 <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
@@ -1361,7 +1337,7 @@ async function addRow() {
             <input type="text" class="w-full description" maxlength="200" required />
         </td>
         <td class="p-2 border">
-            <input type="text" class="w-full total" value="0.00" required oninput="calculateTotalAmount()" onblur="formatCurrencyInput(this)" />
+            <input type="text" class="w-full total" value="0.00" required step="0.01" oninput="formatNumberAsYouType(this); calculateTotalAmount()" onblur="formatNumberWithDecimals(this)" />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
@@ -1380,67 +1356,54 @@ function deleteRow(button) {
     calculateTotalAmount(); // Recalculate total after removing a row
 }
 
+// Helper: parse formatted number string (e.g., "1,234.56") to Number
+function parseFormattedNumber(value) {
+    if (!value) return 0;
+    // Remove commas and spaces
+    const sanitized = String(value).replace(/[,\s]/g, '');
+    const num = parseFloat(sanitized);
+    return isNaN(num) ? 0 : num;
+}
+
+// Helper: format number with thousands separators and 2 decimals (en-US)
+function formatWithThousands(amount) {
+    const num = typeof amount === 'number' ? amount : parseFormattedNumber(amount);
+    return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+}
+
 // Function to calculate total amount from all rows
 function calculateTotalAmount() {
     const totalInputs = document.querySelectorAll('.total');
     let sum = 0;
     
     totalInputs.forEach(input => {
-        // Parse the formatted currency value
-        const value = input.value.trim();
-        if (value) {
-            const parsedValue = parseCurrency(value);
-            sum += parsedValue;
-        }
+        const numeric = parseFormattedNumber(input.value);
+        sum += numeric;
     });
     
-    // Format the sum with currency formatting
-    const formattedSum = formatCurrency(sum);
-    
-    // Update the total amount display
+    // Update the total amount display with delimiters
     const totalAmountDisplay = document.getElementById('totalAmountDisplay');
     if (totalAmountDisplay) {
-        totalAmountDisplay.textContent = formattedSum;
+        totalAmountDisplay.textContent = formatWithThousands(sum);
     }
 }
 
-// Currency input formatting function
-function formatCurrencyInput(input) {
-    // Get the numeric value, removing any non-digit characters except decimal point
-    let value = input.value.replace(/[^\d.]/g, '');
-    
-    // Handle empty input
-    if (!value) {
-        input.value = '0.00';
-        return;
-    }
-    
-    // Ensure only one decimal point
-    const parts = value.split('.');
-    if (parts.length > 2) {
-        value = parts[0] + '.' + parts.slice(1).join('');
-    }
-    
-    // Convert to number and format with currency formatting
-    const numericValue = parseFloat(value);
-    if (!isNaN(numericValue)) {
-        input.value = formatCurrency(numericValue);
-    } else {
-        input.value = '0.00';
-    }
+// Simple number formatting with .00 decimal places
+function formatNumberWithDecimals(input) {
+    // Sanitize and format
+    const numericValue = parseFormattedNumber(input.value);
+    input.value = formatWithThousands(numericValue);
+    calculateTotalAmount();
 }
 
 // Function to format number as user types (allows decimal input)
 function formatNumberAsYouType(input) {
-    // Allow digits and one decimal point
-    let value = input.value.replace(/[^\d.]/g, '');
-    
-    // Ensure only one decimal point
+    // Remove any commas while typing; allow digits and one decimal point
+    let value = input.value.replace(/,/g, '').replace(/[^\d.]/g, '');
     const parts = value.split('.');
     if (parts.length > 2) {
         value = parts[0] + '.' + parts.slice(1).join('');
     }
-    
     input.value = value;
 }
 
@@ -1740,16 +1703,14 @@ async function updateCashAdvance(isSubmit = false) {
         const accountName = accountNameSelect?.value;
         const coa = coaInput?.value;
         const description = descriptionInput?.value;
-        const amount = amountInput?.value;
+        const amount = amountInput ? parseFormattedNumber(amountInput.value).toFixed(2) : '';
         
         if (description && amount) {
             formData.append(`CashAdvanceDetails[${detailIndex}][Category]`, category || '');
             formData.append(`CashAdvanceDetails[${detailIndex}][AccountName]`, accountName || '');
             formData.append(`CashAdvanceDetails[${detailIndex}][Coa]`, coa || '');
             formData.append(`CashAdvanceDetails[${detailIndex}][Description]`, description);
-            // Parse the formatted currency value before sending
-            const parsedAmount = parseCurrency(amount);
-            formData.append(`CashAdvanceDetails[${detailIndex}][Amount]`, parsedAmount);
+            formData.append(`CashAdvanceDetails[${detailIndex}][Amount]`, amount);
             detailIndex++;
         }
     });
@@ -1924,7 +1885,7 @@ function getSuperiorLevelForField(fieldId) {
         'Approval.AcknowledgedById': 'AC',
         'Approval.ApprovedById': 'AP',
         'Approval.ReceivedById': 'RE',
-        'Approval.ClosedById': 'CL'
+        'Approval.ClosedById': 'RE'
     };
     return levelMap[fieldId] || null;
 }
@@ -2069,8 +2030,8 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
     const documentType = 'CA'; // Cash Advance
     const fieldIds = ['Approval.PreparedById', 'Approval.CheckedById', 'Approval.AcknowledgedById', 'Approval.ApprovedById', 'Approval.ReceivedById'];
     
-    // Add closedBy for Personal Loan and other Cash Advance types that have CL superior level
-    if (transactionType === 'Personal Loan' || transactionType === 'LO') {
+    // Add closedBy only for Personal Loan
+    if (transactionType === 'Personal Loan') {
         fieldIds.push('Approval.ClosedById');
     }
     
@@ -2103,7 +2064,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add event listeners for formatting
         input.addEventListener('blur', function() {
-            formatCurrencyInput(this);
+            formatNumberWithDecimals(this);
         });
         
         input.addEventListener('input', function() {
