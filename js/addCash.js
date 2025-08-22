@@ -849,6 +849,21 @@ function validateHeaderFields() {
 // Patch saveDocument to validate header fields and rows before submit
 const originalSaveDocument = saveDocument;
 saveDocument = async function(isSubmit = false) {
+    const saveBtn = document.getElementById('btnSave');
+    const submitBtn = document.getElementById('btnSubmit');
+    // Guard: if already disabled, just show waiting popup and return
+    if ((isSubmit && submitBtn && submitBtn.disabled) || (!isSubmit && saveBtn && saveBtn.disabled)) {
+        try {
+            await Swal.fire({
+                title: 'Please wait',
+                text: 'Your request is being processed...',
+                icon: 'info',
+                confirmButtonText: 'OK'
+            });
+        } catch(_) {}
+        return;
+    }
+
     // Validate header fields first
     const headerValidation = validateHeaderFields();
     if (!headerValidation.isValid) {
@@ -871,7 +886,28 @@ saveDocument = async function(isSubmit = false) {
         });
         return;
     }
-    await originalSaveDocument(isSubmit);
+    // Disable buttons to prevent multiple clicks
+    if (saveBtn) saveBtn.disabled = true;
+    if (submitBtn) submitBtn.disabled = true;
+    // Show non-dismissable loading popup
+    Swal.fire({
+        title: 'Processing',
+        text: 'Please wait while we save your request...',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    try {
+        await originalSaveDocument(isSubmit);
+    } finally {
+        // Re-enable buttons and close loading regardless of outcome
+        if (saveBtn) saveBtn.disabled = false;
+        if (submitBtn) submitBtn.disabled = false;
+        if (Swal.isVisible()) Swal.close();
+    }
 };
 
 // Function to submit document (calls saveDocument with isSubmit=true)
