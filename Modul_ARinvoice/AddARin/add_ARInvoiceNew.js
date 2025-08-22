@@ -2696,7 +2696,7 @@ function mapResponseToForm(responseData) {
     if (responseData.cardName) document.getElementById("CardName").value = responseData.cardName;
     if (responseData.cardCode) document.getElementById("CardCode").value = responseData.cardCode;
     if (responseData.address) document.getElementById("Address").value = responseData.address;
-    if (responseData.numAtCard) document.getElementById("NumAtCard").value = responseData.numAtCard;
+    if (responseData.u_bsi_invnum) document.getElementById("NumAtCard").value = responseData.u_bsi_invnum;
     if (responseData.comments) document.getElementById("remarks").value = responseData.comments;
 
     if (responseData.docDate) {

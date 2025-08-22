@@ -254,7 +254,7 @@ function populateInvServiceData(data) {
     document.getElementById('CardCode').value = data.cardCode || '';
     document.getElementById('CardName').value = data.cardName || '';
     document.getElementById('address').value = data.address || '';
-    document.getElementById('NumAtCard').value = data.numAtCard || '';
+    document.getElementById('NumAtCard').value = data.u_bsi_invnum || '';
     document.getElementById('DocCur').value = data.docCur || '';
     document.getElementById('docRate').value = data.docRate || '';
     document.getElementById('DocDate').value = formatDate(data.docDate);

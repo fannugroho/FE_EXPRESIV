@@ -139,10 +139,10 @@ function populateInvoiceForm(invoiceData) {
             }
         }
 
-        if (invoiceData.numAtCard) {
+        if (invoiceData.u_bsi_invnum) {
             const numAtCardField = document.getElementById('NumAtCard');
             if (numAtCardField) {
-                numAtCardField.value = invoiceData.numAtCard;
+                numAtCardField.value = invoiceData.u_bsi_invnum;
             }
         }
 

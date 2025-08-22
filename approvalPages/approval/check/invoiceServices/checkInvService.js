@@ -345,7 +345,7 @@ function populateInvServiceData(data) {
     safeSetValue('CardCode', data.cardCode || '');
     safeSetValue('CardName', data.cardName || '');
     safeSetValue('address', data.address || '');
-    safeSetValue('NumAtCard', data.numAtCard || '');
+    safeSetValue('NumAtCard', data.u_bsi_invnum || '');
     safeSetValue('DocCur', data.docCur || '');
     safeSetValue('docRate', data.docRate || '');
     safeSetValue('DocDate', formatDate(data.docDate));

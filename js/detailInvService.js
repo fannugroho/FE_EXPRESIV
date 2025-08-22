@@ -421,7 +421,7 @@ function populateFormData(data) {
         'CardName': data.cardName || data.customerName || data.vendorName || '',
         'Status': '', // Will be populated later after status is determined
         'address': data.address || data.customerAddress || data.billingAddress || '',
-        'NumAtCard': data.numAtCard || data.kpinNumber || data.externalNumber || '',
+        'NumAtCard': data.u_bsi_invnum || data.numAtCard || data.kpinNumber || data.externalNumber || '',
         'DocCur': data.docCur || data.currency || data.docCurrency || 'IDR',
         'docRate': data.docRate || data.exchangeRate || data.rate || 1,
         'DocDate': OptimizedUtils.formatDateToLocalInput(data.docDate || data.documentDate || data.invoiceDate),
@@ -433,8 +433,8 @@ function populateFormData(data) {
         'U_BSI_ShippingType': data.u_BSI_ShippingType || data.U_BSI_ShippingType || data.u_bsi_shippingtype || data.shippingType || '',
         // Payment Terms
         'U_BSI_PaymentGroup': data.U_BSI_PaymentGroup || data.u_BSI_PaymentGroup || data.u_bsi_paymentgroup || '',
-        // No Surat Jalan (connect to u_bsi_invnum if available)
-        'U_BSI_UDF1': data.u_bsi_invnum || data.U_BSI_UDF1 || data.u_BSI_UDF1 || data.u_bsi_udf1 || data.suratJalan || data.deliveryNote || '',
+        // No Surat Jalan
+        'U_BSI_UDF1': data.u_bsi_udf1 || data.U_BSI_UDF1 || data.u_BSI_UDF1 || data.suratJalan || data.deliveryNote || '',
         // P/O No
         'U_BSI_UDF2': data.U_BSI_UDF2 || data.u_BSI_UDF2 || data.u_bsi_udf2 || data.poNumber || data.purchaseOrder || '',
         // Control Account (HTML uses U_BSI_UDF3)
