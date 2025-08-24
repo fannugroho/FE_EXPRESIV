@@ -82,6 +82,11 @@ class CashAdvancePrinter {
 
     populateForm() {
         if (!this.cashAdvanceData) return;
+        
+        // Validate the data before proceeding
+        if (!this.validateCashAdvanceData(this.cashAdvanceData)) {
+            return;
+        }
 
         // Header Information
         this.setElementText('voucherNo', this.cashAdvanceData.cashAdvanceNo || '-');
@@ -106,21 +111,15 @@ class CashAdvancePrinter {
             this.cashAdvanceData.receivedName, this.cashAdvanceData.receivedDate);
 
         // Cost and Purpose
-        this.setElementText('amountInWords', this.numberToWords(this.cashAdvanceData.totalAmount));
         this.setElementText('purpose', this.cashAdvanceData.purpose || '-');
         this.setElementText('remarks', this.cashAdvanceData.remarks || '-');
         
         // Set currency from API data
-        this.setElementText('currency', this.cashAdvanceData.currency || 'Rp');
-        this.setElementText('returnCurrency', this.cashAdvanceData.currency || 'Rp');
+        this.setElementText('currency', this.cashAdvanceData.currency || 'IDR');
+        this.setElementText('returnCurrency', this.cashAdvanceData.currency || 'IDR');
 
         // Settlement Table
         this.populateSettlementTable();
-        
-        // Update amount in words with currency name after settlement table is populated
-        if (this.cashAdvanceData.currency) {
-            this.updateAmountInWordsWithCurrency(this.cashAdvanceData.currency);
-        }
         
         // Update page numbering
         this.updatePageNumbers();
@@ -153,13 +152,14 @@ class CashAdvancePrinter {
         if (this.cashAdvanceData.cashAdvanceDetails && this.cashAdvanceData.cashAdvanceDetails.length > 0) {
             this.cashAdvanceData.cashAdvanceDetails.forEach(detail => {
                 const row = document.createElement('tr');
+                const formattedAmount = this.formatCurrency(detail.amount);
                 row.innerHTML = `
                     <td>${this.cashAdvanceData.transactionType}</td>
                     <td>${detail.glAccount || detail.coa || '-'}</td>
                     <td>${detail.accountName || '-'}</td>
                     <td>${detail.description || '-'}</td>
                     <td>${this.cashAdvanceData.currency || '-'}</td>
-                    <td>${this.formatCurrency(detail.amount)}</td>
+                    <td>${formattedAmount}</td>
                 `;
                 tableBody.appendChild(row);
             });
@@ -179,33 +179,31 @@ class CashAdvancePrinter {
             }
         }
 
-        // Set totals
-        this.setElementText('totalProposedAmount', this.formatCurrency(this.cashAdvanceData.totalAmount));
+        // Set totals using safe methods
+        this.safeFormatAmount(this.cashAdvanceData.totalAmount, 'totalProposedAmount');
+        
+        // Update amount in words based on the total amount with currency
+        this.safeNumberToWords(this.cashAdvanceData.totalAmount, 'amountInWords', this.cashAdvanceData.currency);
     }
 
     updateAmountInWordsWithCurrency(currencyCode) {
-        if (!this.currencyData || !currencyCode) return;
+        if (!currencyCode) return;
         
-        console.log('Updating amount in words with currency code:', currencyCode);
-        console.log('Available currencies:', this.currencyData.map(c => `${c.code}: ${c.name}`));
+        const amountInWordsElement = document.getElementById('amountInWords');
+        if (!amountInWordsElement) return;
         
-        // Find currency name by code
-        const currency = this.currencyData.find(c => c.code === currencyCode);
-        if (currency) {
-            console.log('Found currency:', currency);
-            const amountInWordsElement = document.getElementById('amountInWords');
-            if (amountInWordsElement) {
-                const currentText = amountInWordsElement.textContent;
-                console.log('Current amount in words:', currentText);
-                // Remove any existing currency name and append the new one
-                const textWithoutCurrency = currentText.replace(/\s+\w+$/, '');
-                const newText = `${textWithoutCurrency} ${currency.name}`;
-                amountInWordsElement.textContent = newText;
-                console.log('Updated amount in words:', newText);
-            }
-        } else {
-            console.warn(`Currency with code '${currencyCode}' not found in currency data`);
-        }
+        // Use the centralized getCurrencyName method
+        const currencyName = this.getCurrencyName(currencyCode);
+        
+        // Get the current amount in words without currency
+        let currentText = amountInWordsElement.textContent;
+        
+        // Remove any existing currency name (more robust regex)
+        currentText = currentText.replace(/\s+(Rupiah|IDR|USD|EUR|GBP|JPY|SGD|AUD|CAD|CHF|CNY|KRW|THB|MYR|PHP|VND|INR|BRL|MXN|RUB|ZAR|SEK|NOK|DKK|PLN|CZK|HUF|RON|BGN|HRK|RSD|UAH|BYN|KZT|UZS|GEL|AMD|AZN|BDT|KHR|LAK|MMK|MNT|NPR|PKR|LKR|TJS|TMT|TND|VEF|XOF|XAF|XCD|XPF|YER|ZMW|NGN|EGP|KES|UGX|TZS|GHS|MAD|DZD|TND|LYD|SDG|ETB|SOS|DJF|KMF|BIF|RWF|MWK|ZMK|SZL|LSL|NAD|BWP|MUR|SCR|SLL|GMD|GNF|CVE|STD|AOA|XOF|XAF|XCD|XPF|YER|ZMW|NGN|EGP|KES|UGX|TZS|GHS|MAD|DZD|TND|LYD|SDG|ETB|SOS|DJF|KMF|BIF|RWF|MWK|ZMK|SZL|LSL|NAD|BWP|MUR|SCR|SLL|GMD|GNF|CVE|STD|AOA)$/i, '');
+        
+        // Append the currency name
+        const newText = `${currentText} ${currencyName}`;
+        amountInWordsElement.textContent = newText;
     }
 
     setElementText(elementId, text) {
@@ -235,16 +233,44 @@ class CashAdvancePrinter {
     formatCurrency(amount) {
         if (amount === null || amount === undefined) return '-';
         
+        // Ensure amount is a number
+        let numericAmount = amount;
+        if (typeof amount === 'string') {
+            numericAmount = this.parseIndonesianNumber(amount);
+            if (isNaN(numericAmount)) {
+                return '-';
+            }
+        }
+        
         return new Intl.NumberFormat('id-ID', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
-        }).format(amount);
+        }).format(numericAmount);
     }
 
 
 
-    numberToWords(num) {
-        if (num === null || num === undefined || num === 0) return 'Zero';
+    numberToWords(num, includeCurrency = false, currencyCode = null) {
+        // Handle null, undefined, or zero
+        if (num === null || num === undefined || num === 0) {
+            return includeCurrency && currencyCode ? `Zero ${currencyCode}` : 'Zero';
+        }
+        
+        // If num is a string, parse it from Indonesian format
+        let numericValue = num;
+        if (typeof num === 'string') {
+            // Parse Indonesian number format (e.g., "1.122.000,00" -> 1122000.00)
+            numericValue = this.parseIndonesianNumber(num);
+            if (isNaN(numericValue)) {
+                console.warn('Failed to parse number:', num);
+                return includeCurrency && currencyCode ? `Invalid Amount ${currencyCode}` : 'Invalid Amount';
+            }
+        }
+        
+        // Ensure we have a valid number
+        if (isNaN(numericValue) || numericValue === 0) {
+            return includeCurrency && currencyCode ? `Zero ${currencyCode}` : 'Zero';
+        }
         
         const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
         const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
@@ -277,13 +303,121 @@ class CashAdvancePrinter {
             return result.trim();
         }
         
-        const wholePart = Math.floor(num);
-        const decimalPart = Math.round((num - wholePart) * 100);
+        const wholePart = Math.floor(numericValue);
+        const decimalPart = Math.round((numericValue - wholePart) * 100);
         
         let result = convert(wholePart);
         
         if (decimalPart > 0) {
             result += ' and ' + convert(decimalPart) + ' Cents';
+        }
+        
+        // Add currency if requested
+        if (includeCurrency && currencyCode) {
+            result += ` ${currencyCode}`;
+        }
+        
+        return result;
+    }
+
+    // Get currency name from currency code using API data
+    getCurrencyName(currencyCode) {
+        if (!currencyCode || !this.currencyData) {
+            return currencyCode; // Return the code if no data available
+        }
+        
+        const currency = this.currencyData.find(c => c.code === currencyCode);
+        if (currency && currency.name) {
+            return currency.name;
+        }
+        
+        // Fallback to currency code if name not found
+        return currencyCode;
+    }
+
+    // Safely format and display amount with fallback handling
+    safeFormatAmount(amount, elementId) {
+        try {
+            if (!amount) {
+                this.setElementText(elementId, '-');
+                return;
+            }
+            
+            const formatted = this.formatCurrency(amount);
+            this.setElementText(elementId, formatted);
+        } catch (error) {
+            console.warn(`Error formatting amount for ${elementId}:`, error);
+            this.setElementText(elementId, amount || '-');
+        }
+    }
+
+    // Safely convert number to words with fallback handling
+    safeNumberToWords(amount, elementId, currencyCode = null) {
+        try {
+            if (!amount) {
+                const currencyName = this.getCurrencyName(currencyCode);
+                const defaultText = currencyName ? `Zero ${currencyName}` : 'Zero';
+                this.setElementText(elementId, defaultText);
+                return;
+            }
+            
+            // Get the currency name instead of using the code directly
+            const currencyName = this.getCurrencyName(currencyCode);
+            const words = this.numberToWords(amount, true, currencyName);
+            this.setElementText(elementId, words);
+        } catch (error) {
+            console.warn(`Error converting amount to words for ${elementId}:`, error);
+            const currencyName = this.getCurrencyName(currencyCode);
+            const errorText = currencyName ? `Amount conversion error ${currencyName}` : 'Amount conversion error';
+            this.setElementText(elementId, errorText);
+        }
+    }
+
+    // Validate and sanitize cash advance data
+    validateCashAdvanceData(data) {
+        if (!data) {
+            this.showError('No cash advance data received');
+            return false;
+        }
+        
+        if (!data.totalAmount) {
+            this.showError('Total amount is missing from cash advance data');
+            return false;
+        }
+        
+        // Validate total amount is a valid number or Indonesian format string
+        const amount = this.parseIndonesianNumber(data.totalAmount);
+        if (isNaN(amount) || amount <= 0) {
+            this.showError(`Invalid total amount: ${data.totalAmount}`);
+            return false;
+        }
+        
+        return true;
+    }
+
+    // Parse Indonesian number format (e.g., "1.122.000,00" -> 1122000.00)
+    parseIndonesianNumber(numberString) {
+        if (typeof numberString !== 'string') {
+            return parseFloat(numberString);
+        }
+        
+        // Remove all spaces and trim
+        let cleaned = numberString.trim().replace(/\s/g, '');
+        
+        // Handle Indonesian format: dots as thousand separators, comma as decimal separator
+        // First, replace dots with empty string (remove thousand separators)
+        cleaned = cleaned.replace(/\./g, '');
+        
+        // Then replace comma with dot (decimal separator)
+        cleaned = cleaned.replace(/,/g, '.');
+        
+        // Parse as float
+        const result = parseFloat(cleaned);
+        
+        // Validate the result
+        if (isNaN(result)) {
+            console.warn('Failed to parse Indonesian number format:', numberString);
+            return NaN;
         }
         
         return result;
