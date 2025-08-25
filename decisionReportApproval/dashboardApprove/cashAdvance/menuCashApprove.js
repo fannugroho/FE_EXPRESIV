@@ -176,7 +176,7 @@ function updateTable() {
     const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
     
     if (filteredData.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gray-500">No data available</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-gray-500">No data available</td></tr>';
         return;
     }
     
@@ -200,6 +200,7 @@ function updateTable() {
             <td class="p-2">${item.cashAdvanceNo || ''}</td>
             <td class="p-2">${item.requesterName || ''}</td>
             <td class="p-2">${item.departmentName || ''}</td>
+            <td class="p-2">${item.purpose || ''}</td>
             <td class="p-2">${formattedDate}</td>
             <td class="p-2">
                 <span class="px-2 py-1 rounded-full text-xs ${item.status === 'Acknowledged' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}">
@@ -294,7 +295,7 @@ function downloadPDF() {
     doc.text(`Cash Advance - ${status}`, 14, 16);
     
     // Prepare data for table
-    const tableColumn = ["ID", "Cash Advance Number", "Requester", "Department", "Date", "Status"];
+    const tableColumn = ["ID", "Cash Advance Number", "Requester", "Department", "Purpose", "Date", "Status"];
     const tableRows = [];
     
     // Add data rows
@@ -305,6 +306,7 @@ function downloadPDF() {
             item.cashAdvanceNo || '',
             item.requesterName || '',
             item.departmentName || '',
+            item.purpose || '',
             formattedDate,
             item.status || ''
         ];

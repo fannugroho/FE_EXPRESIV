@@ -177,7 +177,7 @@ function updateTable(documents = []) {
     
     if (documents.length === 0) {
         const row = document.createElement('tr');
-        const colspan = currentTab === 'closed' ? '8' : '7'; // Account for remarks column
+        const colspan = currentTab === 'closed' ? '9' : '8'; // Account for remarks column and purpose column
         row.innerHTML = `
             <td colspan="${colspan}" class="p-4 text-center text-gray-500">
                 No documents found for the selected tab.
@@ -211,6 +211,7 @@ function updateTable(documents = []) {
             <td class="p-2">${doc.cashAdvanceNo || ''}</td>
             <td class="p-2">${doc.requesterName || ''}</td>
             <td class="p-2">${doc.departmentName || ''}</td>
+            <td class="p-2">${doc.purpose || ''}</td>
             <td class="p-2">${formattedDate}</td>
             <td class="p-2">
                 <span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">
@@ -475,7 +476,7 @@ function downloadExcel() {
     
     // Create worksheet data
     const worksheetData = [
-        ['ID', 'Cash Advance No', 'Requester', 'Department', 'Submission Date', 'Status', 'Transaction Type']
+        ['ID', 'Cash Advance No', 'Requester', 'Department', 'Purpose', 'Submission Date', 'Status', 'Transaction Type']
     ];
     
     filteredData.forEach(doc => {
@@ -484,6 +485,7 @@ function downloadExcel() {
             doc.cashAdvanceNo || '',
             doc.requesterName || '',
             doc.departmentName || '',
+            doc.purpose || '',
             doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
             doc.status || '',
             doc.transactionType || ''
@@ -517,6 +519,7 @@ function downloadPDF() {
             doc.cashAdvanceNo || '',
             doc.requesterName || '',
             doc.departmentName || '',
+            doc.purpose || '',
             doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
             doc.status || '',
             doc.transactionType || ''
@@ -529,7 +532,7 @@ function downloadPDF() {
     
     doc.text('Cash Advances Close Report', 14, 16);
     doc.autoTable({
-        head: [['ID', 'Cash Advance No', 'Requester', 'Department', 'Submission Date', 'Status', 'Transaction Type']],
+        head: [['ID', 'Cash Advance No', 'Requester', 'Department', 'Purpose', 'Submission Date', 'Status', 'Transaction Type']],
         body: docData,
         startY: 20
     });

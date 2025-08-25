@@ -173,7 +173,7 @@ function updateTable(documents = []) {
     if (documents.length === 0) {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td colspan="8" class="p-4 text-center text-gray-500">
+            <td colspan="9" class="p-4 text-center text-gray-500">
                 No documents found for the selected tab.
             </td>
         `;
@@ -205,6 +205,7 @@ function updateTable(documents = []) {
             <td class="p-2">${doc.cashAdvanceNo || '-'}</td>
             <td class="p-2">${doc.requesterName || '-'}</td>
             <td class="p-2">${doc.departmentName || '-'}</td>
+            <td class="p-2">${doc.purpose || '-'}</td>
             <td class="p-2">${submissionDate}</td>
             <td class="p-2">
                 <span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">
@@ -214,7 +215,7 @@ function updateTable(documents = []) {
             
         // Add remarks column if in revision tab
         if (currentTab === 'revision') {
-            rowHTML += `<td class="p-2">${doc.purpose || '-'}</td>`;
+            rowHTML += `<td class="p-2">${doc.remarks || '-'}</td>`;
         }
         
         // Add tools column
@@ -341,9 +342,10 @@ function downloadExcel() {
         'Cash Advance Number': doc.cashAdvanceNo || '',
         'Requester': doc.requesterName || '',
         'Department': doc.departmentName || '',
+        'Purpose': doc.purpose || '',
         'Submission Date': doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
         'Status': doc.status || '',
-        'Remarks': doc.purpose || ''
+        'Remarks': currentTab === 'revision' ? (doc.remarks || '') : ''
     }));
     
     // Create worksheet
@@ -381,13 +383,14 @@ function downloadPDF() {
         doc.cashAdvanceNo || '',
         doc.requesterName || '',
         doc.departmentName || '',
+        doc.purpose || '',
         doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
         doc.status || '',
-        currentTab === 'revision' ? (doc.purpose || '') : ''
+        currentTab === 'revision' ? (doc.remarks || '') : ''
     ]);
     
     // Define table headers based on current tab
-    let headers = ['Doc Number', 'Cash Advance Number', 'Requester', 'Department', 'Submission Date', 'Status'];
+    let headers = ['Doc Number', 'Cash Advance Number', 'Requester', 'Department', 'Purpose', 'Submission Date', 'Status'];
     if (currentTab === 'revision') {
         headers.push('Remarks');
     }

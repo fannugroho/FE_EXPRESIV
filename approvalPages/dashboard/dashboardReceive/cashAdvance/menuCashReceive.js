@@ -189,7 +189,7 @@ function updateTable(documents = []) {
         if (documents.length === 0) {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td colspan="8" class="p-4 text-center text-gray-500">
+                <td colspan="9" class="p-4 text-center text-gray-500">
                     No documents found for the selected tab.
                 </td>
             `;
@@ -275,6 +275,7 @@ function updateTable(documents = []) {
                     <td class="p-2">${doc.cashAdvanceNo || ''}</td>
                     <td class="p-2">${requesterName}</td>
                     <td class="p-2">${doc.departmentName || ''}</td>
+                    <td class="p-2">${doc.purpose || ''}</td>
                     <td class="p-2">${formattedDate}</td>
                     <td class="p-2">
                         <span class="px-2 py-1 rounded-full text-xs ${getStatusClass(doc.status)}">
@@ -438,7 +439,7 @@ function downloadExcel() {
     
     // Create worksheet data
     const worksheetData = [
-        ['ID', 'Cash Advance No', 'Requester', 'Department', 'Submission Date', 'Status']
+        ['ID', 'Cash Advance No', 'Requester', 'Department', 'Purpose', 'Submission Date', 'Status']
     ];
     
     filteredData.forEach(doc => {
@@ -447,6 +448,7 @@ function downloadExcel() {
             doc.cashAdvanceNo || '',
             doc.requesterName || '',
             doc.departmentName || '',
+            doc.purpose || '',
             doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
             doc.status || ''
         ]);
@@ -479,6 +481,7 @@ function downloadPDF() {
             doc.cashAdvanceNo || '',
             doc.requesterName || '',
             doc.departmentName || '',
+            doc.purpose || '',
             doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
             doc.status || ''
         ]);
@@ -490,7 +493,7 @@ function downloadPDF() {
     
     doc.text('Cash Advances Receive Report', 14, 16);
     doc.autoTable({
-        head: [['ID', 'Cash Advance No', 'Requester', 'Department', 'Submission Date', 'Status']],
+        head: [['ID', 'Cash Advance No', 'Requester', 'Department', 'Purpose', 'Submission Date', 'Status']],
         body: docData,
         startY: 20
     });
