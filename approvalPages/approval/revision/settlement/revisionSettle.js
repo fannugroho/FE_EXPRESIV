@@ -13,12 +13,14 @@ async function getAvailableCategories(departmentId, transactionType) {
     if (!departmentId || !transactionType) return [];
     
     try {
-        const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Cash Advance Settlement&transactionType=${transactionType}`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch categories');
+        // Use the main expenses COA service
+        if (window.expensesCoaService && typeof window.expensesCoaService.getAvailableCategories === 'function') {
+            console.log('Using main expenses COA service for categories');
+            return await window.expensesCoaService.getAvailableCategories('Settlement', transactionType, departmentId);
+        } else {
+            console.warn('Main expenses COA service not available');
+            return [];
         }
-        const data = await response.json();
-        return data.data || data;
     } catch (error) {
         console.error('Error fetching categories:', error);
         return [];
@@ -30,12 +32,14 @@ async function getAvailableAccountNames(category, departmentId, transactionType)
     if (!category || !departmentId || !transactionType) return [];
     
     try {
-        const response = await fetch(`${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Cash Advance Settlement&transactionType=${transactionType}`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch account names');
+        // Use the main expenses COA service
+        if (window.expensesCoaService && typeof window.expensesCoaService.getAvailableAccountNames === 'function') {
+            console.log('Using main expenses COA service for account names');
+            return await window.expensesCoaService.getAvailableAccountNames(category, 'Settlement', transactionType, departmentId);
+        } else {
+            console.warn('Main expenses COA service not available');
+            return [];
         }
-        const data = await response.json();
-        return data.data || data;
     } catch (error) {
         console.error('Error fetching account names:', error);
         return [];
@@ -47,12 +51,14 @@ async function getCOA(category, accountName, departmentId, transactionType) {
     if (!category || !accountName || !departmentId || !transactionType) return '';
     
     try {
-        const response = await fetch(`${BASE_URL}/api/expenses/coa?category=${encodeURIComponent(category)}&accountName=${encodeURIComponent(accountName)}&departmentId=${departmentId}&menu=Cash Advance Settlement&transactionType=${transactionType}`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch COA');
+        // Use the main expenses COA service
+        if (window.expensesCoaService && typeof window.expensesCoaService.getCOA === 'function') {
+            console.log('Using main expenses COA service for COA');
+            return await window.expensesCoaService.getCOA(category, accountName, 'Settlement', transactionType, departmentId);
+        } else {
+            console.warn('Main expenses COA service not available');
+            return '';
         }
-        const data = await response.json();
-        return data.data?.coa || data.coa || '';
     } catch (error) {
         console.error('Error fetching COA:', error);
         return '';

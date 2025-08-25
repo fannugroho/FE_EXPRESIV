@@ -48,12 +48,20 @@ async function getAvailableCategories(departmentId, transactionType) {
     if (!departmentId || !transactionType) return [];
 
     try {
-        const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch categories');
+        // Use the expenses COA service with fallback
+        if (window.expensesCoaServiceWithFallback && typeof window.expensesCoaServiceWithFallback.getAvailableCategories === 'function') {
+            console.log('Using expenses COA service with fallback for categories');
+            return await window.expensesCoaServiceWithFallback.getAvailableCategories(departmentId, 'Cash Advance', transactionType);
+        } else {
+            console.warn('Expenses COA service not available, using fallback API for categories');
+            // Fallback to old API if service is not available
+            const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch categories');
+            }
+            const data = await response.json();
+            return data.data || data;
         }
-        const data = await parseJsonSafe(response);
-        return data.data || data; // Handle both wrapped and direct array responses
     } catch (error) {
         console.error('Error fetching categories:', error);
         return [];
@@ -67,16 +75,20 @@ async function getAvailableAccountNames(category, departmentId, transactionType)
     console.log(`🔍 getAvailableAccountNames called with:`, { category, departmentId, transactionType });
     
     try {
-        const url = `${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`;
-        console.log(`🔍 API URL:`, url);
-        
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error('Failed to fetch account names');
+        // Use the expenses COA service with fallback
+        if (window.expensesCoaServiceWithFallback && typeof window.expensesCoaServiceWithFallback.getAvailableAccountNames === 'function') {
+            console.log('Using expenses COA service with fallback for account names');
+            return await window.expensesCoaServiceWithFallback.getAvailableAccountNames(category, 'Cash Advance', transactionType, departmentId);
+        } else {
+            console.warn('Expenses COA service not available, using fallback API for account names');
+            // Fallback to old API if service is not available
+            const response = await fetch(`${BASE_URL}/api/expenses/accountnames?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch account names');
+            }
+            const data = await response.json();
+            return data.data || data;
         }
-        const data = await parseJsonSafe(response);
-        console.log(`🔍 API response:`, data);
-        return data.data || data; // Handle both wrapped and direct array responses
     } catch (error) {
         console.error('Error fetching account names:', error);
         return [];
@@ -88,12 +100,20 @@ async function getCOA(category, accountName, departmentId, transactionType) {
     if (!category || !accountName || !departmentId || !transactionType) return '';
 
     try {
-        const response = await fetch(`${BASE_URL}/api/expenses/coa?category=${encodeURIComponent(category)}&accountName=${encodeURIComponent(accountName)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch COA');
+        // Use the expenses COA service with fallback
+        if (window.expensesCoaServiceWithFallback && typeof window.expensesCoaServiceWithFallback.getCOA === 'function') {
+            console.log('Using expenses COA service with fallback for COA');
+            return await window.expensesCoaServiceWithFallback.getCOA(category, accountName, 'Cash Advance', transactionType, departmentId);
+        } else {
+            console.warn('Expenses COA service not available, using fallback API for COA');
+            // Fallback to old API if service is not available
+            const response = await fetch(`${BASE_URL}/api/expenses/coa?category=${encodeURIComponent(category)}&accountName=${encodeURIComponent(accountName)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch COA');
+            }
+            const data = await response.json();
+            return data.data || data;
         }
-        const data = await parseJsonSafe(response);
-        return data.data?.coa || data.coa || ''; // Handle different response structures
     } catch (error) {
         console.error('Error fetching COA:', error);
         return '';

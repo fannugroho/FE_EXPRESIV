@@ -1364,8 +1364,9 @@ async function fetchCategories(departmentName, transactionType) {
     }
 
     try {
-        console.log('Fetching categories for department:', departmentName, 'transaction:', transactionType);
-        const response = await fetch(`${BASE_URL}/api/expenses-coa/filter?departmentName=${encodeURIComponent(departmentName)}&menu=Reimbursement&transaction=${encodeURIComponent(transactionType)}`);
+        console.log('Fetching categories for department:', departmentName, 'transaction: all (combined)');
+        // Always use transaction=all to get combined data from all transaction types
+        const response = await fetch(`${BASE_URL}/api/expenses-coa/filter?departmentName=${encodeURIComponent(departmentName)}&menu=Reimbursement&transaction=all`);
 
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
@@ -1410,8 +1411,9 @@ async function fetchAccountNames(category, departmentName, transactionType) {
     }
 
     try {
-        console.log('Fetching account names for category:', category, 'department:', departmentName, 'transaction:', transactionType);
-        const response = await fetch(`${BASE_URL}/api/expenses-coa/filter?departmentName=${encodeURIComponent(departmentName)}&menu=Reimbursement&transaction=${encodeURIComponent(transactionType)}`);
+        console.log('Fetching account names for category:', category, 'department:', departmentName, 'transaction: all (combined)');
+        // Always use transaction=all to get combined data from all transaction types
+        const response = await fetch(`${BASE_URL}/api/expenses-coa/filter?departmentName=${encodeURIComponent(departmentName)}&menu=Reimbursement&transaction=all`);
 
         if (!response.ok) {
             throw new Error(`API error: ${response.status}`);

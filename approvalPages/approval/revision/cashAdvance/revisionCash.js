@@ -6,17 +6,120 @@ let cashAdvanceData = null;
 let caId;
 let currentTab;
 
+// Define BASE_URL if not already defined
+if (typeof BASE_URL === 'undefined') {
+    const BASE_URL = window.BASE_URL || 'https://expressiv-be-sb.idsdev.site';
+}
+
+// === DUAL API CALL IMPLEMENTATION FOR REVISION CASH ADVANCE ===
+// Function to fetch expenses COA data for ALL transaction types
+async function getExpensesCoaDataAll(departmentId) {
+    if (!departmentId) return [];
+    try {
+        if (window.expensesCoaService && typeof window.expensesCoaService.fetchExpensesCoa === 'function') {
+            console.log('Using main expenses COA service to fetch ALL transaction data');
+            console.log('🔍 Calling main service with:', { menu: 'Cash Advance', transaction: 'all', departmentId });
+            const result = await window.expensesCoaService.fetchExpensesCoa(departmentId, 'Cash Advance', 'all');
+            console.log('🔍 Main service returned (ALL):', result);
+            return result || [];
+        } else {
+            console.warn('Main expenses COA service not available');
+            return [];
+        }
+    } catch (error) {
+        console.error('Error fetching expenses COA data (ALL):', error);
+        return [];
+    }
+}
+
+// Function to fetch expenses COA data for SPECIFIC transaction type
+async function getExpensesCoaDataSpecific(departmentId, transactionType) {
+    if (!departmentId || !transactionType) return [];
+    try {
+        if (window.expensesCoaService && typeof window.expensesCoaService.fetchExpensesCoa === 'function') {
+            console.log('Using main expenses COA service to fetch SPECIFIC transaction data');
+            console.log('🔍 Calling main service with:', { menu: 'Cash Advance', transaction: transactionType, departmentId });
+            // Call API with the actual transaction type from dropdown (e.g., "Personal Loan")
+            const result = await window.expensesCoaService.fetchExpensesCoa(departmentId, 'Cash Advance', transactionType);
+            console.log('🔍 Main service returned (SPECIFIC):', result);
+            return result || [];
+        } else {
+            console.warn('Main expenses COA service not available');
+            return [];
+        }
+    } catch (error) {
+        console.error('Error fetching expenses COA data (SPECIFIC):', error);
+        return [];
+    }
+}
+
+// Function to call both APIs and store combined results globally
+async function callDualExpensesCoaAPI() {
+    const departmentSelect = document.getElementById("departmentId");
+    const transactionTypeSelect = document.getElementById("transactionType");
+    const requesterSearchInput = document.getElementById("requesterSearch");
+    
+    const departmentId = departmentSelect?.value;
+    const transactionType = transactionTypeSelect?.value;
+    const requesterValue = requesterSearchInput?.value;
+    
+    // Only call API if we have all required values
+    if (!departmentId || !transactionType || !requesterValue) {
+        console.log('🚫 Skipping dual API call - missing required values:', {
+            departmentId, transactionType, requesterValue
+        });
+        return;
+    }
+    
+    console.log('🚀 Calling dual API for expenses COA data...');
+    console.log('📋 Parameters:', { departmentId, transactionType, requesterValue });
+    
+    try {
+        // Call both APIs concurrently
+        const [allData, specificData] = await Promise.all([
+            getExpensesCoaDataAll(departmentId),
+            getExpensesCoaDataSpecific(departmentId, transactionType)
+        ]);
+        
+        console.log('✅ Dual API call completed successfully');
+        console.log('📊 ALL transaction data:', allData);
+        console.log('📊 SPECIFIC transaction data:', specificData);
+        
+        // Store the combined data globally for use in dropdowns
+        window.combinedExpensesCoaData = [...allData, ...specificData];
+        console.log('💾 Combined data stored globally:', window.combinedExpensesCoaData);
+        
+    } catch (error) {
+        console.error('❌ Error in dual API call:', error);
+    }
+}
+
 // Function to get available categories based on department and transaction type from API
 async function getAvailableCategories(departmentId, transactionType) {
     if (!departmentId || !transactionType) return [];
     
     try {
-        const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch categories');
+        // Use globally stored combined data if available
+        if (window.combinedExpensesCoaData && window.combinedExpensesCoaData.length > 0) {
+            console.log('📊 Using globally stored combined data for categories');
+            const categories = [...new Set(window.combinedExpensesCoaData.map(item => item.category).filter(Boolean))];
+            console.log('✅ Extracted categories from global data:', categories);
+            return categories.sort();
         }
-        const data = await response.json();
-        return data.data || data;
+        
+        // Fallback: Get data from both ALL transactions and SPECIFIC transaction type
+        console.log('📊 No global data available, calling dual API for categories');
+        const [allData, specificData] = await Promise.all([
+            getExpensesCoaDataAll(departmentId),
+            getExpensesCoaDataSpecific(departmentId, transactionType)
+        ]);
+        
+        // Combine and extract unique categories
+        const combinedData = [...allData, ...specificData];
+        const categories = [...new Set(combinedData.map(item => item.category).filter(Boolean))];
+        console.log('✅ Extracted categories from dual API call:', categories);
+        return categories.sort();
+        
     } catch (error) {
         console.error('Error fetching categories:', error);
         return [];
@@ -30,16 +133,43 @@ async function getAvailableAccountNames(category, departmentId, transactionType)
     console.log(`🔍 getAvailableAccountNames called with:`, { category, departmentId, transactionType });
     
     try {
-        const url = `${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`;
-        console.log(`🔍 API URL:`, url);
-        
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error('Failed to fetch account names');
+        // Use globally stored combined data if available
+        if (window.combinedExpensesCoaData && window.combinedExpensesCoaData.length > 0) {
+            console.log('📊 Using globally stored combined data for account names');
+            const accountNames = window.combinedExpensesCoaData
+                .filter(item => item.category === category && item.accountName && item.coa)
+                .map(item => ({
+                    accountName: item.accountName,
+                    coa: item.coa,
+                    remarks: item.remarks || ''
+                }))
+                .sort((a, b) => a.accountName.localeCompare(b.accountName));
+            
+            console.log('✅ Extracted account names from global data for category', category, ':', accountNames);
+            return accountNames;
         }
-        const data = await response.json();
-        console.log(`🔍 API response:`, data);
-        return data.data || data;
+        
+        // Fallback: Get data from both ALL transactions and SPECIFIC transaction type
+        console.log('📊 No global data available, calling dual API for account names');
+        const [allData, specificData] = await Promise.all([
+            getExpensesCoaDataAll(departmentId),
+            getExpensesCoaDataSpecific(departmentId, transactionType)
+        ]);
+        
+        // Combine and filter by category
+        const combinedData = [...allData, ...specificData];
+        const accountNames = combinedData
+            .filter(item => item.category === category && item.accountName && item.coa)
+            .map(item => ({
+                accountName: item.accountName,
+                coa: item.coa,
+                remarks: item.remarks || ''
+            }))
+            .sort((a, b) => a.accountName.localeCompare(b.accountName));
+        
+        console.log('✅ Extracted account names from dual API call for category', category, ':', accountNames);
+        return accountNames;
+        
     } catch (error) {
         console.error('Error fetching account names:', error);
         return [];
@@ -51,12 +181,35 @@ async function getCOA(category, accountName, departmentId, transactionType) {
     if (!category || !accountName || !departmentId || !transactionType) return '';
     
     try {
-        const response = await fetch(`${BASE_URL}/api/expenses/coa?category=${encodeURIComponent(category)}&accountName=${encodeURIComponent(accountName)}&departmentId=${departmentId}&menu=Cash Advance&transactionType=${transactionType}`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch COA');
+        // Use globally stored combined data if available
+        if (window.combinedExpensesCoaData && window.combinedExpensesCoaData.length > 0) {
+            console.log('📊 Using globally stored combined data for COA');
+            const matchingItem = window.combinedExpensesCoaData.find(item => 
+                item.category === category && item.accountName === accountName
+            );
+            
+            const coa = matchingItem ? matchingItem.coa : '';
+            console.log('✅ Found COA from global data for', category, '-', accountName, ':', coa);
+            return coa;
         }
-        const data = await response.json();
-        return data.data?.coa || data.coa || '';
+        
+        // Fallback: Get data from both ALL transactions and SPECIFIC transaction type
+        console.log('📊 No global data available, calling dual API for COA');
+        const [allData, specificData] = await Promise.all([
+            getExpensesCoaDataAll(departmentId),
+            getExpensesCoaDataSpecific(departmentId, transactionType)
+        ]);
+        
+        // Combine and find matching item
+        const combinedData = [...allData, ...specificData];
+        const matchingItem = combinedData.find(item => 
+            item.category === category && item.accountName === accountName
+        );
+        
+        const coa = matchingItem ? matchingItem.coa : '';
+        console.log('✅ Found COA from dual API call for', category, '-', accountName, ':', coa);
+        return coa;
+        
     } catch (error) {
         console.error('Error fetching COA:', error);
         return '';
@@ -304,21 +457,32 @@ async function updateAccountNameDropdown(row, category, departmentId, transactio
     const currentSelectedValue = accountNameSelect.value || existingAccountName;
     accountNameSelect.innerHTML = '<option value="">Select Account Name</option>';
     
+    console.log('🔍 updateAccountNameDropdown - calling getAvailableAccountNames with:', { category, departmentId, transactionType });
     const accountNames = await getAvailableAccountNames(category, departmentId, transactionType);
+    console.log('🔍 updateAccountNameDropdown - received accountNames:', accountNames);
+    console.log('🔍 accountNames type:', typeof accountNames, 'isArray:', Array.isArray(accountNames), 'length:', Array.isArray(accountNames) ? accountNames.length : 'N/A');
+    
     let existingAccountNameFound = false;
     
-    accountNames.forEach(item => {
-        const option = document.createElement('option');
-        option.value = item.accountName;
-        option.textContent = item.accountName;
-        option.dataset.coa = item.coa;
-        option.dataset.remarks = item.remarks || '';
-        accountNameSelect.appendChild(option);
-        
-        if (currentSelectedValue && item.accountName === currentSelectedValue) {
-            existingAccountNameFound = true;
-        }
-    });
+    if (Array.isArray(accountNames) && accountNames.length > 0) {
+        accountNames.forEach((item, index) => {
+            console.log(`🔍 Processing item ${index}:`, item);
+            const option = document.createElement('option');
+            option.value = item.accountName;
+            option.textContent = item.accountName;
+            option.dataset.coa = item.coa;
+            option.dataset.remarks = item.remarks || '';
+            accountNameSelect.appendChild(option);
+            console.log(`✅ Added option: ${item.accountName} with COA: ${item.coa}`);
+            
+            if (currentSelectedValue && item.accountName === currentSelectedValue) {
+                existingAccountNameFound = true;
+            }
+        });
+    } else {
+        console.warn('⚠️ No account names received or invalid data structure');
+        console.warn('⚠️ accountNames:', accountNames);
+    }
     
     if (currentSelectedValue && !existingAccountNameFound) {
         const option = document.createElement('option');
@@ -369,8 +533,10 @@ async function populateAccountNameDropdownForInitialLoad(row, category, departme
         return;
     }
     
+    console.log('🔍 populateAccountNameDropdownForInitialLoad - calling getAvailableAccountNames with:', { category, departmentId, transactionType });
     const accountNames = await getAvailableAccountNames(category, departmentId, transactionType);
     console.log(`🔍 populateAccountNameDropdownForInitialLoad - API returned ${accountNames.length} account names:`, accountNames);
+    console.log(`🔍 accountNames type:`, typeof accountNames, 'isArray:', Array.isArray(accountNames), 'length:', Array.isArray(accountNames) ? accountNames.length : 'N/A');
     console.log(`🔍 Looking for existing account name: "${existingAccountName}" in results`);
     
     let existingAccountNameFound = false;
@@ -386,21 +552,27 @@ async function populateAccountNameDropdownForInitialLoad(row, category, departme
         console.log(`Preserved existing account name: ${existingAccountName}`);
     }
     
-    accountNames.forEach(item => {
-        console.log(`🔍 Checking item:`, item);
-        if (existingAccountName && item.accountName === existingAccountName) {
-            existingAccountNameFound = true;
-            console.log(`✅ Found matching account name: "${item.accountName}"`);
-            return;
-        }
-        
-        const option = document.createElement('option');
-        option.value = item.accountName;
-        option.textContent = item.accountName;
-        option.dataset.coa = item.coa;
-        option.dataset.remarks = item.remarks || '';
-        accountNameSelect.appendChild(option);
-    });
+    if (Array.isArray(accountNames) && accountNames.length > 0) {
+        accountNames.forEach((item, index) => {
+            console.log(`🔍 Processing item ${index}:`, item);
+            if (existingAccountName && item.accountName === existingAccountName) {
+                existingAccountNameFound = true;
+                console.log(`✅ Found matching account name: "${item.accountName}"`);
+                return;
+            }
+            
+            const option = document.createElement('option');
+            option.value = item.accountName;
+            option.textContent = item.accountName;
+            option.dataset.coa = item.coa;
+            option.dataset.remarks = item.remarks || '';
+            accountNameSelect.appendChild(option);
+            console.log(`✅ Added option: ${item.accountName} with COA: ${item.coa}`);
+        });
+    } else {
+        console.warn('⚠️ No account names received or invalid data structure in populateAccountNameDropdownForInitialLoad');
+        console.warn('⚠️ accountNames:', accountNames);
+    }
     
     if (existingAccountName && !existingAccountNameFound) {
         console.log(`⚠️ Account name "${existingAccountName}" not found in API results - marking as historical`);
@@ -525,7 +697,10 @@ function populateDepartmentSelect(departments) {
         }
     }
     
-    departmentSelect.addEventListener('change', function() {
+    departmentSelect.addEventListener('change', async function() {
+        // Call dual API when department changes
+        await callDualExpensesCoaAPI();
+        
         refreshAllCategoryDropdowns();
     });
 }
@@ -622,7 +797,7 @@ function populateUserSelects(users, caData = null) {
                 const option = document.createElement('div');
                 option.className = 'p-2 cursor-pointer hover:bg-gray-100';
                 option.innerText = requester.fullName;
-                option.onclick = function() {
+                option.onclick = async function() {
                     requesterSearchInput.value = requester.fullName;
                     document.getElementById('RequesterId').value = requester.id;
                     requesterDropdown.classList.add('hidden');
@@ -641,6 +816,9 @@ function populateUserSelects(users, caData = null) {
                     
                     // Refresh category dropdowns after requester selection
                     refreshAllCategoryDropdowns();
+                    
+                    // Call dual API when requester changes
+                    await callDualExpensesCoaAPI();
                 };
                 requesterDropdown.appendChild(option);
             });
@@ -1010,7 +1188,10 @@ function populateTransactionTypeSelect(transactionTypes) {
         transactionTypeSelect.value = window.currentValues.transactionType;
     }
     
-    transactionTypeSelect.addEventListener('change', function() {
+    transactionTypeSelect.addEventListener('change', async function() {
+        // Call dual API when transaction type changes
+        await callDualExpensesCoaAPI();
+        
         refreshAllCategoryDropdowns();
         populateAllSuperiorEmployeeDropdowns(this.value);
     });
@@ -1129,6 +1310,11 @@ window.onload = function() {
     setTimeout(() => {
         applyTabBasedBehavior();
     }, 1000);
+    
+    // Try to call dual API on initial load if all required values are available
+    setTimeout(async () => {
+        await callDualExpensesCoaAPI();
+    }, 1500); // Wait 1.5 seconds for all form fields to be populated
 };
 
 function fetchCADetails(caId) {
@@ -2164,7 +2350,7 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
 } 
 
 // Initialize amount formatting for existing rows when page loads
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     // Set up amount formatting for existing rows
     const amountInputs = document.querySelectorAll('.total');
     amountInputs.forEach(input => {
@@ -2186,6 +2372,37 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Calculate initial total
     calculateTotalAmount();
+    
+    // Test expenses COA service
+    console.log('🧪 Testing expenses COA service availability...');
+    console.log('expensesCoaService:', window.expensesCoaService);
+            console.log('expensesCoaService:', window.expensesCoaService);
+    
+    // Test department field detection
+    const departmentField = document.getElementById('departmentId');
+    console.log('🔍 Department field found:', departmentField);
+    if (departmentField) {
+        console.log('🔍 Department field value:', departmentField.value);
+        console.log('🔍 Department field options:', Array.from(departmentField.options).map(opt => ({ value: opt.value, text: opt.textContent })));
+    }
+    
+    // Test current department value function
+    if (window.expensesCoaService && window.expensesCoaService.getCurrentDepartmentValue) {
+        const currentDept = window.expensesCoaService.getCurrentDepartmentValue();
+        console.log('🔍 Current department value from service:', currentDept);
+    }
+    
+    // Test the main expenses COA service directly
+    if (window.expensesCoaService && window.expensesCoaService.getAvailableAccountNames) {
+        console.log('🧪 Testing main expenses COA service directly...');
+        try {
+            // Test with sample data
+            const testResult = await window.expensesCoaService.getAvailableAccountNames('New Cash Advance', 'Cash Advance', 'all', 'IT');
+            console.log('🧪 Test result:', testResult);
+        } catch (error) {
+            console.error('🧪 Test error:', error);
+        }
+    }
 }); 
 
 // Function to apply tab-based behavior

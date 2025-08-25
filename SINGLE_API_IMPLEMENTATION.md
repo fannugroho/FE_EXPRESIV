@@ -14,14 +14,14 @@ GET /api/expenses-coa/filter
 
 - `departmentName` (required): Nama department
 - `menu` (required): Menu type (e.g., "Reimbursement")
-- `transaction` (required): Transaction type (e.g., "Medical", "Entertainment", etc.)
+- `transaction` (required): Transaction type (e.g., "Medical", "Entertainment", etc.) - **Note: All API calls now use `transaction=all` to get combined data from all transaction types**
 - `category` (optional): Category filter
 - `isActive` (optional): Filter by active status (default: true)
 
 ### Example Request
 
 ```
-GET /api/expenses-coa/filter?departmentName=Technical&menu=Reimbursement&transaction=Medical&category=Other&isActive=true
+GET /api/expenses-coa/filter?departmentName=Technical&menu=Reimbursement&transaction=all&category=Other&isActive=true
 ```
 
 ### Response Format
@@ -41,6 +41,16 @@ GET /api/expenses-coa/filter?departmentName=Technical&menu=Reimbursement&transac
   ]
 }
 ```
+
+## Important Change: Transaction Parameter
+
+**All API calls now use `transaction=all` regardless of the selected transaction type.** This ensures that:
+
+1. **Comprehensive Data Coverage**: The API returns data from all transaction types combined
+2. **Consistent Behavior**: All requests get the same comprehensive dataset
+3. **Better User Experience**: Users see all available options regardless of their current selection
+
+The transaction type parameter is still passed to the service functions for caching and logging purposes, but the actual API call always uses `transaction=all`.
 
 ## Implementation Details
 

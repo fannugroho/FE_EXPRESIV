@@ -80,7 +80,8 @@ class APIService {
     }
 
     static async fetchCategories(departmentName, transactionType) {
-        const response = await fetch(`${BASE_URL}/api/expenses-coa/filter?departmentName=${encodeURIComponent(departmentName)}&menu=Reimbursement&transaction=${encodeURIComponent(transactionType)}`);
+        // Always use transaction=all to get combined data from all transaction types
+        const response = await fetch(`${BASE_URL}/api/expenses-coa/filter?departmentName=${encodeURIComponent(departmentName)}&menu=Reimbursement&transaction=all`);
         return await response.json();
     }
 

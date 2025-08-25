@@ -28,6 +28,13 @@ window.filterRequesters = function() {
                     }
                 }
             }
+            
+            // Refresh expenses COA cache when requester changes
+            if (window.expensesCoaService && window.expensesCoaService.refreshCacheOnChange) {
+                const transactionTypeSelect = document.getElementById('TransactionType');
+                const transactionType = transactionTypeSelect ? transactionTypeSelect.value : '';
+                window.expensesCoaService.refreshCacheOnChange(user.id, transactionType, user.department);
+            }
         };
         requesterDropdown.appendChild(option);
     });
@@ -91,10 +98,7 @@ window.filterUsers = function(fieldId) {
         option.innerText = user.name;
         option.onclick = function() {
             searchInput.value = user.name;
-            const selectElement = document.getElementById(fieldId);
-            if (selectElement) {
-                selectElement.value = user.id;
-            }
+            document.getElementById(fieldId).value = user.id;
             dropdown.classList.add('hidden');
         };
         dropdown.appendChild(option);
@@ -102,11 +106,94 @@ window.filterUsers = function(fieldId) {
     if (filtered.length === 0) {
         const noResults = document.createElement('div');
         noResults.className = 'p-2 text-gray-500';
-        noResults.innerText = 'Name Not Found';
+        noResults.innerText = 'No matching users';
         dropdown.appendChild(noResults);
     }
     dropdown.classList.remove('hidden');
 };
+
+// === DUAL API CALL IMPLEMENTATION FOR SETTLEMENT ===
+// Function to fetch expenses COA data for ALL transaction types
+async function getExpensesCoaDataAll(departmentId) {
+    if (!departmentId) return [];
+    try {
+        if (window.expensesCoaService && typeof window.expensesCoaService.fetchExpensesCoa === 'function') {
+            console.log('Using main expenses COA service to fetch ALL transaction data');
+            console.log('🔍 Calling main service with:', { menu: 'Settlement', transaction: 'all', departmentId });
+            const result = await window.expensesCoaService.fetchExpensesCoa(departmentId, 'Settlement', 'all');
+            console.log('🔍 Main service returned (ALL):', result);
+            return result || [];
+        } else {
+            console.warn('Main expenses COA service not available');
+            return [];
+        }
+    } catch (error) {
+        console.error('Error fetching expenses COA data (ALL):', error);
+        return [];
+    }
+}
+
+// Function to fetch expenses COA data for SPECIFIC transaction type
+async function getExpensesCoaDataSpecific(departmentId, transactionType) {
+    if (!departmentId || !transactionType) return [];
+    try {
+        if (window.expensesCoaService && typeof window.expensesCoaService.fetchExpensesCoa === 'function') {
+            console.log('Using main expenses COA service to fetch SPECIFIC transaction data');
+            console.log('🔍 Calling main service with:', { menu: 'Settlement', transaction: transactionType, departmentId });
+            // Call API with the actual transaction type from dropdown (e.g., "Personal Loan")
+            const result = await window.expensesCoaService.fetchExpensesCoa(departmentId, 'Settlement', transactionType);
+            console.log('🔍 Main service returned (SPECIFIC):', result);
+            return result || [];
+        } else {
+            console.warn('Main expenses COA service not available');
+            return [];
+        }
+    } catch (error) {
+        console.error('Error fetching expenses COA data (SPECIFIC):', error);
+        return [];
+    }
+}
+
+// Function to call both APIs and store combined results globally
+async function callDualExpensesCoaAPI() {
+    const departmentSelect = document.getElementById("department");
+    const transactionTypeSelect = document.getElementById("TransactionType");
+    const requesterSearchInput = document.getElementById("requesterSearch");
+    
+    const departmentId = departmentSelect?.value;
+    const transactionType = transactionTypeSelect?.value;
+    const requesterValue = requesterSearchInput?.value;
+    
+    // Only call API if we have all required values
+    if (!departmentId || !transactionType || !requesterValue) {
+        console.log('🚫 Skipping dual API call - missing required values:', {
+            departmentId, transactionType, requesterValue
+        });
+        return;
+    }
+    
+    console.log('🚀 Calling dual API for expenses COA data...');
+    console.log('📋 Parameters:', { departmentId, transactionType, requesterValue });
+    
+    try {
+        // Call both APIs concurrently
+        const [allData, specificData] = await Promise.all([
+            getExpensesCoaDataAll(departmentId),
+            getExpensesCoaDataSpecific(departmentId, transactionType)
+        ]);
+        
+        console.log('✅ Dual API call completed successfully');
+        console.log('📊 ALL transaction data:', allData);
+        console.log('📊 SPECIFIC transaction data:', specificData);
+        
+        // Store the combined data globally for use in dropdowns
+        window.combinedExpensesCoaData = [...allData, ...specificData];
+        console.log('💾 Combined data stored globally:', window.combinedExpensesCoaData);
+        
+    } catch (error) {
+        console.error('❌ Error in dual API call:', error);
+    }
+}
 
 // Data pengguna contoh (mockup)
 const mockUsers = [
@@ -347,11 +434,23 @@ function populateTransactionTypeSelect(transactionTypes) {
                 removeTransactionTypeEmphasis();
             }
             
+            // Call dual API when transaction type changes
+            await callDualExpensesCoaAPI();
+            
             // Refresh all category dropdowns when transaction type changes
             refreshAllCategoryDropdowns();
             
             // Refresh approval dropdowns with new transaction type
             await populateAllSuperiorEmployeeDropdowns(this.value);
+            
+            // Refresh expenses COA cache when transaction type changes
+            if (window.expensesCoaService && window.expensesCoaService.refreshCacheOnChange) {
+                const requesterIdElement = document.getElementById('RequesterId');
+                const requesterId = requesterIdElement ? requesterIdElement.value : '';
+                const departmentSelect = document.getElementById('department');
+                const departmentId = departmentSelect ? departmentSelect.value : '';
+                window.expensesCoaService.refreshCacheOnChange(requesterId, this.value, departmentId);
+            }
         });
         
         // Add initial emphasis to transaction type since no value is selected by default
@@ -474,7 +573,7 @@ function populateUserSelects(users) {
                 const option = document.createElement('div');
                 option.className = 'p-2 cursor-pointer hover:bg-gray-100';
                 option.innerText = requester.fullName || 'Unknown User';
-                option.onclick = function() {
+                option.onclick = async function() {
                     requesterSearchInput.value = requester.fullName || 'Unknown User';
                     document.getElementById('RequesterId').value = requester.id;
                     requesterDropdown.classList.add('hidden');
@@ -506,6 +605,9 @@ function populateUserSelects(users) {
                     
                     // Refresh category dropdowns after requester selection
                     refreshAllCategoryDropdowns();
+                    
+                    // Call dual API when requester changes
+                    await callDualExpensesCoaAPI();
                 };
                 requesterDropdown.appendChild(option);
             });
@@ -1090,12 +1192,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Initialize total calculation
         calculateTotalAmount();
+        
+        // Try to call dual API on initial load if all required values are available
+        setTimeout(async () => {
+            await callDualExpensesCoaAPI();
+        }, 1000); // Wait 1 second for all form fields to be populated
     }, 500);
     
     // Add event listener for department change
     const departmentSelect = document.getElementById("department");
     if (departmentSelect) {
-        departmentSelect.addEventListener('change', function() {
+        departmentSelect.addEventListener('change', async function() {
+            // Call dual API when department changes
+            await callDualExpensesCoaAPI();
+            
+            // Refresh all category dropdowns
             refreshAllCategoryDropdowns();
         });
     }
@@ -1154,12 +1265,27 @@ async function getAvailableCategories(departmentId, transactionType) {
     if (!departmentId || !transactionType) return [];
     
     try {
-        const response = await fetch(`${BASE_URL}/api/expenses/categories?departmentId=${departmentId}&menu=Cash Advance Settlement&transactionType=${transactionType}`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch categories');
+        // Use globally stored combined data if available
+        if (window.combinedExpensesCoaData && window.combinedExpensesCoaData.length > 0) {
+            console.log('📊 Using globally stored combined data for categories');
+            const categories = [...new Set(window.combinedExpensesCoaData.map(item => item.category).filter(Boolean))];
+            console.log('✅ Extracted categories from global data:', categories);
+            return categories.sort();
         }
-        const data = await response.json();
-        return data.data || data; // Handle both wrapped and direct array responses
+        
+        // Fallback: Get data from both ALL transactions and SPECIFIC transaction type
+        console.log('📊 No global data available, calling dual API for categories');
+        const [allData, specificData] = await Promise.all([
+            getExpensesCoaDataAll(departmentId),
+            getExpensesCoaDataSpecific(departmentId, transactionType)
+        ]);
+        
+        // Combine and extract unique categories
+        const combinedData = [...allData, ...specificData];
+        const categories = [...new Set(combinedData.map(item => item.category).filter(Boolean))];
+        console.log('✅ Extracted categories from dual API call:', categories);
+        return categories.sort();
+        
     } catch (error) {
         console.error('Error fetching categories:', error);
         return [];
@@ -1171,12 +1297,43 @@ async function getAvailableAccountNames(category, departmentId, transactionType)
     if (!category || !departmentId || !transactionType) return [];
     
     try {
-        const response = await fetch(`${BASE_URL}/api/expenses/account-names?category=${encodeURIComponent(category)}&departmentId=${departmentId}&menu=Cash Advance Settlement&transactionType=${transactionType}`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch account names');
+        // Use globally stored combined data if available
+        if (window.combinedExpensesCoaData && window.combinedExpensesCoaData.length > 0) {
+            console.log('📊 Using globally stored combined data for account names');
+            const accountNames = window.combinedExpensesCoaData
+                .filter(item => item.category === category && item.accountName && item.coa)
+                .map(item => ({
+                    accountName: item.accountName,
+                    coa: item.coa,
+                    remarks: item.remarks || ''
+                }))
+                .sort((a, b) => a.accountName.localeCompare(b.accountName));
+            
+            console.log('✅ Extracted account names from global data for category', category, ':', accountNames);
+            return accountNames;
         }
-        const data = await response.json();
-        return data.data || data; // Handle both wrapped and direct array responses
+        
+        // Fallback: Get data from both ALL transactions and SPECIFIC transaction type
+        console.log('📊 No global data available, calling dual API for account names');
+        const [allData, specificData] = await Promise.all([
+            getExpensesCoaDataAll(departmentId),
+            getExpensesCoaDataSpecific(departmentId, transactionType)
+        ]);
+        
+        // Combine and filter by category
+        const combinedData = [...allData, ...specificData];
+        const accountNames = combinedData
+            .filter(item => item.category === category && item.accountName && item.coa)
+            .map(item => ({
+                accountName: item.accountName,
+                coa: item.coa,
+                remarks: item.remarks || ''
+            }))
+            .sort((a, b) => a.accountName.localeCompare(b.accountName));
+        
+        console.log('✅ Extracted account names from dual API call for category', category, ':', accountNames);
+        return accountNames;
+        
     } catch (error) {
         console.error('Error fetching account names:', error);
         return [];
@@ -1188,12 +1345,35 @@ async function getCOA(category, accountName, departmentId, transactionType) {
     if (!category || !accountName || !departmentId || !transactionType) return '';
     
     try {
-        const response = await fetch(`${BASE_URL}/api/expenses/coa?category=${encodeURIComponent(category)}&accountName=${encodeURIComponent(accountName)}&departmentId=${departmentId}&menu=Cash Advance Settlement&transactionType=${transactionType}`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch COA');
+        // Use globally stored combined data if available
+        if (window.combinedExpensesCoaData && window.combinedExpensesCoaData.length > 0) {
+            console.log('📊 Using globally stored combined data for COA');
+            const matchingItem = window.combinedExpensesCoaData.find(item => 
+                item.category === category && item.accountName === accountName
+            );
+            
+            const coa = matchingItem ? matchingItem.coa : '';
+            console.log('✅ Found COA from global data for', category, '-', accountName, ':', coa);
+            return coa;
         }
-        const data = await response.json();
-        return data.data?.coa || data.coa || ''; // Handle different response structures
+        
+        // Fallback: Get data from both ALL transactions and SPECIFIC transaction type
+        console.log('📊 No global data available, calling dual API for COA');
+        const [allData, specificData] = await Promise.all([
+            getExpensesCoaDataAll(departmentId),
+            getExpensesCoaDataSpecific(departmentId, transactionType)
+        ]);
+        
+        // Combine and find matching item
+        const combinedData = [...allData, ...specificData];
+        const matchingItem = combinedData.find(item => 
+            item.category === category && item.accountName === accountName
+        );
+        
+        const coa = matchingItem ? matchingItem.coa : '';
+        console.log('✅ Found COA from dual API call for', category, '-', accountName, ':', coa);
+        return coa;
+        
     } catch (error) {
         console.error('Error fetching COA:', error);
         return '';
