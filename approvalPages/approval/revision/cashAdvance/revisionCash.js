@@ -1812,7 +1812,9 @@ async function updateCashAdvance(isSubmit = false) {
         const accountName = accountNameSelect?.value;
         const coa = coaInput?.value;
         const description = descriptionInput?.value;
-        const amount = amountInput ? parseFormattedNumber(amountInput.value).toFixed(2) : '';
+        // Normalize amount for backend: strip trailing .00 to avoid being interpreted as cents multiplier
+        const rawAmount = amountInput ? parseFormattedNumber(amountInput.value) : 0;
+        const amount = rawAmount.toString().replace(/\.00$/, '');
         
         if (description && amount) {
             formData.append(`CashAdvanceDetails[${detailIndex}][Category]`, category || '');
