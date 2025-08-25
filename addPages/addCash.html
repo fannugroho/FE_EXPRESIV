@@ -58,6 +58,20 @@
     <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-6xl">
         <button onclick="goToMenuCash()" type="button" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Back</button>
         <h2 class="text-2xl font-bold text-center text-blue-900 mb-4">Add Cash Advance Request </h2>
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-yellow-700">
+                        <strong>Required Fields:</strong> Fields marked with <span class="text-red-500">*</span> are required. Please ensure all required fields are filled before submitting.
+                    </p>
+                </div>
+            </div>
+        </div>
         <br>
         <div class="grid grid-cols-2 gap-4">
             <div>
@@ -75,8 +89,8 @@
                     </select>
                     <div id="requesterDropdown" class="absolute z-10 hidden w-full mt-1 bg-white border rounded max-h-60 overflow-y-auto"></div>
                 </div>
-                <h3 class="text-lg font-semibold mb-2">Purpose</h3>
-                <input type="text" id="Purpose" placeholder="Purpose" class="w-full p-2 border rounded" autocomplete="off">    
+                <h3 class="text-lg font-semibold mb-2">Purpose <span class="text-red-500">*</span></h3>
+                <input type="text" id="Purpose" placeholder="Purpose" class="w-full p-2 border rounded" autocomplete="off" required>    
                 <h3 class="text-lg font-semibold mb-2">Paid To</h3>
                 <div class="relative">
                     <input type="text" id="paidToSearch" placeholder="Search business partner by code or name" class="w-full p-2 border rounded" onkeyup="filterBusinessPartners()" autocomplete="off">
@@ -99,8 +113,8 @@
                 <select id="Status" class="w-full p-2 border rounded bg-gray-100" disabled autocomplete="off">
                     <option value="Draft">Draft</option>
                 </select>
-                <h3 class="text-lg font-semibold mb-2">Attach Doc</h3>
-                <input type="file" id="Attachments" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" autocomplete="off" />
+                <h3 class="text-lg font-semibold mb-2">Attach Doc <span class="text-red-500">*</span></h3>
+                <input type="file" id="Attachments" accept="application/pdf" class="w-full p-2 border rounded" multiple onchange="previewPDF(event)" autocomplete="off" required />
                 <div id="fileList" class="mt-2 bg-gray-50 border rounded p-2 max-h-40 overflow-y-auto"></div>
                 <h3 class="text-lg font-semibold mb-2">Type of Transaction</h3>
                 <select id="TransactionType" class="w-full p-2 border rounded bg-white" autocomplete="off">
@@ -162,8 +176,8 @@
         </button>
 
             <div class="mt-4">
-              <label>Remarks</label>
-              <textarea id="Remarks" class="w-full p-2 border rounded-md" autocomplete="off"></textarea>
+              <label>Remarks <span class="text-red-500">*</span></label>
+              <textarea id="Remarks" class="w-full p-2 border rounded-md" autocomplete="off" required></textarea>
             </div>
 
         <!-- Approval section -->
@@ -232,7 +246,7 @@
         </div>
         <br>
         <div class="flex justify-start space-x-4 mt-6">
-            <button id="btnSave" onclick="saveDocument(false)" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
+            <button id="btnSave" onclick="saveDocumentEnhanced(false)" class="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">
                 Save
             </button>
             <button id="btnSubmit" onclick="submitDocument()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-2 rounded-lg shadow transition transform hover:scale-105 duration-200 w-32">

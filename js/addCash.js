@@ -517,8 +517,12 @@ async function refreshAllCategoryDropdowns() {
 }
 
 async function saveDocument(isSubmit = false) {
+    console.log('=== saveDocument START ===');
+    console.log('saveDocument called with isSubmit:', isSubmit);
+    
     // Show confirmation dialog only for submit
     if (isSubmit) {
+        console.log('Showing confirmation dialog...');
         const result = await Swal.fire({
             title: 'Confirmation',
             text: 'Are you sure you want to submit this document?',
@@ -528,15 +532,26 @@ async function saveDocument(isSubmit = false) {
             cancelButtonText: 'Cancel'
         });
 
+        console.log('Confirmation dialog result:', result);
+        
         if (!result.isConfirmed) {
+            console.log('User cancelled submission');
             return;
         }
+        console.log('User confirmed submission - proceeding...');
     }
 
+    console.log('=== AFTER CONFIRMATION DIALOG ===');
+    console.log('Proceeding with document processing...');
+
     try {
+        console.log('=== STARTING VALIDATION ===');
         // Validate required fields before submission
         const validationResult = validateFormFields(isSubmit);
+        console.log('Validation result:', validationResult);
+        
         if (!validationResult.isValid) {
+            console.log('Validation failed, showing error');
             await Swal.fire({
                 title: 'Validation Error',
                 text: validationResult.message,
@@ -545,18 +560,29 @@ async function saveDocument(isSubmit = false) {
             });
             return;
         }
+        
+        console.log('Validation passed, continuing...');
 
         // Get user ID from JWT token using auth.js function
+        console.log('Getting user ID from token...');
         const userId = getUserId();
+        console.log('User ID from token:', userId);
+        
         if (!userId) {
+            console.error('No user ID found');
             alert("Unable to get user ID from token. Please login again.");
             return;
         }
+        
+        console.log('User ID validation passed, continuing...');
 
         // Create FormData object
+        console.log('=== CREATING FORMDATA ===');
         const formData = new FormData();
+        console.log('FormData object created');
         
         // Add all form fields to FormData
+        console.log('Adding form fields to FormData...');
         formData.append('CashAdvanceNo', document.getElementById("CashAdvanceNo").value);
         formData.append('EmployeeNIK', document.getElementById("EmployeeNIK").value);
         // Requester must be explicitly selected
@@ -626,14 +652,28 @@ async function saveDocument(isSubmit = false) {
         // Set submit flag
         formData.append('IsSubmit', isSubmit.toString());
         
-        // API endpoint
-        const endpoint = `${BASE_URL}/api/cash-advance`;
+        console.log('=== READY TO MAKE API CALL ===');
+        console.log('FormData prepared with all fields');
+        
+        // API endpoint - ensure BASE_URL is available
+        const baseUrl = window.BASE_URL || 'https://expressiv-be-sb.idsdev.site';
+        const endpoint = `${baseUrl}/api/cash-advance`;
+        
+        console.log('=== MAKING API CALL ===');
+        console.log('Submitting to endpoint:', endpoint);
+        console.log('FormData contents:', Array.from(formData.entries()));
+        console.log('Request method: POST');
         
         // Send the request
+        console.log('Sending fetch request...');
         const response = await fetch(endpoint, {
             method: 'POST',
             body: formData
         });
+        
+        console.log('=== API RESPONSE RECEIVED ===');
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
         
         if (response.status === 201) {
             // Success - Show appropriate message
@@ -664,9 +704,10 @@ async function saveDocument(isSubmit = false) {
                     errorMessage = errorData.message || errorData.Message;
                 }
             } catch (parseError) {
-                
+                console.error('Error parsing error response:', parseError);
             }
 
+            console.error('API Error:', errorMessage);
             await Swal.fire({
                 title: 'Error!',
                 text: errorMessage,
@@ -688,15 +729,21 @@ async function saveDocument(isSubmit = false) {
 
 // Function to validate form fields
 function validateFormFields(isSubmit) {
+    console.log('validateFormFields called with isSubmit:', isSubmit);
+    
     // Check requester selection
     const requesterSearch = document.getElementById("requesterSearch").value;
+    console.log('Requester search value:', requesterSearch);
+    
     if (!requesterSearch) {
+        console.log('Requester validation failed');
         emphasizeRequesterSelection(); // Tampilkan helper text saat validasi
         return {
             isValid: false,
             message: 'Please select a requester first.'
         };
     } else {
+        console.log('Requester validation passed');
         removeRequesterEmphasis(); // Hapus helper text jika sudah terisi
     }
 
@@ -784,16 +831,44 @@ function validateRow(row, rowIndex) {
 
 // Validate all rows before submit or addRow
 function validateAllRows() {
+    console.log('validateAllRows called');
+    
     const tableRows = document.querySelectorAll('#tableBody tr');
+    console.log('Found table rows:', tableRows.length);
+    
+    let hasValidDetails = false;
+    
     for (let i = 0; i < tableRows.length; i++) {
         const row = tableRows[i];
         // Only validate rows that have any input (ignore completely empty rows)
         const hasAnyInput = Array.from(row.querySelectorAll('input, select')).some(input => input.value.trim() !== '');
+        console.log(`Row ${i + 1} has input:`, hasAnyInput);
+        
         if (hasAnyInput) {
             const result = validateRow(row, i);
+            console.log(`Row ${i + 1} validation result:`, result);
             if (!result.isValid) return result;
+            
+            // Check if this row has the minimum required data for CashAdvanceDetails
+            const description = row.querySelector('.description')?.value?.trim();
+            const amount = row.querySelector('.total')?.value?.trim();
+            
+            if (description && amount) {
+                hasValidDetails = true;
+            }
         }
     }
+    
+    // Ensure at least one row has valid details
+    if (!hasValidDetails) {
+        console.log('No valid CashAdvanceDetails found');
+        return {
+            isValid: false,
+            message: 'Please add at least one expense detail with description and amount.'
+        };
+    }
+    
+    console.log('All rows validation passed');
     return { isValid: true };
 }
 
@@ -818,39 +893,288 @@ if (typeof window._addRowPatched === 'undefined') {
 
 // Helper function to validate header fields (returns {isValid, message})
 function validateHeaderFields() {
-    // List of required header field IDs and their labels
+    console.log('validateHeaderFields called');
+    
+    // List of required header field IDs and their labels based on backend validation
     const requiredFields = [
-        { id: 'requesterSearch', label: 'Requester' },
-        { id: 'RequesterId', label: 'Requester (hidden)' }, // hidden select, must have value
-        { id: 'department', label: 'Department' },
-        { id: 'Currency', label: 'Currency' },
-        { id: 'TransactionType', label: 'Transaction Type' },
         { id: 'Purpose', label: 'Purpose' },
-        { id: 'SubmissionDate', label: 'Submission Date' },
+        { id: 'Remarks', label: 'Remarks' },
+        { id: 'Currency', label: 'Currency' },
+        { id: 'Attachments', label: 'Attachments' },
+        { id: 'Approval.CheckedById', label: 'Checked By' },
         { id: 'EmployeeNIK', label: 'Employee NIK' },
-        { id: 'EmployeeName', label: 'Employee Name' }
+        { id: 'RequesterId', label: 'Requester' },
+        { id: 'Approval.ApprovedById', label: 'Approved By' },
+        { id: 'Approval.PreparedById', label: 'Prepared By' },
+        { id: 'Approval.ReceivedById', label: 'Received By' },
+        { id: 'TransactionType', label: 'Transaction Type' },
+        { id: 'Approval.AcknowledgedById', label: 'Acknowledged By' }
     ];
+    
     let missing = [];
     for (const field of requiredFields) {
         const el = document.getElementById(field.id);
-        if (!el || !el.value || el.value.trim() === '') {
+        let value = '';
+        
+        if (el) {
+            if (el.type === 'file') {
+                // For file inputs, check if files are selected
+                value = el.files && el.files.length > 0 ? 'has-files' : '';
+            } else {
+                value = el.value || '';
+            }
+        }
+        
+        console.log(`Field ${field.id}:`, value);
+        
+        if (!el || !value || value.trim() === '') {
             missing.push(field.label);
         }
     }
+    
+    console.log('Missing fields:', missing);
+    
     if (missing.length > 0) {
         return {
             isValid: false,
-            message: `Please fill in the following header fields: ${missing.join(', ')}`
+            message: `Please fill in the following required fields: ${missing.join(', ')}`
         };
     }
+    
+    console.log('Header validation passed');
     return { isValid: true };
 }
 
-// Patch saveDocument to validate header fields and rows before submit
-const originalSaveDocument = saveDocument;
-saveDocument = async function(isSubmit = false) {
+// Removed problematic patch - validation is now handled in submitDocument function
+
+// Function to submit document - completely rebuilt
+async function submitDocument() {
+    console.log('=== SUBMIT BUTTON CLICKED ===');
+    
+    try {
+        // Disable submit button to prevent multiple clicks
+        const submitBtn = document.getElementById('btnSubmit');
+        if (submitBtn) submitBtn.disabled = true;
+        
+        // Validate all required fields first
+        console.log('=== VALIDATING FORM ===');
+        
+        // Check header fields
+        const headerValidation = validateHeaderFields();
+        if (!headerValidation.isValid) {
+            console.log('Header validation failed:', headerValidation.message);
+            await Swal.fire({
+                title: 'Validation Error',
+                text: headerValidation.message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            if (submitBtn) submitBtn.disabled = false;
+            return;
+        }
+        console.log('Header validation passed');
+        
+        // Check rows
+        const rowValidation = validateAllRows();
+        if (!rowValidation.isValid) {
+            console.log('Row validation failed:', rowValidation.message);
+            await Swal.fire({
+                title: 'Validation Error',
+                text: rowValidation.message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            if (submitBtn) submitBtn.disabled = false;
+            return;
+        }
+        console.log('Row validation passed');
+        
+        // Show confirmation dialog
+        console.log('Showing confirmation dialog...');
+        const result = await Swal.fire({
+            title: 'Confirm Submission',
+            text: 'Are you sure you want to submit this Cash Advance request?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Submit',
+            cancelButtonText: 'Cancel',
+            allowOutsideClick: false
+        });
+        
+        if (!result.isConfirmed) {
+            console.log('User cancelled submission');
+            if (submitBtn) submitBtn.disabled = false;
+            return;
+        }
+        
+        console.log('User confirmed submission - proceeding with API call...');
+        
+        // Show loading popup
+        Swal.fire({
+            title: 'Submitting...',
+            text: 'Please wait while we submit your request...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Make the API call directly here
+        await submitToAPI();
+        
+    } catch (error) {
+        console.error('Error in submitDocument:', error);
+        await Swal.fire({
+            title: 'Error',
+            text: `An error occurred: ${error.message}`,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    } finally {
+        // Re-enable submit button
+        const submitBtn = document.getElementById('btnSubmit');
+        if (submitBtn) submitBtn.disabled = false;
+        
+        // Close any open dialogs
+        if (Swal.isVisible()) Swal.close();
+    }
+}
+
+// Function to submit the form data to the API
+async function submitToAPI() {
+    console.log('=== submitToAPI START ===');
+    
+    try {
+        // Get user ID from JWT token
+        const userId = getUserId();
+        if (!userId) {
+            throw new Error('Unable to get user ID from token. Please login again.');
+        }
+        console.log('User ID validated:', userId);
+        
+        // Create FormData object
+        console.log('Creating FormData...');
+        const formData = new FormData();
+        
+        // Add all form fields to FormData
+        formData.append('CashAdvanceNo', document.getElementById("CashAdvanceNo").value);
+        formData.append('EmployeeNIK', document.getElementById("EmployeeNIK").value);
+        formData.append('RequesterId', document.getElementById("RequesterId").value);
+        formData.append('Purpose', document.getElementById("Purpose").value);
+        formData.append('DepartmentId', document.getElementById("department").value);
+        formData.append('Currency', document.getElementById("Currency").value);
+        formData.append('SubmissionDate', new Date().toISOString().split('T')[0]);
+        formData.append('TransactionType', document.getElementById("TransactionType").value);
+        formData.append('Remarks', document.getElementById("Remarks").value);
+        
+        // Approval fields
+        formData.append('PreparedById', document.getElementById("Approval.PreparedById").value);
+        formData.append('CheckedById', document.getElementById("Approval.CheckedById").value);
+        formData.append('ApprovedById', document.getElementById("Approval.ApprovedById").value);
+        formData.append('AcknowledgedById', document.getElementById("Approval.AcknowledgedById").value);
+        formData.append('ReceivedById', document.getElementById("Approval.ReceivedById").value);
+        formData.append('ClosedById', document.getElementById("Approval.ClosedById").value);
+        
+        // Add file attachments
+        if (uploadedFiles.length > 0) {
+            for (let i = 0; i < uploadedFiles.length; i++) {
+                formData.append('Attachments', uploadedFiles[i]);
+            }
+        }
+        
+        // Add CashAdvanceDetails
+        const tableRows = document.querySelectorAll('#tableBody tr');
+        let detailIndex = 0;
+        tableRows.forEach((row) => {
+            const category = row.querySelector('.category-input').value;
+            const accountName = row.querySelector('.account-name').value;
+            const coa = row.querySelector('.coa').value;
+            const description = row.querySelector('.description').value;
+            const amount = (row.querySelector('.total').value || '').toString().replace(/,/g, '');
+            
+            if (description && amount) {
+                formData.append(`CashAdvanceDetails[${detailIndex}][Category]`, category || '');
+                formData.append(`CashAdvanceDetails[${detailIndex}][AccountName]`, accountName || '');
+                formData.append(`CashAdvanceDetails[${detailIndex}][Coa]`, coa || '');
+                formData.append(`CashAdvanceDetails[${detailIndex}][Description]`, description);
+                formData.append(`CashAdvanceDetails[${detailIndex}][Amount]`, amount);
+                detailIndex++;
+            }
+        });
+        
+        // Add Business Partner ID (Paid To)
+        const paidToId = document.getElementById("paidTo").value;
+        if (paidToId) {
+            formData.append('PayToCode', paidToId);
+        }
+        
+        // Set submit flag
+        formData.append('IsSubmit', 'true');
+        
+        console.log('FormData prepared with', detailIndex, 'expense details');
+        console.log('FormData contents:', Array.from(formData.entries()));
+        
+        // Make API call
+        const baseUrl = window.BASE_URL || 'https://expressiv-be-sb.idsdev.site';
+        const endpoint = `${baseUrl}/api/cash-advance`;
+        
+        console.log('=== MAKING API CALL ===');
+        console.log('Endpoint:', endpoint);
+        console.log('Method: POST');
+        
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            body: formData
+        });
+        
+        console.log('=== API RESPONSE RECEIVED ===');
+        console.log('Status:', response.status);
+        console.log('Status Text:', response.statusText);
+        
+        if (response.status === 201) {
+            console.log('SUCCESS: Document submitted successfully');
+            await Swal.fire({
+                title: 'Success!',
+                text: 'Cash Advance request has been submitted successfully.',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            });
+            
+            // Redirect to menu page
+            window.location.href = "../pages/MenuCash.html";
+        } else {
+            // Handle error response
+            let errorMessage = `Failed to submit: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                if (errorData.message || errorData.Message) {
+                    errorMessage = errorData.message || errorData.Message;
+                }
+                if (errorData.data && Array.isArray(errorData.data)) {
+                    errorMessage += '\n\nDetails:\n' + errorData.data.join('\n');
+                }
+            } catch (parseError) {
+                console.error('Error parsing error response:', parseError);
+            }
+            
+            console.error('API Error:', errorMessage);
+            throw new Error(errorMessage);
+        }
+        
+    } catch (error) {
+        console.error('Error in submitToAPI:', error);
+        throw error; // Re-throw to be caught by the calling function
+    }
+}
+
+// Enhanced save function with validation and loading
+async function saveDocumentEnhanced(isSubmit = false) {
+    console.log('saveDocumentEnhanced called with isSubmit:', isSubmit);
+    
     const saveBtn = document.getElementById('btnSave');
     const submitBtn = document.getElementById('btnSubmit');
+    
     // Guard: if already disabled, just show waiting popup and return
     if ((isSubmit && submitBtn && submitBtn.disabled) || (!isSubmit && saveBtn && saveBtn.disabled)) {
         try {
@@ -875,6 +1199,7 @@ saveDocument = async function(isSubmit = false) {
         });
         return;
     }
+    
     // Then validate rows
     const validation = validateAllRows();
     if (!validation.isValid) {
@@ -886,9 +1211,11 @@ saveDocument = async function(isSubmit = false) {
         });
         return;
     }
+    
     // Disable buttons to prevent multiple clicks
     if (saveBtn) saveBtn.disabled = true;
     if (submitBtn) submitBtn.disabled = true;
+    
     // Show non-dismissable loading popup
     Swal.fire({
         title: 'Processing',
@@ -901,18 +1228,13 @@ saveDocument = async function(isSubmit = false) {
     });
 
     try {
-        await originalSaveDocument(isSubmit);
+        await saveDocument(isSubmit);
     } finally {
         // Re-enable buttons and close loading regardless of outcome
         if (saveBtn) saveBtn.disabled = false;
         if (submitBtn) submitBtn.disabled = false;
         if (Swal.isVisible()) Swal.close();
     }
-};
-
-// Function to submit document (calls saveDocument with isSubmit=true)
-async function submitDocument() {
-    await saveDocument(true);
 }
 
 function goToMenuCash() {
@@ -1092,7 +1414,10 @@ function deleteRow(button) {
 }
 
 function fetchDepartments() {
-    fetch(`${BASE_URL}/api/department`)
+    const baseUrl = window.BASE_URL || 'https://expressiv-be-sb.idsdev.site';
+    console.log('Fetching departments from:', `${baseUrl}/api/department`);
+    
+    fetch(`${baseUrl}/api/department`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.statusText);
@@ -1100,7 +1425,7 @@ function fetchDepartments() {
             return response.json();
         })
         .then(data => {
-            
+            console.log('Departments fetched successfully:', data);
             populateDepartmentSelect(data.data);
         })
         .catch(error => {
@@ -2031,9 +2356,14 @@ async function populateAllSuperiorEmployeeDropdowns(transactionType) {
 
 // --- Initialization for Approval Dropdowns ---
 document.addEventListener('DOMContentLoaded', async function() {
+    console.log('DOMContentLoaded event fired');
+    
     // Set default dates
     const today = new Date().toISOString().split('T')[0];
     document.getElementById("SubmissionDate").value = today;
+    
+    console.log('Starting initialization...');
+    console.log('BASE_URL:', window.BASE_URL);
     
     fetchDepartments();
     fetchUsers();
@@ -2070,7 +2400,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     // When fetchUsers completes, populate all dropdowns
     fetchUsers = async function() {
         try {
-            const response = await fetch(`${BASE_URL}/api/users`);
+            const baseUrl = window.BASE_URL || 'https://expressiv-be-sb.idsdev.site';
+            console.log('Fetching users from:', `${baseUrl}/api/users`);
+            
+            const response = await fetch(`${baseUrl}/api/users`);
             if (!response.ok) throw new Error('Network response was not ok: ' + response.statusText);
             const data = await response.json();
             const users = data.data;
@@ -2121,6 +2454,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Handle approval dropdowns
         const approvalDropdowns = [
             'Approval.PreparedByIdDropdown',
+            'Approval.PreparedByIdDropdown',
             'Approval.CheckedByIdDropdown',
             'Approval.AcknowledgedByIdDropdown',
             'Approval.ApprovedByIdDropdown',
@@ -2139,4 +2473,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
     });
+    
+    console.log('Initialization complete');
+    
+    // Verify submit button exists
+    const submitBtn = document.getElementById('btnSubmit');
+    if (submitBtn) {
+        console.log('Submit button found and ready');
+    } else {
+        console.error('Submit button not found!');
+    }
 });
