@@ -548,12 +548,16 @@ function hideApprovalButtons() {
 function hideRevisionButton() {
     const revisionButton = document.querySelector('button[onclick="submitRevision()"]');
     const revisionBtn = document.getElementById('revisionBtn');
+    const addRevisionBtn = document.getElementById('addRevisionBtn');
     
     if (revisionButton) {
         revisionButton.style.display = 'none';
     }
     if (revisionBtn) {
         revisionBtn.style.display = 'none';
+    }
+    if (addRevisionBtn) {
+        addRevisionBtn.style.display = 'none';
     }
 }
 

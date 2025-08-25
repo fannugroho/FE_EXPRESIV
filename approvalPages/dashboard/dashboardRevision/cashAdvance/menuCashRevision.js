@@ -214,7 +214,7 @@ function updateTable(documents = []) {
             
         // Add remarks column if in revision tab
         if (currentTab === 'revision') {
-            rowHTML += `<td class="p-2">${doc.remarks || '-'}</td>`;
+            rowHTML += `<td class="p-2">${doc.purpose || '-'}</td>`;
         }
         
         // Add tools column
@@ -343,7 +343,7 @@ function downloadExcel() {
         'Department': doc.departmentName || '',
         'Submission Date': doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
         'Status': doc.status || '',
-        'Remarks': doc.remarks || ''
+        'Remarks': doc.purpose || ''
     }));
     
     // Create worksheet
@@ -383,7 +383,7 @@ function downloadPDF() {
         doc.departmentName || '',
         doc.submissionDate ? new Date(doc.submissionDate).toLocaleDateString() : '',
         doc.status || '',
-        currentTab === 'revision' ? (doc.remarks || '') : ''
+        currentTab === 'revision' ? (doc.purpose || '') : ''
     ]);
     
     // Define table headers based on current tab

@@ -1083,6 +1083,19 @@ function removeExistingAttachment(attachmentId) {
     }
 }
 
+// Function to view a new uploaded file
+function viewNewFile(index) {
+    const file = uploadedFiles[index];
+    if (file) {
+        // Create a blob URL for the file
+        const blobUrl = URL.createObjectURL(file);
+        // Open in new tab
+        window.open(blobUrl, '_blank');
+        // Clean up the blob URL after a delay to prevent memory leaks
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    }
+}
+
 // Function to update the attachments display
 function updateAttachmentsDisplay() {
     const attachmentsList = document.getElementById('attachmentsList');
@@ -1125,6 +1138,9 @@ function updateAttachmentsDisplay() {
                 <span class="text-xs text-green-600 ml-2">(new)</span>
             </div>
             <div class="flex items-center gap-2">
+                <button onclick="viewNewFile(${index})" class="text-blue-500 hover:text-blue-700 text-sm font-semibold px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition">
+                    View
+                </button>
                 ${cashAdvanceData && cashAdvanceData.status && cashAdvanceData.status.toLowerCase() === 'draft' ?
                 `<button onclick="removeUploadedFile(${index})" class="text-red-500 hover:text-red-700 text-sm font-semibold px-3 py-1 border border-red-500 rounded hover:bg-red-50 transition">
                     Remove

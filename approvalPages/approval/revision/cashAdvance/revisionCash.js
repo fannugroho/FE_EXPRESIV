@@ -1283,13 +1283,19 @@ async function populateTable(cashAdvanceDetails) {
                 <input type="text" value="${detail.description || ''}" class="w-full description" maxlength="200" required />
             </td>
             <td class="p-2 border">
-                <input type="text" value="${detail.amount ? new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(detail.amount)) : '0.00'}" class="w-full total" required step="0.01" oninput="formatNumberAsYouType(this); calculateTotalAmount()" onblur="formatNumberWithDecimals(this)" />
+                <input type="text" value="${detail.amount ? new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(detail.amount)) : '0.00'}" class="w-full total" required onkeydown="handleAmountKeydown(this, event)" />
             </td>
             <td class="p-2 border text-center">
                 <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
             </td>
         `;
         tableBody.appendChild(row);
+        
+        // Setup amount input event listeners for existing rows
+        const amountInput = row.querySelector('.total');
+        if (amountInput) {
+            amountInput.addEventListener('input', function() { formatNumberAsYouType(this); });
+        }
         
         await setupCategoryDropdown(row);
         
@@ -1337,7 +1343,7 @@ async function addRow() {
             <input type="text" class="w-full description" maxlength="200" required />
         </td>
         <td class="p-2 border">
-            <input type="text" class="w-full total" value="0.00" required step="0.01" oninput="formatNumberAsYouType(this); calculateTotalAmount()" onblur="formatNumberWithDecimals(this)" />
+            <input type="text" class="w-full total" value="0.00" required onkeydown="handleAmountKeydown(this, event)" />
         </td>
         <td class="p-2 border text-center">
             <button type="button" onclick="deleteRow(this)" class="text-red-500 hover:text-red-700">🗑</button>
@@ -1346,6 +1352,12 @@ async function addRow() {
     
     tableBody.appendChild(newRow);
     await setupCategoryDropdown(newRow);
+    
+    // Setup amount input: format with thousand separators as the user types
+    const amountInput = newRow.querySelector('.total');
+    if (amountInput) {
+        amountInput.addEventListener('input', function() { formatNumberAsYouType(this); });
+    }
     
     // Calculate total amount after adding new row
     calculateTotalAmount();
@@ -1388,23 +1400,120 @@ function calculateTotalAmount() {
     }
 }
 
-// Simple number formatting with .00 decimal places
-function formatNumberWithDecimals(input) {
-    // Sanitize and format
-    const numericValue = parseFormattedNumber(input.value);
-    input.value = formatWithThousands(numericValue);
+// Caret-preserving formatter reused in JS context
+function formatNumberAsYouType(input) {
+    const oldValue = (input.value || '').toString();
+    const selectionStart = input.selectionStart || 0;
+    
+    // Count digits before cursor position for cursor restoration
+    const digitsBeforeCaret = oldValue.slice(0, selectionStart).replace(/[^0-9]/g, '').length;
+
+    // Clean the input: remove all non-numeric except decimal point
+    let raw = oldValue.replace(/,/g, '');
+    const firstDot = raw.indexOf('.');
+    if (firstDot !== -1) {
+        // Keep only the first decimal point
+        raw = raw.slice(0, firstDot + 1) + raw.slice(firstDot + 1).replace(/\./g, '');
+    }
+    raw = raw.replace(/[^0-9.]/g, '');
+
+    if (!raw) {
+        input.value = '';
+        try { input.setSelectionRange(0, 0); } catch (e) {}
+        calculateTotalAmount();
+        return;
+    }
+
+    // Split into integer and decimal parts
+    const parts = raw.split('.');
+    let intPart = parts[0] || '';
+    let decPart = parts.length > 1 ? parts[1] : '';
+    
+    // Limit decimal part to 2 digits
+    if (decPart.length > 2) {
+        decPart = decPart.substring(0, 2);
+    }
+    
+    // Remove leading zeros from integer part (but keep at least one digit)
+    intPart = intPart.replace(/^0+/, '') || '0';
+    
+    // Format integer part with thousand separators
+    const formattedInt = intPart ? Number(intPart).toLocaleString('en-US') : '0';
+    
+    // Construct the new value
+    const newValue = decPart !== '' ? `${formattedInt}.${decPart}` : formattedInt;
+    input.value = newValue;
+
+    // Restore cursor position based on digit count before cursor
+    let newPos = 0;
+    let seenDigits = 0;
+    for (let i = 0; i < newValue.length; i++) {
+        if (/\d/.test(newValue[i])) {
+            seenDigits++;
+            if (seenDigits >= digitsBeforeCaret) {
+                newPos = i + 1;
+                break;
+            }
+        }
+        if (i === newValue.length - 1) {
+            newPos = newValue.length;
+        }
+    }
+    
+    try { 
+        input.setSelectionRange(newPos, newPos); 
+    } catch (e) {}
+
     calculateTotalAmount();
 }
 
-// Function to format number as user types (allows decimal input)
-function formatNumberAsYouType(input) {
-    // Remove any commas while typing; allow digits and one decimal point
-    let value = input.value.replace(/,/g, '').replace(/[^\d.]/g, '');
-    const parts = value.split('.');
-    if (parts.length > 2) {
-        value = parts[0] + '.' + parts.slice(1).join('');
+// Function to format number with decimals on blur
+function formatNumberWithDecimals(input) {
+    let value = (input.value || '').toString().replace(/,/g, '').replace(/[^\d.]/g, '');
+    if (!value || value === '.') {
+        input.value = '0.00';
+        calculateTotalAmount();
+        return;
     }
-    input.value = value;
+    const num = parseFloat(value);
+    if (isNaN(num)) {
+        input.value = '0.00';
+        calculateTotalAmount();
+        return;
+    }
+    input.value = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    calculateTotalAmount();
+}
+
+// Function to handle keydown events for amount input
+function handleAmountKeydown(input, event) {
+    const key = event.key;
+    const cursorPos = input.selectionStart;
+    const value = input.value;
+    
+    // Allow navigation keys
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Tab'].includes(key)) {
+        return true;
+    }
+    
+    // Allow backspace and delete
+    if (['Backspace', 'Delete'].includes(key)) {
+        return true;
+    }
+    
+    // Allow decimal point (only one)
+    if (key === '.' && !value.includes('.')) {
+        return true;
+    }
+    
+    // Allow only digits
+    if (/^\d$/.test(key)) {
+        return true;
+    }
+    
+    // Prevent other keys
+    event.preventDefault();
+    return false;
 }
 
 function fetchDropdownOptions(caData = null) {
@@ -2063,13 +2172,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Add event listeners for formatting
-        input.addEventListener('blur', function() {
-            formatNumberWithDecimals(this);
-        });
-        
         input.addEventListener('input', function() {
             formatNumberAsYouType(this);
-            calculateTotalAmount();
+        });
+        
+        // Add keydown handler for better input control
+        input.addEventListener('keydown', function(event) {
+            handleAmountKeydown(this, event);
         });
     });
     
