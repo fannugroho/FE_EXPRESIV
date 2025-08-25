@@ -138,6 +138,7 @@ function populateCADetails(data) {
     if (data.attachments) displayAttachments(data.attachments);
     else displayAttachments([]);
     displayRevisedRemarks(data);
+    displayRejectionRemarks(data);
     makeAllFieldsReadOnly();
     const approvalMap = [
       { id: 'preparedBySearch', value: data.preparedName },
@@ -1004,6 +1005,115 @@ function displayRevisedRemarks(data) {
         });
     } else {
         revisedRemarksSection.style.display = 'none';
+    }
+}
+
+// Function to display rejection remarks if available
+function displayRejectionRemarks(data) {
+    // Check if status is Rejected or if we're on the rejected tab
+    if (data.status !== 'Rejected' && currentTab !== 'rejected') {
+        const rejectionSection = document.getElementById('rejectionRemarksSection');
+        if (rejectionSection) {
+            rejectionSection.style.display = 'none';
+        }
+        return;
+    }
+    
+    const rejectionSection = document.getElementById('rejectionRemarksSection');
+    const rejectionTextarea = document.getElementById('rejectionRemarks');
+    
+    if (rejectionSection && rejectionTextarea) {
+        // Check for various possible rejection remarks fields
+        let rejectionRemarks = '';
+        let rejectedByName = '';
+        
+        // For cash advance, check for various possible rejection remarks fields
+        if (data.rejectedRemarks) {
+            rejectionRemarks = data.rejectedRemarks;
+        } else if (data.rejectionRemarks) {
+            rejectionRemarks = data.rejectionRemarks;
+        } else if (data.remarksRejectByChecker) {
+            rejectionRemarks = data.remarksRejectByChecker;
+        } else if (data.remarksRejectByAcknowledger) {
+            rejectionRemarks = data.remarksRejectByAcknowledger;
+        } else if (data.remarksRejectByApprover) {
+            rejectionRemarks = data.remarksRejectByApprover;
+        } else if (data.remarksRejectByReceiver) {
+            rejectionRemarks = data.remarksRejectByReceiver;
+        } else if (data.remarks) {
+            rejectionRemarks = data.remarks;
+        }
+        
+        // Also check if rejection remarks are nested in approval object
+        if (!rejectionRemarks && data.approval) {
+            if (data.approval.rejectionRemarks) {
+                rejectionRemarks = data.approval.rejectionRemarks;
+            } else if (data.approval.remarksRejectByChecker) {
+                rejectionRemarks = data.approval.remarksRejectByChecker;
+            } else if (data.approval.remarksRejectByAcknowledger) {
+                rejectionRemarks = data.approval.remarksRejectByAcknowledger;
+            } else if (data.approval.remarksRejectByApprover) {
+                rejectionRemarks = data.approval.remarksRejectByApprover;
+            } else if (data.approval.remarksRejectByReceiver) {
+                rejectionRemarks = data.approval.remarksRejectByReceiver;
+            }
+        }
+        
+        // Get rejected by name and date for cash advance
+        if (data.rejectedByName) {
+            rejectedByName = data.rejectedByName;
+        } else if (data.approval && data.approval.rejectedByName) {
+            rejectedByName = data.approval.rejectedByName;
+        } else if (data.approval && data.approval.rejectedBy) {
+            rejectedByName = data.approval.rejectedBy;
+        }
+        
+        // Also check for rejection date in approval object
+        if (!data.rejectedDate && data.approval && data.approval.rejectedDate) {
+            data.rejectedDate = data.approval.rejectedDate;
+        }
+        
+        if (rejectionRemarks.trim() !== '') {
+            rejectionSection.style.display = 'block';
+            rejectionTextarea.value = rejectionRemarks;
+            
+            // Update the rejection info display if it exists
+            const rejectionInfo = document.getElementById('rejectionInfo');
+            if (rejectionInfo && rejectedByName) {
+                rejectionInfo.innerHTML = `
+                    <div class="text-sm text-gray-600 mb-2">
+                        <span class="font-medium">Rejected by:</span> ${rejectedByName}
+                        ${data.rejectedByNIK ? `(${data.rejectedByNIK})` : ''}
+                        ${data.rejectedDate ? `on ${new Date(data.rejectedDate).toLocaleDateString()}` : ''}
+                    </div>
+                `;
+            } else if (rejectionInfo) {
+                // If no rejected by name, just show the status
+                rejectionInfo.innerHTML = `
+                    <div class="text-sm text-gray-600 mb-2">
+                        <span class="font-medium">Status:</span> Rejected
+                        ${data.rejectedDate ? `on ${new Date(data.rejectedDate).toLocaleDateString()}` : ''}
+                    </div>
+                `;
+            }
+        } else if (currentTab === 'rejected') {
+            // If we're on the rejected tab but no remarks found, show a message
+            rejectionSection.style.display = 'block';
+            rejectionTextarea.value = 'No rejection remarks available.';
+            rejectionTextarea.classList.add('text-gray-500', 'italic');
+            
+            const rejectionInfo = document.getElementById('rejectionInfo');
+            if (rejectionInfo) {
+                rejectionInfo.innerHTML = `
+                    <div class="text-sm text-gray-600 mb-2">
+                        <span class="font-medium">Status:</span> Rejected
+                        ${data.rejectedDate ? `on ${new Date(data.rejectedDate).toLocaleDateString()}` : ''}
+                    </div>
+                `;
+            }
+        } else {
+            rejectionSection.style.display = 'none';
+        }
     }
 }
 

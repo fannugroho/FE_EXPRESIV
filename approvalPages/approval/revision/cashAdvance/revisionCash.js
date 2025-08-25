@@ -2432,9 +2432,16 @@ function makeAllFieldsReadOnly() {
     // Make all input fields read-only
     document.querySelectorAll('input, textarea, select').forEach(el => {
         if (!el.classList.contains('action-btn') && !el.classList.contains('delete-btn')) {
-            el.readOnly = true;
-            el.disabled = true;
-            el.classList.add('bg-gray-100');
+            // Ensure Submission Date and Prepared by fields are always read-only
+            if (el.id === 'submissionDate' || el.id === 'Approval.PreparedByIdSearch') {
+                el.readOnly = true;
+                el.disabled = true;
+                el.classList.add('bg-gray-100');
+            } else {
+                el.readOnly = true;
+                el.disabled = true;
+                el.classList.add('bg-gray-100');
+            }
         }
     });
     
@@ -2474,9 +2481,16 @@ function makeAllFieldsEditable() {
     // Make all input fields editable
     document.querySelectorAll('input, textarea, select').forEach(el => {
         if (!el.classList.contains('action-btn') && !el.classList.contains('delete-btn')) {
-            el.readOnly = false;
-            el.disabled = false;
-            el.classList.remove('bg-gray-100');
+            // Keep Submission Date and Prepared by fields read-only
+            if (el.id === 'submissionDate' || el.id === 'Approval.PreparedByIdSearch') {
+                el.readOnly = true;
+                el.disabled = true;
+                el.classList.add('bg-gray-100');
+            } else {
+                el.readOnly = false;
+                el.disabled = false;
+                el.classList.remove('bg-gray-100');
+            }
         }
     });
     
